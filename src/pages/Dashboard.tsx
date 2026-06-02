@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 import { Calendar, Users, TrendingUp, DollarSign, Plus, ChevronRight, Clock } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import type { Agendamento } from '../types'
+import { stagger, staggerItem } from '../lib/motion'
 
-const STATUS_CONFIG: Record<string, { label: string; className: string; dot: string }> = {
-  agendado:        { label: 'Agendado',      className: 'bg-blue-50 text-blue-600',   dot: 'bg-blue-400' },
-  confirmado:      { label: 'Confirmado',    className: 'bg-emerald-50 text-emerald-600', dot: 'bg-emerald-400' },
-  em_atendimento:  { label: 'Em andamento',  className: 'bg-amber-50 text-amber-600', dot: 'bg-amber-400' },
-  finalizado:      { label: 'Finalizado',    className: 'bg-gray-100 text-gray-500',  dot: 'bg-gray-300' },
-  cancelado:       { label: 'Cancelado',     className: 'bg-red-50 text-red-500',     dot: 'bg-red-400' },
-  nao_compareceu:  { label: 'Não veio',      className: 'bg-orange-50 text-orange-500', dot: 'bg-orange-400' },
+const STATUS_CONFIG: Record<string, { label: string; dot: string; text: string; bg: string }> = {
+  agendado:       { label: 'Agendado',     dot: '#60a5fa', text: '#2563eb', bg: '#eff6ff' },
+  confirmado:     { label: 'Confirmado',   dot: '#34d399', text: '#059669', bg: '#ecfdf5' },
+  em_atendimento: { label: 'Em andamento', dot: '#fbbf24', text: '#d97706', bg: '#fffbeb' },
+  finalizado:     { label: 'Finalizado',   dot: '#9ca3af', text: '#6b7280', bg: '#f9fafb' },
+  cancelado:      { label: 'Cancelado',    dot: '#f87171', text: '#dc2626', bg: '#fef2f2' },
+  nao_compareceu: { label: 'Não veio',     dot: '#fb923c', text: '#ea580c', bg: '#fff7ed' },
 }
 
 export default function Dashboard() {
@@ -17,16 +19,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const dataHoje = new Date().toISOString().split('T')[0]
 
-  const saudacao = (() => {
-    const h = new Date().getHours()
-    if (h < 12) return 'Bom dia'
-    if (h < 18) return 'Boa tarde'
-    return 'Boa noite'
-  })()
-
-  const dataFormatada = new Date().toLocaleDateString('pt-BR', {
-    weekday: 'long', day: 'numeric', month: 'long'
-  })
+  const hora = new Date().getHours()
+  const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite'
+  const dataFormatada = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
 
   useEffect(() => {
     async function fetch() {
@@ -48,128 +43,188 @@ export default function Dashboard() {
   const emAndamento = agendamentos.filter(a => a.status_ag === 'em_atendimento').length
   const proximos = agendamentos.filter(a => ['agendado', 'confirmado'].includes(a.status_ag)).length
 
+  const cards = [
+    { icon: Calendar,    bg: '#eff6ff', color: '#3b82f6', label: 'Agendamentos', value: String(total),       sub: 'hoje' },
+    { icon: Users,       bg: '#ecfdf5', color: '#10b981', label: 'Atendidos',    value: String(atendidos),   sub: 'finalizados' },
+    { icon: TrendingUp,  bg: '#fffbeb', color: '#f59e0b', label: 'Em andamento', value: String(emAndamento), sub: `${proximos} aguardando` },
+    { icon: DollarSign,  bg: '#f5f3ff', color: '#8b5cf6', label: 'Faturamento',  value: '—',                 sub: 'caixa não aberto' },
+  ]
+
   return (
     <div className="px-8 py-8 max-w-5xl mx-auto">
 
-      {/* Cabeçalho */}
-      <div className="flex items-start justify-between mb-8">
+      {/* Header */}
+      <motion.div
+        className="flex items-start justify-between mb-8"
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+      >
         <div>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1 capitalize">{dataFormatada}</p>
-          <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">{saudacao}</h1>
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-[0.15em] mb-1 capitalize">{dataFormatada}</p>
+          <h1 className="text-2xl font-semibold text-gray-900 tracking-[-0.02em]">{saudacao}</h1>
         </div>
-        <button className="flex items-center gap-2 bg-black text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-gray-900 active:scale-[0.97] transition-all shadow-sm">
-          <Plus size={15} />
+        <motion.button
+          className="flex items-center gap-2 bg-black text-white text-[13px] font-semibold px-4 py-2.5 rounded-xl shadow-sm"
+          whileHover={{ scale: 1.02, backgroundColor: '#1a1a1a' }}
+          whileTap={{ scale: 0.97 }}
+          transition={{ duration: 0.15 }}
+        >
+          <Plus size={14} strokeWidth={2.5} />
           Novo agendamento
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
 
       {/* Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <MetricCard
-          icon={<Calendar size={16} />}
-          iconBg="bg-blue-50 text-blue-500"
-          label="Agendamentos"
-          value={String(total)}
-          sub="hoje"
-        />
-        <MetricCard
-          icon={<Users size={16} />}
-          iconBg="bg-emerald-50 text-emerald-500"
-          label="Atendidos"
-          value={String(atendidos)}
-          sub="finalizados"
-        />
-        <MetricCard
-          icon={<TrendingUp size={16} />}
-          iconBg="bg-amber-50 text-amber-500"
-          label="Em andamento"
-          value={String(emAndamento)}
-          sub={`${proximos} aguardando`}
-        />
-        <MetricCard
-          icon={<DollarSign size={16} />}
-          iconBg="bg-violet-50 text-violet-500"
-          label="Faturamento"
-          value="—"
-          sub="caixa não aberto"
-        />
-      </div>
+      <motion.div
+        className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
+        variants={stagger}
+        initial="initial"
+        animate="animate"
+      >
+        {cards.map(({ icon: Icon, bg, color, label, value, sub }) => (
+          <motion.div
+            key={label}
+            variants={staggerItem}
+            className="bg-white rounded-2xl border border-gray-100 p-5 cursor-pointer"
+            whileHover={{ y: -2, boxShadow: '0 8px 30px rgba(0,0,0,0.07)' }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ duration: 0.2 }}
+          >
+            <motion.div
+              className="w-8 h-8 rounded-xl flex items-center justify-center mb-4"
+              style={{ backgroundColor: bg }}
+              whileHover={{ scale: 1.08 }}
+            >
+              <Icon size={16} style={{ color }} strokeWidth={2} />
+            </motion.div>
+            <motion.p
+              className="text-[26px] font-semibold text-gray-900 tracking-tight leading-none"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+            >
+              {value}
+            </motion.p>
+            <p className="text-[12px] font-medium text-gray-500 mt-1.5">{label}</p>
+            <p className="text-[11px] text-gray-300 mt-0.5">{sub}</p>
+          </motion.div>
+        ))}
+      </motion.div>
 
-      {/* Agenda do dia */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      {/* Tabela de agenda */}
+      <motion.div
+        className="bg-white rounded-2xl border border-gray-100 overflow-hidden"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+        style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' }}
+      >
+        {/* Header tabela */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-50">
-          <div className="flex items-center gap-2.5">
-            <h2 className="text-sm font-semibold text-gray-900">Agenda de hoje</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-[13px] font-semibold text-gray-900">Agenda de hoje</h2>
             {total > 0 && (
-              <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">{total}</span>
+              <motion.span
+                className="text-[11px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-semibold tabular-nums"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.4 }}
+              >
+                {total}
+              </motion.span>
             )}
           </div>
-          <button className="text-xs text-gray-400 hover:text-gray-700 flex items-center gap-1 transition font-medium">
-            Ver agenda completa <ChevronRight size={12} />
-          </button>
+          <motion.button
+            className="flex items-center gap-1 text-[12px] text-gray-400 hover:text-gray-700 transition-colors font-medium"
+            whileHover={{ x: 2 }}
+          >
+            Ver tudo <ChevronRight size={12} />
+          </motion.button>
         </div>
 
+        {/* Conteúdo */}
         {loading ? (
           <div className="px-6 py-12 flex items-center justify-center gap-3">
-            <div className="w-4 h-4 border-2 border-gray-200 border-t-gray-600 rounded-full animate-spin" />
-            <span className="text-sm text-gray-400">Carregando...</span>
+            <motion.div
+              className="w-4 h-4 border-2 border-gray-200 border-t-gray-600 rounded-full"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+            />
+            <span className="text-[13px] text-gray-400">Carregando...</span>
           </div>
         ) : agendamentos.length === 0 ? (
-          <div className="px-6 py-12 text-center">
-            <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+          <motion.div
+            className="px-6 py-14 text-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            <motion.div
+              className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-3"
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 200 }}
+            >
               <Calendar size={20} className="text-gray-300" />
-            </div>
-            <p className="text-sm font-medium text-gray-500">Nenhum agendamento hoje</p>
-            <p className="text-xs text-gray-400 mt-1">Clique em "Novo agendamento" para começar</p>
-          </div>
+            </motion.div>
+            <p className="text-[13px] font-medium text-gray-500">Nenhum agendamento hoje</p>
+            <p className="text-[12px] text-gray-300 mt-1">Clique em "Novo agendamento" para começar</p>
+          </motion.div>
         ) : (
-          <div className="divide-y divide-gray-50">
+          <motion.div
+            className="divide-y divide-gray-50"
+            variants={stagger}
+            initial="initial"
+            animate="animate"
+          >
             {agendamentos.map(ag => {
               const cfg = STATUS_CONFIG[ag.status_ag] ?? STATUS_CONFIG.agendado
               const hora = new Date(ag.dtini_ag).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+
               return (
-                <div key={ag.id_ag} className="flex items-center gap-4 px-6 py-3.5 hover:bg-gray-50/70 transition group cursor-pointer">
+                <motion.div
+                  key={ag.id_ag}
+                  variants={staggerItem}
+                  className="flex items-center gap-4 px-6 py-3.5 group cursor-pointer"
+                  whileHover={{ backgroundColor: 'rgba(249,250,251,0.8)' }}
+                  transition={{ duration: 0.12 }}
+                >
                   <div className="flex items-center gap-1.5 w-14 flex-shrink-0">
-                    <Clock size={12} className="text-gray-300" />
-                    <span className="text-sm font-semibold text-gray-900 tabular-nums">{hora}</span>
+                    <Clock size={11} className="text-gray-300" />
+                    <span className="text-[13px] font-semibold text-gray-900 tabular-nums">{hora}</span>
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{ag.clientes?.nome_cl ?? '—'}</p>
-                    <p className="text-xs text-gray-400 truncate">{ag.servicos?.nome_sv ?? '—'}</p>
+                    <p className="text-[13px] font-semibold text-gray-900 truncate">{ag.clientes?.nome_cl ?? '—'}</p>
+                    <p className="text-[11px] text-gray-400 truncate mt-0.5">{ag.servicos?.nome_sv ?? '—'}</p>
                   </div>
 
-                  <div className="hidden sm:block text-xs text-gray-400 w-28 truncate">
+                  <div className="hidden sm:block text-[12px] text-gray-400 w-28 truncate font-medium">
                     {ag.funcionarios?.nome_fu ?? '—'}
                   </div>
 
-                  <span className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0 ${cfg.className}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                  <motion.span
+                    className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0"
+                    style={{ color: cfg.text, backgroundColor: cfg.bg }}
+                    whileHover={{ scale: 1.03 }}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.dot }} />
                     {cfg.label}
-                  </span>
+                  </motion.span>
 
-                  <ChevronRight size={14} className="text-gray-200 group-hover:text-gray-400 transition flex-shrink-0" />
-                </div>
+                  <motion.div
+                    className="text-gray-200 group-hover:text-gray-400 transition-colors"
+                    whileHover={{ x: 2 }}
+                  >
+                    <ChevronRight size={14} />
+                  </motion.div>
+                </motion.div>
               )
             })}
-          </div>
+          </motion.div>
         )}
-      </div>
-    </div>
-  )
-}
-
-function MetricCard({ icon, iconBg, label, value, sub }: {
-  icon: React.ReactNode; iconBg: string; label: string; value: string; sub: string
-}) {
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:shadow-md transition-shadow">
-      <div className={`w-8 h-8 rounded-xl flex items-center justify-center mb-4 ${iconBg}`}>
-        {icon}
-      </div>
-      <p className="text-2xl font-semibold text-gray-900 tracking-tight">{value}</p>
-      <p className="text-xs font-medium text-gray-500 mt-0.5">{label}</p>
-      <p className="text-xs text-gray-300 mt-0.5">{sub}</p>
+      </motion.div>
     </div>
   )
 }
