@@ -1,30 +1,81 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Calendar, Users, TrendingUp, DollarSign, Plus, ChevronRight, Clock } from 'lucide-react'
+import {
+  Calendar, Users, TrendingUp, DollarSign,
+  Plus, ChevronRight, Clock, ArrowUpRight,
+} from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import type { Agendamento } from '../types'
 import { stagger, staggerItem } from '../lib/motion'
 
-const STATUS_CONFIG: Record<string, { label: string; dot: string; text: string; bg: string }> = {
-  agendado:       { label: 'Agendado',     dot: '#60a5fa', text: '#2563eb', bg: '#eff6ff' },
-  confirmado:     { label: 'Confirmado',   dot: '#34d399', text: '#059669', bg: '#ecfdf5' },
-  em_atendimento: { label: 'Em andamento', dot: '#fbbf24', text: '#d97706', bg: '#fffbeb' },
-  finalizado:     { label: 'Finalizado',   dot: '#9ca3af', text: '#6b7280', bg: '#f9fafb' },
-  cancelado:      { label: 'Cancelado',    dot: '#f87171', text: '#dc2626', bg: '#fef2f2' },
-  nao_compareceu: { label: 'Não veio',     dot: '#fb923c', text: '#ea580c', bg: '#fff7ed' },
+const STATUS_CONFIG: Record<string, { label: string; dot: string; color: string; bg: string }> = {
+  agendado:       { label: 'Agendado',     dot: '#3b82f6', color: '#2563eb', bg: 'rgba(59,130,246,0.1)'  },
+  confirmado:     { label: 'Confirmado',   dot: '#10b981', color: '#059669', bg: 'rgba(16,185,129,0.1)'  },
+  em_atendimento: { label: 'Em andamento', dot: '#f59e0b', color: '#d97706', bg: 'rgba(245,158,11,0.1)'  },
+  finalizado:     { label: 'Finalizado',   dot: '#6b7280', color: '#52525b', bg: 'rgba(107,114,128,0.08)'},
+  cancelado:      { label: 'Cancelado',    dot: '#ef4444', color: '#dc2626', bg: 'rgba(239,68,68,0.08)'  },
+  nao_compareceu: { label: 'Não veio',     dot: '#f97316', color: '#ea580c', bg: 'rgba(249,115,22,0.08)' },
 }
+
+interface CardConfig {
+  label: string
+  icon: typeof Calendar
+  iconColor: string
+  iconBg: string
+  trend: string | null
+  trendUp: boolean | null
+}
+
+const CARD_CONFIGS: CardConfig[] = [
+  {
+    label:     'Agendamentos',
+    icon:      Calendar,
+    iconColor: '#3b82f6',
+    iconBg:    'rgba(59,130,246,0.12)',
+    trend:     '+8%',
+    trendUp:   true,
+  },
+  {
+    label:     'Atendidos',
+    icon:      Users,
+    iconColor: '#10b981',
+    iconBg:    'rgba(16,185,129,0.12)',
+    trend:     '+12%',
+    trendUp:   true,
+  },
+  {
+    label:     'Em andamento',
+    icon:      TrendingUp,
+    iconColor: '#f59e0b',
+    iconBg:    'rgba(245,158,11,0.12)',
+    trend:     null,
+    trendUp:   null,
+  },
+  {
+    label:     'Faturamento',
+    icon:      DollarSign,
+    iconColor: '#8b5cf6',
+    iconBg:    'rgba(139,92,246,0.12)',
+    trend:     null,
+    trendUp:   null,
+  },
+]
 
 export default function Dashboard() {
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading]           = useState(true)
   const dataHoje = new Date().toISOString().split('T')[0]
 
   const hora = new Date().getHours()
   const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite'
-  const dataFormatada = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
+  const dataFormatada = new Date().toLocaleDateString('pt-BR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
 
   useEffect(() => {
-    async function fetch() {
+    async function loadAgendamentos() {
       const { data } = await supabase
         .from('agendamentos')
         .select('*, clientes(*), funcionarios(*), servicos(*)')
@@ -35,187 +86,419 @@ export default function Dashboard() {
       setAgendamentos(data ?? [])
       setLoading(false)
     }
-    fetch()
+    loadAgendamentos()
   }, [dataHoje])
 
-  const total = agendamentos.length
-  const atendidos = agendamentos.filter(a => a.status_ag === 'finalizado').length
+  const total       = agendamentos.length
+  const atendidos   = agendamentos.filter(a => a.status_ag === 'finalizado').length
   const emAndamento = agendamentos.filter(a => a.status_ag === 'em_atendimento').length
-  const proximos = agendamentos.filter(a => ['agendado', 'confirmado'].includes(a.status_ag)).length
+  const proximos    = agendamentos.filter(a => ['agendado', 'confirmado'].includes(a.status_ag)).length
 
-  const cards = [
-    { icon: Calendar,    bg: '#eff6ff', color: '#3b82f6', label: 'Agendamentos', value: String(total),       sub: 'hoje' },
-    { icon: Users,       bg: '#ecfdf5', color: '#10b981', label: 'Atendidos',    value: String(atendidos),   sub: 'finalizados' },
-    { icon: TrendingUp,  bg: '#fffbeb', color: '#f59e0b', label: 'Em andamento', value: String(emAndamento), sub: `${proximos} aguardando` },
-    { icon: DollarSign,  bg: '#f5f3ff', color: '#8b5cf6', label: 'Faturamento',  value: '—',                 sub: 'caixa não aberto' },
-  ]
+  const cardValues = [String(total), String(atendidos), String(emAndamento), '—']
+  const cardSubs   = ['hoje', 'finalizados hoje', `${proximos} aguardando`, 'caixa não aberto']
 
   return (
-    <div className="px-8 py-8 max-w-5xl mx-auto">
+    <div style={{ maxWidth: '1120px', margin: '0 auto', padding: '36px 32px 48px' }}>
 
-      {/* Header */}
+      {/* Page header */}
       <motion.div
-        className="flex items-start justify-between mb-8"
-        initial={{ opacity: 0, y: -12 }}
+        className="flex items-start justify-between"
+        style={{ marginBottom: '32px' }}
+        initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+        transition={{ duration: 0.38, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
         <div>
-          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-[0.15em] mb-1 capitalize">{dataFormatada}</p>
-          <h1 className="text-2xl font-semibold text-gray-900 tracking-[-0.02em]">{saudacao}</h1>
+          <p
+            className="uppercase font-semibold capitalize"
+            style={{
+              fontSize: '11px',
+              letterSpacing: '0.16em',
+              color: '#a1a1aa',
+              marginBottom: '6px',
+            }}
+          >
+            {dataFormatada}
+          </p>
+          <h1
+            className="font-bold tracking-tight"
+            style={{ fontSize: '26px', color: '#09090b', lineHeight: 1.2 }}
+          >
+            {saudacao}
+          </h1>
+          <p style={{ fontSize: '14px', color: '#a1a1aa', marginTop: '4px', fontWeight: 500 }}>
+            Aqui está o resumo do seu dia.
+          </p>
         </div>
+
         <motion.button
-          className="flex items-center gap-2 bg-black text-white text-[13px] font-semibold px-4 py-2.5 rounded-xl shadow-sm"
-          whileHover={{ scale: 1.02, backgroundColor: '#1a1a1a' }}
+          className="flex items-center gap-2 text-white font-semibold rounded-xl"
+          style={{
+            fontSize: '13px',
+            padding: '10px 18px',
+            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+            boxShadow: '0 4px 16px rgba(99,102,241,0.32)',
+            transition: 'all 0.2s ease',
+          }}
+          whileHover={{
+            scale: 1.02,
+            boxShadow: '0 6px 22px rgba(99,102,241,0.44)',
+          }}
           whileTap={{ scale: 0.97 }}
-          transition={{ duration: 0.15 }}
+          transition={{ duration: 0.18 }}
         >
           <Plus size={14} strokeWidth={2.5} />
           Novo agendamento
         </motion.button>
       </motion.div>
 
-      {/* Cards */}
+      {/* Metric cards */}
       <motion.div
-        className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
+        className="grid"
+        style={{
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '16px',
+          marginBottom: '24px',
+        }}
         variants={stagger}
         initial="initial"
         animate="animate"
       >
-        {cards.map(({ icon: Icon, bg, color, label, value, sub }) => (
-          <motion.div
-            key={label}
-            variants={staggerItem}
-            className="bg-white rounded-2xl border border-gray-100 p-5 cursor-pointer"
-            whileHover={{ y: -2, boxShadow: '0 8px 30px rgba(0,0,0,0.07)' }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ duration: 0.2 }}
-          >
+        {CARD_CONFIGS.map((cfg, i) => {
+          const Icon  = cfg.icon
+          const value = cardValues[i]
+          const sub   = cardSubs[i]
+          const isLive = i === 2
+
+          return (
             <motion.div
-              className="w-8 h-8 rounded-xl flex items-center justify-center mb-4"
-              style={{ backgroundColor: bg }}
-              whileHover={{ scale: 1.08 }}
+              key={cfg.label}
+              variants={staggerItem}
+              className="rounded-2xl cursor-pointer"
+              style={{
+                background: '#ffffff',
+                border: '1px solid rgba(0,0,0,0.07)',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.05), 0 4px 20px rgba(0,0,0,0.04)',
+                padding: '20px',
+              }}
+              whileHover={{
+                y: -3,
+                boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                transition: { duration: 0.18 },
+              }}
+              whileTap={{ scale: 0.98 }}
             >
-              <Icon size={16} style={{ color }} strokeWidth={2} />
+              {/* Top row */}
+              <div className="flex items-center justify-between" style={{ marginBottom: '16px' }}>
+                <div
+                  className="flex items-center justify-center rounded-xl"
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    background: cfg.iconBg,
+                  }}
+                >
+                  <Icon size={16} style={{ color: cfg.iconColor }} strokeWidth={2} />
+                </div>
+
+                {isLive ? (
+                  <div className="flex items-center gap-1.5">
+                    <motion.div
+                      className="rounded-full"
+                      style={{ width: '6px', height: '6px', background: '#f59e0b' }}
+                      animate={{ opacity: [1, 0.3, 1] }}
+                      transition={{ duration: 1.6, repeat: Infinity }}
+                    />
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: '#d97706' }}>
+                      ao vivo
+                    </span>
+                  </div>
+                ) : cfg.trend ? (
+                  <div
+                    className="flex items-center gap-0.5"
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      color: cfg.trendUp ? '#10b981' : '#a1a1aa',
+                    }}
+                  >
+                    {cfg.trendUp && <ArrowUpRight size={12} />}
+                    {cfg.trend}
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Value */}
+              <motion.p
+                className="font-bold tabular-nums"
+                style={{
+                  fontSize: '30px',
+                  color: '#09090b',
+                  lineHeight: 1,
+                  letterSpacing: '-0.03em',
+                }}
+                initial={{ opacity: 0, scale: 0.84 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{
+                  delay: 0.12 + i * 0.06,
+                  type: 'spring',
+                  stiffness: 220,
+                  damping: 18,
+                }}
+              >
+                {value}
+              </motion.p>
+
+              <p
+                className="font-semibold"
+                style={{ fontSize: '12px', color: '#52525b', marginTop: '8px' }}
+              >
+                {cfg.label}
+              </p>
+              <p style={{ fontSize: '11px', color: '#a1a1aa', marginTop: '2px' }}>
+                {sub}
+              </p>
             </motion.div>
-            <motion.p
-              className="text-[26px] font-semibold text-gray-900 tracking-tight leading-none"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-            >
-              {value}
-            </motion.p>
-            <p className="text-[12px] font-medium text-gray-500 mt-1.5">{label}</p>
-            <p className="text-[11px] text-gray-300 mt-0.5">{sub}</p>
-          </motion.div>
-        ))}
+          )
+        })}
       </motion.div>
 
-      {/* Tabela de agenda */}
+      {/* Agenda table */}
       <motion.div
-        className="bg-white rounded-2xl border border-gray-100 overflow-hidden"
-        initial={{ opacity: 0, y: 16 }}
+        className="rounded-2xl overflow-hidden"
+        style={{
+          background: '#ffffff',
+          border: '1px solid rgba(0,0,0,0.07)',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.05), 0 4px 20px rgba(0,0,0,0.04)',
+        }}
+        initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
-        style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' }}
+        transition={{ duration: 0.42, delay: 0.18, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
-        {/* Header tabela */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-50">
+        {/* Table toolbar */}
+        <div
+          className="flex items-center justify-between"
+          style={{
+            padding: '16px 24px',
+            borderBottom: '1px solid rgba(0,0,0,0.05)',
+          }}
+        >
           <div className="flex items-center gap-3">
-            <h2 className="text-[13px] font-semibold text-gray-900">Agenda de hoje</h2>
+            <div
+              className="flex items-center justify-center rounded-xl"
+              style={{ width: '30px', height: '30px', background: 'rgba(99,102,241,0.1)' }}
+            >
+              <Calendar size={13} style={{ color: '#6366f1' }} strokeWidth={2} />
+            </div>
+            <h2 style={{ fontSize: '13px', fontWeight: 600, color: '#09090b' }}>
+              Agenda de hoje
+            </h2>
             {total > 0 && (
               <motion.span
-                className="text-[11px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-semibold tabular-nums"
+                className="font-bold tabular-nums rounded-full"
+                style={{
+                  fontSize: '11px',
+                  padding: '2px 8px',
+                  background: 'rgba(99,102,241,0.09)',
+                  color: '#6366f1',
+                }}
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.4 }}
+                transition={{ type: 'spring', stiffness: 320, damping: 22, delay: 0.38 }}
               >
                 {total}
               </motion.span>
             )}
           </div>
+
           <motion.button
-            className="flex items-center gap-1 text-[12px] text-gray-400 hover:text-gray-700 transition-colors font-medium"
-            whileHover={{ x: 2 }}
+            className="flex items-center gap-1 font-semibold"
+            style={{ fontSize: '12px', color: '#a1a1aa' }}
+            whileHover={{ color: '#09090b', x: 2 }}
+            transition={{ duration: 0.13 }}
           >
             Ver tudo <ChevronRight size={12} />
           </motion.button>
         </div>
 
-        {/* Conteúdo */}
+        {/* Body */}
         {loading ? (
-          <div className="px-6 py-12 flex items-center justify-center gap-3">
+          <div
+            className="flex items-center justify-center gap-3"
+            style={{ padding: '56px 24px' }}
+          >
             <motion.div
-              className="w-4 h-4 border-2 border-gray-200 border-t-gray-600 rounded-full"
+              className="rounded-full"
+              style={{
+                width: '16px',
+                height: '16px',
+                border: '2px solid #e4e4e7',
+                borderTopColor: '#6366f1',
+              }}
               animate={{ rotate: 360 }}
-              transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+              transition={{ duration: 0.75, repeat: Infinity, ease: 'linear' }}
             />
-            <span className="text-[13px] text-gray-400">Carregando...</span>
+            <span style={{ fontSize: '13px', color: '#a1a1aa' }}>Carregando agenda...</span>
           </div>
+
         ) : agendamentos.length === 0 ? (
           <motion.div
-            className="px-6 py-14 text-center"
+            className="text-center"
+            style={{ padding: '64px 24px' }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
             <motion.div
-              className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-3"
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 200 }}
+              className="flex items-center justify-center rounded-2xl mx-auto"
+              style={{
+                width: '52px',
+                height: '52px',
+                background: 'rgba(99,102,241,0.08)',
+                marginBottom: '16px',
+              }}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 220, damping: 18 }}
             >
-              <Calendar size={20} className="text-gray-300" />
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.65 }}>
+                <circle cx="6" cy="6" r="3"/>
+                <circle cx="6" cy="18" r="3"/>
+                <line x1="20" y1="4" x2="8.12" y2="15.88"/>
+                <line x1="14.47" y1="14.48" x2="20" y2="20"/>
+                <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+              </svg>
             </motion.div>
-            <p className="text-[13px] font-medium text-gray-500">Nenhum agendamento hoje</p>
-            <p className="text-[12px] text-gray-300 mt-1">Clique em "Novo agendamento" para começar</p>
+            <p style={{ fontSize: '14px', fontWeight: 600, color: '#3f3f46', marginBottom: '6px' }}>
+              Nenhum agendamento hoje
+            </p>
+            <p style={{ fontSize: '13px', color: '#a1a1aa', marginBottom: '20px' }}>
+              Adicione um novo agendamento para começar.
+            </p>
+            <motion.button
+              className="inline-flex items-center gap-2 text-white font-semibold rounded-xl"
+              style={{
+                fontSize: '13px',
+                padding: '9px 16px',
+                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                boxShadow: '0 2px 10px rgba(99,102,241,0.28)',
+              }}
+              whileHover={{ scale: 1.03, boxShadow: '0 4px 16px rgba(99,102,241,0.38)' }}
+              whileTap={{ scale: 0.97 }}
+            >
+              <Plus size={13} strokeWidth={2.5} />
+              Novo agendamento
+            </motion.button>
           </motion.div>
+
         ) : (
           <motion.div
-            className="divide-y divide-gray-50"
             variants={stagger}
             initial="initial"
             animate="animate"
           >
+            {/* Column headers */}
+            <div
+              className="grid"
+              style={{
+                gridTemplateColumns: '72px 1fr 160px 130px 28px',
+                padding: '8px 24px',
+                fontSize: '10.5px',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                color: '#a1a1aa',
+                borderBottom: '1px solid rgba(0,0,0,0.05)',
+                background: 'rgba(0,0,0,0.016)',
+              }}
+            >
+              <span>Hora</span>
+              <span>Cliente</span>
+              <span className="hidden sm:block">Profissional</span>
+              <span>Status</span>
+              <span />
+            </div>
+
             {agendamentos.map(ag => {
-              const cfg = STATUS_CONFIG[ag.status_ag] ?? STATUS_CONFIG.agendado
-              const hora = new Date(ag.dtini_ag).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+              const cfg  = STATUS_CONFIG[ag.status_ag] ?? STATUS_CONFIG.agendado
+              const hora = new Date(ag.dtini_ag).toLocaleTimeString('pt-BR', {
+                hour:   '2-digit',
+                minute: '2-digit',
+              })
 
               return (
                 <motion.div
                   key={ag.id_ag}
                   variants={staggerItem}
-                  className="flex items-center gap-4 px-6 py-3.5 group cursor-pointer"
-                  whileHover={{ backgroundColor: 'rgba(249,250,251,0.8)' }}
-                  transition={{ duration: 0.12 }}
+                  className="grid items-center group cursor-pointer"
+                  style={{
+                    gridTemplateColumns: '72px 1fr 160px 130px 28px',
+                    padding: '14px 24px',
+                    borderBottom: '1px solid rgba(0,0,0,0.04)',
+                    transition: 'background 0.1s ease',
+                  }}
+                  whileHover={{ backgroundColor: 'rgba(0,0,0,0.016)' }}
                 >
-                  <div className="flex items-center gap-1.5 w-14 flex-shrink-0">
-                    <Clock size={11} className="text-gray-300" />
-                    <span className="text-[13px] font-semibold text-gray-900 tabular-nums">{hora}</span>
+                  {/* Hora */}
+                  <div className="flex items-center gap-1.5">
+                    <Clock size={11} style={{ color: '#d4d4d8', flexShrink: 0 }} />
+                    <span
+                      className="font-bold tabular-nums"
+                      style={{ fontSize: '13px', color: '#27272a' }}
+                    >
+                      {hora}
+                    </span>
                   </div>
 
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold text-gray-900 truncate">{ag.clientes?.nome_cl ?? '—'}</p>
-                    <p className="text-[11px] text-gray-400 truncate mt-0.5">{ag.servicos?.nome_sv ?? '—'}</p>
+                  {/* Cliente + serviço */}
+                  <div style={{ minWidth: 0 }}>
+                    <p
+                      className="font-semibold truncate"
+                      style={{ fontSize: '13px', color: '#09090b' }}
+                    >
+                      {ag.clientes?.nome_cl ?? '—'}
+                    </p>
+                    <p
+                      className="truncate"
+                      style={{ fontSize: '11px', color: '#a1a1aa', marginTop: '2px' }}
+                    >
+                      {ag.servicos?.nome_sv ?? '—'}
+                    </p>
                   </div>
 
-                  <div className="hidden sm:block text-[12px] text-gray-400 w-28 truncate font-medium">
+                  {/* Profissional */}
+                  <div
+                    className="hidden sm:block truncate font-medium"
+                    style={{ fontSize: '12px', color: '#71717a' }}
+                  >
                     {ag.funcionarios?.nome_fu ?? '—'}
                   </div>
 
-                  <motion.span
-                    className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0"
-                    style={{ color: cfg.text, backgroundColor: cfg.bg }}
-                    whileHover={{ scale: 1.03 }}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.dot }} />
-                    {cfg.label}
-                  </motion.span>
+                  {/* Status */}
+                  <div>
+                    <motion.span
+                      className="inline-flex items-center gap-1.5 rounded-full font-semibold"
+                      style={{
+                        fontSize: '11px',
+                        padding: '4px 10px',
+                        color: cfg.color,
+                        background: cfg.bg,
+                      }}
+                      whileHover={{ scale: 1.04 }}
+                    >
+                      <span
+                        className="rounded-full flex-shrink-0"
+                        style={{ width: '5px', height: '5px', background: cfg.dot }}
+                      />
+                      {cfg.label}
+                    </motion.span>
+                  </div>
 
+                  {/* Arrow */}
                   <motion.div
-                    className="text-gray-200 group-hover:text-gray-400 transition-colors"
-                    whileHover={{ x: 2 }}
+                    className="flex items-center justify-center"
+                    style={{ color: '#e4e4e7', transition: 'color 0.12s ease' }}
+                    whileHover={{ color: '#71717a', x: 2 }}
                   >
                     <ChevronRight size={14} />
                   </motion.div>
