@@ -9,12 +9,12 @@ import type { Agendamento } from '../types'
 import { stagger, staggerItem } from '../lib/motion'
 
 const STATUS_CONFIG: Record<string, { label: string; dot: string; color: string; bg: string }> = {
-  agendado:       { label: 'Agendado',     dot: '#3b82f6', color: '#2563eb', bg: 'rgba(59,130,246,0.1)'  },
-  confirmado:     { label: 'Confirmado',   dot: '#10b981', color: '#059669', bg: 'rgba(16,185,129,0.1)'  },
-  em_atendimento: { label: 'Em andamento', dot: '#f59e0b', color: '#d97706', bg: 'rgba(245,158,11,0.1)'  },
-  finalizado:     { label: 'Finalizado',   dot: '#6b7280', color: '#52525b', bg: 'rgba(107,114,128,0.08)'},
-  cancelado:      { label: 'Cancelado',    dot: '#ef4444', color: '#dc2626', bg: 'rgba(239,68,68,0.08)'  },
-  nao_compareceu: { label: 'Não veio',     dot: '#f97316', color: '#ea580c', bg: 'rgba(249,115,22,0.08)' },
+  agendado:       { label: 'Agendado',     dot: '#60a5fa', color: '#60a5fa', bg: 'rgba(59,130,246,0.12)'  },
+  confirmado:     { label: 'Confirmado',   dot: '#4ADE80', color: '#4ADE80', bg: 'rgba(74,222,128,0.12)'  },
+  em_atendimento: { label: 'Em andamento', dot: '#FBBF24', color: '#FBBF24', bg: 'rgba(251,191,36,0.12)'  },
+  finalizado:     { label: 'Finalizado',   dot: '#9CA3AF', color: '#9CA3AF', bg: 'rgba(156,163,175,0.1)'  },
+  cancelado:      { label: 'Cancelado',    dot: '#F87171', color: '#F87171', bg: 'rgba(248,113,113,0.1)'  },
+  nao_compareceu: { label: 'Não veio',     dot: '#fb923c', color: '#fb923c', bg: 'rgba(251,146,60,0.1)'   },
 }
 
 interface CardConfig {
@@ -30,32 +30,32 @@ const CARD_CONFIGS: CardConfig[] = [
   {
     label:     'Agendamentos',
     icon:      Calendar,
-    iconColor: '#3b82f6',
-    iconBg:    'rgba(59,130,246,0.12)',
+    iconColor: '#60a5fa',
+    iconBg:    'rgba(59,130,246,0.15)',
     trend:     '+8%',
     trendUp:   true,
   },
   {
     label:     'Atendidos',
     icon:      Users,
-    iconColor: '#10b981',
-    iconBg:    'rgba(16,185,129,0.12)',
+    iconColor: '#4ADE80',
+    iconBg:    'rgba(74,222,128,0.15)',
     trend:     '+12%',
     trendUp:   true,
   },
   {
     label:     'Em andamento',
     icon:      TrendingUp,
-    iconColor: '#f59e0b',
-    iconBg:    'rgba(245,158,11,0.12)',
+    iconColor: '#FBBF24',
+    iconBg:    'rgba(251,191,36,0.15)',
     trend:     null,
     trendUp:   null,
   },
   {
     label:     'Faturamento',
     icon:      DollarSign,
-    iconColor: '#8b5cf6',
-    iconBg:    'rgba(139,92,246,0.12)',
+    iconColor: '#C8A951',
+    iconBg:    'rgba(200,169,81,0.15)',
     trend:     null,
     trendUp:   null,
   },
@@ -111,38 +111,37 @@ export default function Dashboard() {
         <div>
           <p
             className="uppercase font-semibold capitalize"
-            style={{
-              fontSize: '11px',
-              letterSpacing: '0.16em',
-              color: '#a1a1aa',
-              marginBottom: '6px',
-            }}
+            style={{ fontSize: '11px', letterSpacing: '0.16em', color: 'var(--text-muted)', marginBottom: '6px' }}
           >
             {dataFormatada}
           </p>
           <h1
             className="font-bold tracking-tight"
-            style={{ fontSize: '26px', color: '#09090b', lineHeight: 1.2 }}
+            style={{ fontSize: '26px', color: 'var(--text-primary)', lineHeight: 1.2 }}
           >
             {saudacao}
           </h1>
-          <p style={{ fontSize: '14px', color: '#a1a1aa', marginTop: '4px', fontWeight: 500 }}>
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '4px', fontWeight: 500 }}>
             Aqui está o resumo do seu dia.
           </p>
         </div>
 
         <motion.button
-          className="flex items-center gap-2 text-white font-semibold rounded-xl"
+          className="flex items-center gap-2 font-semibold rounded-xl"
           style={{
             fontSize: '13px',
             padding: '10px 18px',
-            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-            boxShadow: '0 4px 16px rgba(99,102,241,0.32)',
+            background: 'var(--accent)',
+            color: '#0f0f0f',
+            boxShadow: 'var(--shadow-accent)',
             transition: 'all 0.2s ease',
+            border: 'none',
+            cursor: 'pointer',
           }}
           whileHover={{
             scale: 1.02,
-            boxShadow: '0 6px 22px rgba(99,102,241,0.44)',
+            background: '#D4AF37',
+            boxShadow: '0 6px 24px rgba(200,169,81,0.4)',
           }}
           whileTap={{ scale: 0.97 }}
           transition={{ duration: 0.18 }}
@@ -155,11 +154,7 @@ export default function Dashboard() {
       {/* Metric cards */}
       <motion.div
         className="grid"
-        style={{
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '16px',
-          marginBottom: '24px',
-        }}
+        style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}
         variants={stagger}
         initial="initial"
         animate="animate"
@@ -176,14 +171,15 @@ export default function Dashboard() {
               variants={staggerItem}
               className="rounded-2xl cursor-pointer"
               style={{
-                background: '#ffffff',
-                border: '1px solid rgba(0,0,0,0.07)',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.05), 0 4px 20px rgba(0,0,0,0.04)',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border)',
+                boxShadow: 'var(--shadow-sm)',
                 padding: '20px',
+                transition: 'border-color 0.2s ease',
               }}
               whileHover={{
                 y: -3,
-                boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
                 transition: { duration: 0.18 },
               }}
               whileTap={{ scale: 0.98 }}
@@ -192,11 +188,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between" style={{ marginBottom: '16px' }}>
                 <div
                   className="flex items-center justify-center rounded-xl"
-                  style={{
-                    width: '38px',
-                    height: '38px',
-                    background: cfg.iconBg,
-                  }}
+                  style={{ width: '38px', height: '38px', background: cfg.iconBg }}
                 >
                   <Icon size={16} style={{ color: cfg.iconColor }} strokeWidth={2} />
                 </div>
@@ -205,22 +197,18 @@ export default function Dashboard() {
                   <div className="flex items-center gap-1.5">
                     <motion.div
                       className="rounded-full"
-                      style={{ width: '6px', height: '6px', background: '#f59e0b' }}
+                      style={{ width: '6px', height: '6px', background: '#FBBF24' }}
                       animate={{ opacity: [1, 0.3, 1] }}
                       transition={{ duration: 1.6, repeat: Infinity }}
                     />
-                    <span style={{ fontSize: '11px', fontWeight: 600, color: '#d97706' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: '#FBBF24' }}>
                       ao vivo
                     </span>
                   </div>
                 ) : cfg.trend ? (
                   <div
                     className="flex items-center gap-0.5"
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      color: cfg.trendUp ? '#10b981' : '#a1a1aa',
-                    }}
+                    style={{ fontSize: '11px', fontWeight: 600, color: cfg.trendUp ? 'var(--success)' : 'var(--text-muted)' }}
                   >
                     {cfg.trendUp && <ArrowUpRight size={12} />}
                     {cfg.trend}
@@ -231,31 +219,18 @@ export default function Dashboard() {
               {/* Value */}
               <motion.p
                 className="font-bold tabular-nums"
-                style={{
-                  fontSize: '30px',
-                  color: '#09090b',
-                  lineHeight: 1,
-                  letterSpacing: '-0.03em',
-                }}
+                style={{ fontSize: '30px', color: 'var(--text-primary)', lineHeight: 1, letterSpacing: '-0.03em' }}
                 initial={{ opacity: 0, scale: 0.84 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{
-                  delay: 0.12 + i * 0.06,
-                  type: 'spring',
-                  stiffness: 220,
-                  damping: 18,
-                }}
+                transition={{ delay: 0.12 + i * 0.06, type: 'spring', stiffness: 220, damping: 18 }}
               >
                 {value}
               </motion.p>
 
-              <p
-                className="font-semibold"
-                style={{ fontSize: '12px', color: '#52525b', marginTop: '8px' }}
-              >
+              <p className="font-semibold" style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '8px' }}>
                 {cfg.label}
               </p>
-              <p style={{ fontSize: '11px', color: '#a1a1aa', marginTop: '2px' }}>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
                 {sub}
               </p>
             </motion.div>
@@ -267,9 +242,9 @@ export default function Dashboard() {
       <motion.div
         className="rounded-2xl overflow-hidden"
         style={{
-          background: '#ffffff',
-          border: '1px solid rgba(0,0,0,0.07)',
-          boxShadow: '0 1px 4px rgba(0,0,0,0.05), 0 4px 20px rgba(0,0,0,0.04)',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border)',
+          boxShadow: 'var(--shadow-sm)',
         }}
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
@@ -278,19 +253,16 @@ export default function Dashboard() {
         {/* Table toolbar */}
         <div
           className="flex items-center justify-between"
-          style={{
-            padding: '16px 24px',
-            borderBottom: '1px solid rgba(0,0,0,0.05)',
-          }}
+          style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)' }}
         >
           <div className="flex items-center gap-3">
             <div
               className="flex items-center justify-center rounded-xl"
-              style={{ width: '30px', height: '30px', background: 'rgba(99,102,241,0.1)' }}
+              style={{ width: '30px', height: '30px', background: 'var(--accent-muted)' }}
             >
-              <Calendar size={13} style={{ color: '#6366f1' }} strokeWidth={2} />
+              <Calendar size={13} style={{ color: 'var(--accent-text)' }} strokeWidth={2} />
             </div>
-            <h2 style={{ fontSize: '13px', fontWeight: 600, color: '#09090b' }}>
+            <h2 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
               Agenda de hoje
             </h2>
             {total > 0 && (
@@ -299,8 +271,8 @@ export default function Dashboard() {
                 style={{
                   fontSize: '11px',
                   padding: '2px 8px',
-                  background: 'rgba(99,102,241,0.09)',
-                  color: '#6366f1',
+                  background: 'var(--accent-muted)',
+                  color: 'var(--accent-text)',
                 }}
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
@@ -313,8 +285,8 @@ export default function Dashboard() {
 
           <motion.button
             className="flex items-center gap-1 font-semibold"
-            style={{ fontSize: '12px', color: '#a1a1aa' }}
-            whileHover={{ color: '#09090b', x: 2 }}
+            style={{ fontSize: '12px', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}
+            whileHover={{ color: '#F5F5F0', x: 2 }}
             transition={{ duration: 0.13 }}
           >
             Ver tudo <ChevronRight size={12} />
@@ -323,22 +295,14 @@ export default function Dashboard() {
 
         {/* Body */}
         {loading ? (
-          <div
-            className="flex items-center justify-center gap-3"
-            style={{ padding: '56px 24px' }}
-          >
+          <div className="flex items-center justify-center gap-3" style={{ padding: '56px 24px' }}>
             <motion.div
               className="rounded-full"
-              style={{
-                width: '16px',
-                height: '16px',
-                border: '2px solid #e4e4e7',
-                borderTopColor: '#6366f1',
-              }}
+              style={{ width: '16px', height: '16px', border: '2px solid var(--border)', borderTopColor: 'var(--accent)' }}
               animate={{ rotate: 360 }}
               transition={{ duration: 0.75, repeat: Infinity, ease: 'linear' }}
             />
-            <span style={{ fontSize: '13px', color: '#a1a1aa' }}>Carregando agenda...</span>
+            <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Carregando agenda...</span>
           </div>
 
         ) : agendamentos.length === 0 ? (
@@ -351,17 +315,12 @@ export default function Dashboard() {
           >
             <motion.div
               className="flex items-center justify-center rounded-2xl mx-auto"
-              style={{
-                width: '52px',
-                height: '52px',
-                background: 'rgba(99,102,241,0.08)',
-                marginBottom: '16px',
-              }}
+              style={{ width: '52px', height: '52px', background: 'var(--accent-muted)', marginBottom: '16px' }}
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', stiffness: 220, damping: 18 }}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.65 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8A951" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.8 }}>
                 <circle cx="6" cy="6" r="3"/>
                 <circle cx="6" cy="18" r="3"/>
                 <line x1="20" y1="4" x2="8.12" y2="15.88"/>
@@ -369,21 +328,24 @@ export default function Dashboard() {
                 <line x1="8.12" y1="8.12" x2="12" y2="12"/>
               </svg>
             </motion.div>
-            <p style={{ fontSize: '14px', fontWeight: 600, color: '#3f3f46', marginBottom: '6px' }}>
+            <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
               Nenhum agendamento hoje
             </p>
-            <p style={{ fontSize: '13px', color: '#a1a1aa', marginBottom: '20px' }}>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '20px' }}>
               Adicione um novo agendamento para começar.
             </p>
             <motion.button
-              className="inline-flex items-center gap-2 text-white font-semibold rounded-xl"
+              className="inline-flex items-center gap-2 font-semibold rounded-xl"
               style={{
                 fontSize: '13px',
                 padding: '9px 16px',
-                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                boxShadow: '0 2px 10px rgba(99,102,241,0.28)',
+                background: 'var(--accent)',
+                color: '#0f0f0f',
+                boxShadow: 'var(--shadow-accent)',
+                border: 'none',
+                cursor: 'pointer',
               }}
-              whileHover={{ scale: 1.03, boxShadow: '0 4px 16px rgba(99,102,241,0.38)' }}
+              whileHover={{ scale: 1.03, background: '#D4AF37' }}
               whileTap={{ scale: 0.97 }}
             >
               <Plus size={13} strokeWidth={2.5} />
@@ -392,11 +354,7 @@ export default function Dashboard() {
           </motion.div>
 
         ) : (
-          <motion.div
-            variants={stagger}
-            initial="initial"
-            animate="animate"
-          >
+          <motion.div variants={stagger} initial="initial" animate="animate">
             {/* Column headers */}
             <div
               className="grid"
@@ -407,9 +365,9 @@ export default function Dashboard() {
                 fontWeight: 600,
                 textTransform: 'uppercase',
                 letterSpacing: '0.1em',
-                color: '#a1a1aa',
-                borderBottom: '1px solid rgba(0,0,0,0.05)',
-                background: 'rgba(0,0,0,0.016)',
+                color: 'var(--text-muted)',
+                borderBottom: '1px solid var(--border)',
+                background: 'var(--bg-elevated)',
               }}
             >
               <span>Hora</span>
@@ -421,10 +379,7 @@ export default function Dashboard() {
 
             {agendamentos.map(ag => {
               const cfg  = STATUS_CONFIG[ag.status_ag] ?? STATUS_CONFIG.agendado
-              const hora = new Date(ag.dtini_ag).toLocaleTimeString('pt-BR', {
-                hour:   '2-digit',
-                minute: '2-digit',
-              })
+              const hora = new Date(ag.dtini_ag).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 
               return (
                 <motion.div
@@ -434,43 +389,31 @@ export default function Dashboard() {
                   style={{
                     gridTemplateColumns: '72px 1fr 160px 130px 28px',
                     padding: '14px 24px',
-                    borderBottom: '1px solid rgba(0,0,0,0.04)',
+                    borderBottom: '1px solid var(--border-subtle)',
                     transition: 'background 0.1s ease',
                   }}
-                  whileHover={{ backgroundColor: 'rgba(0,0,0,0.016)' }}
+                  whileHover={{ backgroundColor: 'rgba(255,255,255,0.025)' }}
                 >
                   {/* Hora */}
                   <div className="flex items-center gap-1.5">
-                    <Clock size={11} style={{ color: '#d4d4d8', flexShrink: 0 }} />
-                    <span
-                      className="font-bold tabular-nums"
-                      style={{ fontSize: '13px', color: '#27272a' }}
-                    >
+                    <Clock size={11} style={{ color: 'var(--border)', flexShrink: 0 }} />
+                    <span className="font-bold tabular-nums" style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
                       {hora}
                     </span>
                   </div>
 
                   {/* Cliente + serviço */}
                   <div style={{ minWidth: 0 }}>
-                    <p
-                      className="font-semibold truncate"
-                      style={{ fontSize: '13px', color: '#09090b' }}
-                    >
+                    <p className="font-semibold truncate" style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
                       {ag.clientes?.nome_cl ?? '—'}
                     </p>
-                    <p
-                      className="truncate"
-                      style={{ fontSize: '11px', color: '#a1a1aa', marginTop: '2px' }}
-                    >
+                    <p className="truncate" style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
                       {ag.servicos?.nome_sv ?? '—'}
                     </p>
                   </div>
 
                   {/* Profissional */}
-                  <div
-                    className="hidden sm:block truncate font-medium"
-                    style={{ fontSize: '12px', color: '#71717a' }}
-                  >
+                  <div className="hidden sm:block truncate font-medium" style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                     {ag.funcionarios?.nome_fu ?? '—'}
                   </div>
 
@@ -478,18 +421,10 @@ export default function Dashboard() {
                   <div>
                     <motion.span
                       className="inline-flex items-center gap-1.5 rounded-full font-semibold"
-                      style={{
-                        fontSize: '11px',
-                        padding: '4px 10px',
-                        color: cfg.color,
-                        background: cfg.bg,
-                      }}
+                      style={{ fontSize: '11px', padding: '4px 10px', color: cfg.color, background: cfg.bg }}
                       whileHover={{ scale: 1.04 }}
                     >
-                      <span
-                        className="rounded-full flex-shrink-0"
-                        style={{ width: '5px', height: '5px', background: cfg.dot }}
-                      />
+                      <span className="rounded-full flex-shrink-0" style={{ width: '5px', height: '5px', background: cfg.dot }} />
                       {cfg.label}
                     </motion.span>
                   </div>
@@ -497,8 +432,8 @@ export default function Dashboard() {
                   {/* Arrow */}
                   <motion.div
                     className="flex items-center justify-center"
-                    style={{ color: '#e4e4e7', transition: 'color 0.12s ease' }}
-                    whileHover={{ color: '#71717a', x: 2 }}
+                    style={{ color: 'var(--border)', transition: 'color 0.12s ease' }}
+                    whileHover={{ color: 'var(--text-secondary)', x: 2 }}
                   >
                     <ChevronRight size={14} />
                   </motion.div>

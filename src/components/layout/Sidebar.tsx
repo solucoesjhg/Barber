@@ -53,7 +53,7 @@ function NavItem({ to, icon: Icon, label }: { to: string; icon: typeof LayoutDas
           {isActive && (
             <motion.div
               className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-              style={{ background: 'rgba(255,255,255,0.55)' }}
+              style={{ background: 'var(--accent)' }}
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', stiffness: 500, damping: 25 }}
@@ -126,8 +126,8 @@ export default function Sidebar() {
           style={{
             fontSize: '9px',
             padding: '2px 6px',
-            background: 'rgba(99,102,241,0.2)',
-            color: 'rgba(165,163,255,0.85)',
+            background: 'rgba(200,169,81,0.2)',
+            color: 'rgba(200,169,81,0.9)',
           }}
         >
           Pro
@@ -187,13 +187,14 @@ export default function Sidebar() {
           transition={{ duration: 0.13 }}
         >
           <div
-            className="flex items-center justify-center flex-shrink-0 rounded-full font-bold text-white"
+            className="flex items-center justify-center flex-shrink-0 rounded-full font-bold"
             style={{
               width: '30px',
               height: '30px',
               fontSize: '11px',
-              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-              boxShadow: '0 2px 8px rgba(99,102,241,0.35)',
+              color: '#0f0f0f',
+              background: 'linear-gradient(135deg, #C8A951 0%, #D4AF37 100%)',
+              boxShadow: '0 2px 8px rgba(200,169,81,0.35)',
             }}
           >
             {inicial}

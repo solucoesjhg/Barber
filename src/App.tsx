@@ -13,7 +13,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth()
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
-      <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin" />
+      <div className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--border)', borderTopColor: 'var(--accent)' }} />
     </div>
   )
   return session ? <>{children}</> : <Navigate to="/login" replace />

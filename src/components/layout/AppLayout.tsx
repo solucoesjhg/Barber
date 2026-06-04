@@ -23,7 +23,7 @@ export default function AppLayout() {
   const pageName = PAGE_NAMES[location.pathname]
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: '#f4f4f5' }}>
+    <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
       <Sidebar />
 
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
@@ -34,26 +34,20 @@ export default function AppLayout() {
             height: '56px',
             paddingLeft: '32px',
             paddingRight: '32px',
-            background: '#ffffff',
-            borderBottom: '1px solid rgba(0,0,0,0.07)',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+            background: 'var(--bg-secondary)',
+            borderBottom: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-sm)',
           }}
         >
           {/* Breadcrumb */}
           <div className="flex items-center gap-2">
-            <span
-              className="font-medium"
-              style={{ fontSize: '13px', color: '#a1a1aa' }}
-            >
+            <span className="font-medium" style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
               BarberOS
             </span>
             {pageName && (
               <>
-                <ChevronRight size={13} style={{ color: '#d4d4d8', flexShrink: 0 }} />
-                <span
-                  className="font-semibold"
-                  style={{ fontSize: '13px', color: '#18181b' }}
-                >
+                <ChevronRight size={13} style={{ color: 'var(--border)', flexShrink: 0 }} />
+                <span className="font-semibold" style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
                   {pageName}
                 </span>
               </>
@@ -67,20 +61,20 @@ export default function AppLayout() {
               className="hidden md:flex items-center gap-2 rounded-xl cursor-text"
               style={{
                 padding: '6px 12px',
-                background: '#f4f4f5',
-                border: '1px solid rgba(0,0,0,0.09)',
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border)',
               }}
-              whileHover={{ borderColor: 'rgba(0,0,0,0.18)' }}
+              whileHover={{ borderColor: 'var(--accent)' }}
               transition={{ duration: 0.15 }}
             >
-              <Search size={13} style={{ color: '#a1a1aa', flexShrink: 0 }} />
+              <Search size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
               <input
                 type="text"
                 placeholder="Buscar..."
                 className="bg-transparent outline-none"
                 style={{
                   fontSize: '12px',
-                  color: '#52525b',
+                  color: 'var(--text-secondary)',
                   width: '120px',
                   fontFamily: 'inherit',
                 }}
@@ -91,9 +85,9 @@ export default function AppLayout() {
                   fontFamily: 'ui-monospace, monospace',
                   padding: '1px 5px',
                   borderRadius: '5px',
-                  background: 'rgba(0,0,0,0.05)',
-                  color: '#a1a1aa',
-                  border: '1px solid rgba(0,0,0,0.09)',
+                  background: 'rgba(255,255,255,0.06)',
+                  color: 'var(--text-muted)',
+                  border: '1px solid var(--border)',
                   flexShrink: 0,
                 }}
               >
@@ -107,23 +101,17 @@ export default function AppLayout() {
               style={{
                 width: '34px',
                 height: '34px',
-                background: '#f4f4f5',
-                border: '1px solid rgba(0,0,0,0.09)',
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border)',
               }}
-              whileHover={{ backgroundColor: '#ebebec', borderColor: 'rgba(0,0,0,0.16)' }}
+              whileHover={{ backgroundColor: '#2d2d2d', borderColor: '#C8A951' }}
               whileTap={{ scale: 0.93 }}
               transition={{ duration: 0.13 }}
             >
-              <Bell size={14} style={{ color: '#71717a' }} />
+              <Bell size={14} style={{ color: 'var(--text-secondary)' }} />
               <motion.span
                 className="absolute rounded-full"
-                style={{
-                  top: '8px',
-                  right: '8px',
-                  width: '6px',
-                  height: '6px',
-                  background: '#6366f1',
-                }}
+                style={{ top: '8px', right: '8px', width: '6px', height: '6px', background: 'var(--accent)' }}
                 animate={{ scale: [1, 1.4, 1] }}
                 transition={{ duration: 2, repeat: Infinity, repeatDelay: 4 }}
               />
@@ -131,15 +119,16 @@ export default function AppLayout() {
 
             {/* Avatar */}
             <motion.div
-              className="flex items-center justify-center rounded-full font-bold text-white cursor-pointer"
+              className="flex items-center justify-center rounded-full font-bold cursor-pointer"
               style={{
                 width: '34px',
                 height: '34px',
                 fontSize: '12px',
-                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                boxShadow: '0 2px 8px rgba(99,102,241,0.28)',
+                color: '#0f0f0f',
+                background: 'linear-gradient(135deg, #C8A951 0%, #D4AF37 100%)',
+                boxShadow: '0 2px 8px rgba(200,169,81,0.3)',
               }}
-              whileHover={{ scale: 1.07, boxShadow: '0 4px 14px rgba(99,102,241,0.38)' }}
+              whileHover={{ scale: 1.07, boxShadow: '0 4px 14px rgba(200,169,81,0.4)' }}
               whileTap={{ scale: 0.94 }}
               transition={{ duration: 0.15 }}
             >
