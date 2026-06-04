@@ -92,7 +92,7 @@ export default function Sidebar() {
     >
       {/* Logo */}
       <div
-        className="flex items-center gap-3 px-5 flex-shrink-0"
+        className="flex items-center gap-3 px-6 flex-shrink-0"
         style={{ height: '68px', borderBottom: `1px solid ${BORDER_COLOR}` }}
       >
         <motion.div
@@ -136,7 +136,7 @@ export default function Sidebar() {
 
       {/* Nav */}
       <motion.nav
-        className="flex-1 overflow-y-auto px-3"
+        className="flex-1 overflow-y-auto px-4"
         style={{ paddingTop: '28px', paddingBottom: '16px' }}
         variants={stagger}
         initial="initial"
@@ -174,7 +174,7 @@ export default function Sidebar() {
 
       {/* User */}
       <motion.div
-        className="px-3 flex-shrink-0"
+        className="px-4 flex-shrink-0"
         style={{ paddingBottom: '20px', paddingTop: '16px', borderTop: `1px solid ${BORDER_COLOR}` }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
