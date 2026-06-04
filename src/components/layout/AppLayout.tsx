@@ -31,9 +31,9 @@ export default function AppLayout() {
         <div
           className="flex-shrink-0 flex items-center justify-between"
           style={{
-            height: '56px',
-            paddingLeft: '32px',
-            paddingRight: '32px',
+            height: '68px',
+            paddingLeft: '40px',
+            paddingRight: '40px',
             background: 'var(--bg-secondary)',
             borderBottom: '1px solid var(--border)',
             boxShadow: 'var(--shadow-sm)',

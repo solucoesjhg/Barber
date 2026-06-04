@@ -29,12 +29,12 @@ function NavItem({ to, icon: Icon, label }: { to: string; icon: typeof LayoutDas
     <NavLink to={to} style={{ display: 'block' }}>
       {({ isActive }) => (
         <motion.div
-          className="flex items-center gap-2.5 px-2.5 rounded-lg text-[13px] font-medium cursor-pointer"
+          className="flex items-center gap-3 px-3 rounded-xl text-[13px] font-medium cursor-pointer"
           style={{
-            height: '34px',
-            color: isActive ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.4)',
+            height: '42px',
+            color: isActive ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.45)',
             background: isActive ? 'rgba(255,255,255,0.08)' : 'transparent',
-            marginBottom: '1px',
+            marginBottom: '4px',
           }}
           whileHover={
             !isActive
@@ -45,9 +45,9 @@ function NavItem({ to, icon: Icon, label }: { to: string; icon: typeof LayoutDas
           transition={{ duration: 0.13 }}
         >
           <Icon
-            size={15}
+            size={16}
             strokeWidth={isActive ? 2.1 : 1.75}
-            style={{ flexShrink: 0, opacity: isActive ? 1 : 0.7 }}
+            style={{ flexShrink: 0, opacity: isActive ? 1 : 0.65 }}
           />
           <span style={{ flex: 1 }}>{label}</span>
           {isActive && (
@@ -93,7 +93,7 @@ export default function Sidebar() {
       {/* Logo */}
       <div
         className="flex items-center gap-3 px-5 flex-shrink-0"
-        style={{ height: '60px', borderBottom: `1px solid ${BORDER_COLOR}` }}
+        style={{ height: '68px', borderBottom: `1px solid ${BORDER_COLOR}` }}
       >
         <motion.div
           className="flex items-center justify-center flex-shrink-0 rounded-xl"
@@ -137,13 +137,13 @@ export default function Sidebar() {
       {/* Nav */}
       <motion.nav
         className="flex-1 overflow-y-auto px-3"
-        style={{ paddingTop: '20px', paddingBottom: '12px' }}
+        style={{ paddingTop: '28px', paddingBottom: '16px' }}
         variants={stagger}
         initial="initial"
         animate="animate"
       >
         <p
-          className="uppercase font-semibold tracking-widest px-2.5 mb-2"
+          className="uppercase font-semibold tracking-widest px-3 mb-3"
           style={{ fontSize: '9.5px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.16em' }}
         >
           Principal
@@ -156,9 +156,9 @@ export default function Sidebar() {
         ))}
 
         {isAdmin && (
-          <div style={{ marginTop: '20px' }}>
+          <div style={{ marginTop: '28px' }}>
             <p
-              className="uppercase font-semibold tracking-widest px-2.5 mb-2"
+              className="uppercase font-semibold tracking-widest px-3 mb-3"
               style={{ fontSize: '9.5px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.16em' }}
             >
               Admin
@@ -175,23 +175,23 @@ export default function Sidebar() {
       {/* User */}
       <motion.div
         className="px-3 flex-shrink-0"
-        style={{ paddingBottom: '16px', paddingTop: '12px', borderTop: `1px solid ${BORDER_COLOR}` }}
+        style={{ paddingBottom: '20px', paddingTop: '16px', borderTop: `1px solid ${BORDER_COLOR}` }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
       >
         <motion.div
-          className="flex items-center gap-2.5 rounded-xl cursor-pointer group"
-          style={{ padding: '8px 10px' }}
+          className="flex items-center gap-3 rounded-xl cursor-pointer group"
+          style={{ padding: '10px 12px' }}
           whileHover={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
           transition={{ duration: 0.13 }}
         >
           <div
             className="flex items-center justify-center flex-shrink-0 rounded-full font-bold"
             style={{
-              width: '30px',
-              height: '30px',
-              fontSize: '11px',
+              width: '34px',
+              height: '34px',
+              fontSize: '12px',
               color: '#0f0f0f',
               background: 'linear-gradient(135deg, #C8A951 0%, #D4AF37 100%)',
               boxShadow: '0 2px 8px rgba(200,169,81,0.35)',

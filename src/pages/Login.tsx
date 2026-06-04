@@ -132,7 +132,7 @@ export default function Login() {
       </motion.div>
 
       {/* RIGHT PANEL */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 relative" style={{ background: 'var(--bg-secondary)' }}>
+      <div className="flex-1 flex flex-col items-center justify-center px-10 py-16 relative" style={{ background: 'var(--bg-secondary)' }}>
 
         {/* Mobile logo */}
         <motion.div
@@ -170,7 +170,7 @@ export default function Login() {
                 </motion.div>
 
                 <form onSubmit={handleLogin}>
-                  <motion.div variants={staggerItem} className="space-y-4">
+                  <motion.div variants={staggerItem} className="space-y-5">
 
                     <InputField
                       label="E-mail"
@@ -305,7 +305,7 @@ export default function Login() {
                 </motion.div>
 
                 <form onSubmit={handleRecuperar}>
-                  <motion.div variants={staggerItem} className="space-y-4">
+                  <motion.div variants={staggerItem} className="space-y-5">
                     <InputField
                       label="E-mail"
                       type="email"

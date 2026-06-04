@@ -98,7 +98,7 @@ export default function Dashboard() {
   const cardSubs   = ['hoje', 'finalizados hoje', `${proximos} aguardando`, 'caixa não aberto']
 
   return (
-    <div style={{ maxWidth: '1120px', margin: '0 auto', padding: '36px 32px 48px' }}>
+    <div style={{ maxWidth: '1120px', margin: '0 auto', padding: '48px 40px 64px' }}>
 
       {/* Page header */}
       <motion.div
