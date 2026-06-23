@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ShoppingCart, Plus, Minus, Trash2, X, Check } from 'lucide-react'
+import { ShoppingCart, Plus, Minus, Trash2, X, Check, Search, Scissors, Package } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
 import type { ItemComanda, PagamentoMetodo, Produto, Servico } from '../types'
@@ -14,44 +14,58 @@ const SERVICOS_MOCK: Servico[] = [
 ]
 
 const PRODUTOS_MOCK: Produto[] = [
-  { id: 'p1', nome: 'Heineken Lata',      categoria: 'bebidas',  preco_custo: 4,  preco_venda: 8,  estoque_atual: 24, estoque_minimo: 12, ativo: true },
-  { id: 'p2', nome: 'Skol Lata',          categoria: 'bebidas',  preco_custo: 3.5,preco_venda: 7,  estoque_atual: 18, estoque_minimo: 12, ativo: true },
-  { id: 'p3', nome: 'Água Mineral',       categoria: 'bebidas',  preco_custo: 1.5,preco_venda: 4,  estoque_atual: 30, estoque_minimo: 10, ativo: true },
-  { id: 'p4', nome: 'Pomada Uppercut',    categoria: 'pomadas',  preco_custo: 25, preco_venda: 55, estoque_atual: 8,  estoque_minimo: 3,  ativo: true },
-  { id: 'p5', nome: 'Pomada Leve',        categoria: 'pomadas',  preco_custo: 18, preco_venda: 38, estoque_atual: 6,  estoque_minimo: 3,  ativo: true },
-  { id: 'p6', nome: 'Petisco Misto',      categoria: 'petiscos', preco_custo: 8,  preco_venda: 18, estoque_atual: 15, estoque_minimo: 5,  ativo: true },
-  { id: 'p7', nome: 'Batata Chips',       categoria: 'petiscos', preco_custo: 5,  preco_venda: 12, estoque_atual: 20, estoque_minimo: 5,  ativo: true },
+  { id: 'p1', nome: 'Heineken Lata',   categoria: 'bebidas',  preco_custo: 4,   preco_venda: 8,  estoque_atual: 24, estoque_minimo: 12, ativo: true },
+  { id: 'p2', nome: 'Skol Lata',       categoria: 'bebidas',  preco_custo: 3.5, preco_venda: 7,  estoque_atual: 18, estoque_minimo: 12, ativo: true },
+  { id: 'p3', nome: 'Água Mineral',    categoria: 'bebidas',  preco_custo: 1.5, preco_venda: 4,  estoque_atual: 30, estoque_minimo: 10, ativo: true },
+  { id: 'p4', nome: 'Pomada Uppercut', categoria: 'pomadas',  preco_custo: 25,  preco_venda: 55, estoque_atual: 8,  estoque_minimo: 3,  ativo: true },
+  { id: 'p5', nome: 'Pomada Leve',     categoria: 'pomadas',  preco_custo: 18,  preco_venda: 38, estoque_atual: 6,  estoque_minimo: 3,  ativo: true },
+  { id: 'p6', nome: 'Petisco Misto',   categoria: 'petiscos', preco_custo: 8,   preco_venda: 18, estoque_atual: 15, estoque_minimo: 5,  ativo: true },
+  { id: 'p7', nome: 'Batata Chips',    categoria: 'petiscos', preco_custo: 5,   preco_venda: 12, estoque_atual: 20, estoque_minimo: 5,  ativo: true },
 ]
 
-const CATEGORIAS = ['servicos', 'bebidas', 'pomadas', 'petiscos'] as const
-type Cat = typeof CATEGORIAS[number]
-
-const CAT_LABEL: Record<Cat, string> = {
-  servicos: 'Serviços',
-  bebidas:  'Bebidas',
-  pomadas:  'Pomadas',
-  petiscos: 'Petiscos',
-}
-
 const PAGAMENTOS: { id: PagamentoMetodo; label: string }[] = [
-  { id: 'pix',     label: 'Pix'             },
-  { id: 'credito', label: 'Cartão Crédito'  },
-  { id: 'debito',  label: 'Cartão Débito'   },
-  { id: 'dinheiro',label: 'Dinheiro'        },
+  { id: 'pix',      label: 'Pix'            },
+  { id: 'credito',  label: 'Cartão Crédito' },
+  { id: 'debito',   label: 'Cartão Débito'  },
+  { id: 'dinheiro', label: 'Dinheiro'       },
 ]
 
 function uid() { return Math.random().toString(36).slice(2) }
 
+type Tab = 'servicos' | 'produtos'
+
 export default function PDV() {
-  const [categoria, setCategoria] = useState<Cat>('servicos')
-  const [cart, setCart] = useState<ItemComanda[]>([])
+  const [tab, setTab]         = useState<Tab>('servicos')
+  const [search, setSearch]   = useState('')
+  const [servicos, setServicos] = useState<Servico[]>(SERVICOS_MOCK)
+  const [produtos, setProdutos] = useState<Produto[]>(PRODUTOS_MOCK)
+
+  const [cart, setCart]           = useState<ItemComanda[]>([])
   const [clienteNome, setClienteNome] = useState('')
   const [pagamento, setPagamento] = useState<PagamentoMetodo>('pix')
   const [showPayModal, setShowPayModal] = useState(false)
-  const [done, setDone] = useState(false)
-  const [saving, setSaving] = useState(false)
+  const [done, setDone]         = useState(false)
+  const [saving, setSaving]     = useState(false)
 
   const total = cart.reduce((s, i) => s + i.preco_unitario * i.quantidade, 0)
+
+  useEffect(() => {
+    supabase.from('servicos').select('*').eq('ativo', true).order('nome')
+      .then(({ data }) => { if (data && data.length > 0) setServicos(data as Servico[]) })
+
+    supabase.from('produtos').select('*').eq('ativo', true).order('nome')
+      .then(({ data }) => { if (data && data.length > 0) setProdutos(data as Produto[]) })
+  }, [])
+
+  const servicosFiltrados = useMemo(() =>
+    servicos.filter(s => s.nome.toLowerCase().includes(search.toLowerCase())),
+    [servicos, search]
+  )
+
+  const produtosFiltrados = useMemo(() =>
+    produtos.filter(p => p.nome.toLowerCase().includes(search.toLowerCase())),
+    [produtos, search]
+  )
 
   function addServico(s: Servico) {
     setCart(prev => {
@@ -115,70 +129,158 @@ export default function PDV() {
     setTimeout(() => setDone(false), 2500)
   }
 
-  const produtosFiltrados = categoria === 'servicos'
-    ? null
-    : PRODUTOS_MOCK.filter(p => p.categoria === categoria)
-
   return (
     <div className="page" style={{ display: 'flex', gap: '24px', height: 'calc(100vh - 64px)', paddingBottom: '0', overflow: 'hidden' }}>
+
       {/* Left — catalog */}
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '32px' }}>
-        {/* Category tabs */}
-        <div style={{ display: 'flex', gap: '6px', marginBottom: '20px' }}>
-          {CATEGORIAS.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setCategoria(cat)}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '8px',
-                border: cat === categoria ? '1px solid #FFFFFF' : '1px solid #2A2A2A',
-                background: cat === categoria ? '#FFFFFF' : 'transparent',
-                color: cat === categoria ? '#0D0D0D' : '#666',
-                fontSize: '13px',
-                fontWeight: cat === categoria ? 600 : 400,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                fontFamily: 'inherit',
-              }}
-            >
-              {CAT_LABEL[cat]}
-            </button>
-          ))}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+        {/* Tabs + search */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', flexShrink: 0 }}>
+          <div style={{
+            display: 'flex', gap: '2px',
+            padding: '4px',
+            background: '#1A1A1A',
+            border: '1px solid #252525',
+            borderRadius: '9px',
+          }}>
+            {(['servicos', 'produtos'] as Tab[]).map(t => (
+              <button
+                key={t}
+                onClick={() => { setTab(t); setSearch('') }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '7px 14px',
+                  borderRadius: '7px',
+                  border: tab === t ? '1px solid #FFFFFF' : '1px solid transparent',
+                  background: tab === t ? 'rgba(255,255,255,0.07)' : 'transparent',
+                  color: tab === t ? '#FFFFFF' : '#555',
+                  fontSize: '13px',
+                  fontWeight: tab === t ? 600 : 400,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                  fontFamily: 'inherit',
+                }}
+              >
+                {t === 'servicos' ? <><Scissors size={12} /> Serviços</> : <><Package size={12} /> Produtos</>}
+              </button>
+            ))}
+          </div>
+
+          {/* Search */}
+          <div style={{
+            flex: 1,
+            display: 'flex', alignItems: 'center', gap: '8px',
+            padding: '9px 14px',
+            background: '#1A1A1A',
+            border: '1px solid #252525',
+            borderRadius: '8px',
+          }}>
+            <Search size={13} style={{ color: '#444', flexShrink: 0 }} />
+            <input
+              style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: '13px', color: '#FFFFFF', fontFamily: 'inherit' }}
+              placeholder={tab === 'servicos' ? 'Buscar serviço...' : 'Buscar produto...'}
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            {search && (
+              <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', padding: '2px', display: 'flex' }}>
+                <X size={12} />
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Items grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
-          {categoria === 'servicos'
-            ? SERVICOS_MOCK.map(s => (
-              <motion.button
-                key={s.id}
-                onClick={() => addServico(s)}
-                className="card-sm"
-                style={{ cursor: 'pointer', border: '1px solid #2A2A2A', textAlign: 'left', transition: 'all 0.15s ease', fontFamily: 'inherit', width: '100%' }}
-                whileHover={{ borderColor: '#444', background: '#242424' }}
-                whileTap={{ scale: 0.97 }}
+        {/* Content area */}
+        <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '16px' }}>
+          <AnimatePresence mode="wait">
+            {tab === 'servicos' ? (
+              <motion.div
+                key="servicos"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }}
+                style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}
               >
-                <p style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', marginBottom: '4px' }}>{s.nome}</p>
-                <p style={{ fontSize: '11px', color: '#555' }}>{s.duracao_minutos} min</p>
-                <p style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF', marginTop: '10px' }}>{formatCurrency(s.preco)}</p>
-              </motion.button>
-            ))
-            : (produtosFiltrados ?? []).map(p => (
-              <motion.button
-                key={p.id}
-                onClick={() => addProduto(p)}
-                className="card-sm"
-                style={{ cursor: 'pointer', border: '1px solid #2A2A2A', textAlign: 'left', transition: 'all 0.15s ease', fontFamily: 'inherit', width: '100%' }}
-                whileHover={{ borderColor: '#444', background: '#242424' }}
-                whileTap={{ scale: 0.97 }}
+                {servicosFiltrados.length === 0 ? (
+                  <div style={{ gridColumn: '1/-1', padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+                    Nenhum serviço encontrado.
+                  </div>
+                ) : servicosFiltrados.map(s => (
+                  <motion.button
+                    key={s.id}
+                    onClick={() => addServico(s)}
+                    className="card-sm"
+                    style={{ cursor: 'pointer', border: '1px solid #2A2A2A', textAlign: 'left', transition: 'all 0.15s', fontFamily: 'inherit', width: '100%' }}
+                    whileHover={{ borderColor: '#444', background: '#242424' }}
+                    whileTap={{ scale: 0.97 }}
+                  >
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', marginBottom: '4px' }}>{s.nome}</p>
+                    <p style={{ fontSize: '11px', color: '#555' }}>{s.duracao_minutos} min</p>
+                    <p style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF', marginTop: '10px' }}>{formatCurrency(s.preco)}</p>
+                  </motion.button>
+                ))}
+              </motion.div>
+            ) : (
+              <motion.div
+                key="produtos"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }}
               >
-                <p style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', marginBottom: '4px' }}>{p.nome}</p>
-                <p style={{ fontSize: '11px', color: '#555' }}>Estoque: {p.estoque_atual}</p>
-                <p style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF', marginTop: '10px' }}>{formatCurrency(p.preco_venda)}</p>
-              </motion.button>
-            ))
-          }
+                <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                  {produtosFiltrados.length === 0 ? (
+                    <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+                      Nenhum produto encontrado.
+                    </div>
+                  ) : produtosFiltrados.map((p, i) => (
+                    <motion.div
+                      key={p.id}
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '14px',
+                        padding: '14px 20px',
+                        borderBottom: i < produtosFiltrados.length - 1 ? '1px solid #1F1F1F' : 'none',
+                        cursor: 'pointer',
+                        transition: 'background 0.12s',
+                      }}
+                      whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+                      onClick={() => addProduto(p)}
+                    >
+                      <Package size={13} style={{ color: '#444', flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{p.nome}</p>
+                        <p style={{ fontSize: '11px', color: '#555', marginTop: '2px', textTransform: 'capitalize' }}>{p.categoria}</p>
+                      </div>
+                      <span style={{
+                        fontSize: '10px', color: p.estoque_atual <= p.estoque_minimo ? '#A3A3A3' : '#555',
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid #2A2A2A',
+                        borderRadius: '4px',
+                        padding: '2px 7px',
+                      }}>
+                        {p.estoque_atual} un
+                      </span>
+                      <span style={{ fontSize: '14px', fontWeight: 700, color: '#FFFFFF', minWidth: '60px', textAlign: 'right' }}>
+                        {formatCurrency(p.preco_venda)}
+                      </span>
+                      <button
+                        onClick={e => { e.stopPropagation(); addProduto(p) }}
+                        style={{
+                          width: '26px', height: '26px',
+                          borderRadius: '6px',
+                          border: '1px solid #333',
+                          background: 'transparent',
+                          color: '#666',
+                          cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Plus size={12} />
+                      </button>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
@@ -193,7 +295,6 @@ export default function PDV() {
         height: '100%',
         overflow: 'hidden',
       }}>
-        {/* Cart header */}
         <div style={{ padding: '18px 20px', borderBottom: '1px solid #222', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <ShoppingCart size={15} style={{ color: '#555' }} />
@@ -216,7 +317,6 @@ export default function PDV() {
           />
         </div>
 
-        {/* Cart items */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
           <AnimatePresence>
             {cart.length === 0 ? (
@@ -226,13 +326,9 @@ export default function PDV() {
             ) : cart.map(item => (
               <motion.div
                 key={item.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, height: 0 }}
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
+                  display: 'flex', alignItems: 'center', gap: '10px',
                   padding: '10px 12px',
                   borderRadius: '8px',
                   marginBottom: '6px',
@@ -244,9 +340,7 @@ export default function PDV() {
                   <p style={{ fontSize: '12px', fontWeight: 500, color: '#FFFFFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {item.nome}
                   </p>
-                  <p style={{ fontSize: '11px', color: '#555', marginTop: '2px' }}>
-                    {formatCurrency(item.preco_unitario)}
-                  </p>
+                  <p style={{ fontSize: '11px', color: '#555', marginTop: '2px' }}>{formatCurrency(item.preco_unitario)}</p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <button
@@ -255,9 +349,7 @@ export default function PDV() {
                   >
                     <Minus size={10} />
                   </button>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#FFFFFF', minWidth: '16px', textAlign: 'center' }}>
-                    {item.quantidade}
-                  </span>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#FFFFFF', minWidth: '16px', textAlign: 'center' }}>{item.quantidade}</span>
                   <button
                     onClick={() => changeQty(item.id, 1)}
                     style={{ width: '22px', height: '22px', borderRadius: '5px', border: '1px solid #333', background: 'transparent', color: '#666', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -273,7 +365,6 @@ export default function PDV() {
           </AnimatePresence>
         </div>
 
-        {/* Cart footer */}
         <div style={{ padding: '16px 20px', borderTop: '1px solid #222', flexShrink: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
             <span style={{ fontSize: '13px', color: '#A3A3A3' }}>Total</span>
@@ -281,11 +372,7 @@ export default function PDV() {
               {formatCurrency(total)}
             </span>
           </div>
-          <button
-            className="btn btn-primary btn-full"
-            onClick={() => setShowPayModal(true)}
-            disabled={cart.length === 0}
-          >
+          <button className="btn btn-primary btn-full" onClick={() => setShowPayModal(true)} disabled={cart.length === 0}>
             Finalizar Venda
           </button>
         </div>
@@ -295,49 +382,33 @@ export default function PDV() {
       <AnimatePresence>
         {showPayModal && (
           <motion.div
-            style={{
-              position: 'fixed', inset: 0, zIndex: 50,
-              background: 'rgba(0,0,0,0.8)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              padding: '20px',
-            }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={e => e.target === e.currentTarget && setShowPayModal(false)}
           >
             <motion.div
               className="card"
               style={{ width: '100%', maxWidth: '400px', padding: '28px' }}
-              initial={{ scale: 0.95, y: 16 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 16 }}
+              initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
                 <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>Forma de Pagamento</h2>
                 <button className="btn btn-icon" onClick={() => setShowPayModal(false)}><X size={14} /></button>
               </div>
-
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px' }}>
                 {PAGAMENTOS.map(p => (
                   <button
                     key={p.id}
                     onClick={() => setPagamento(p.id)}
                     style={{
-                      padding: '14px 16px',
-                      borderRadius: '8px',
+                      padding: '14px 16px', borderRadius: '8px',
                       border: pagamento === p.id ? '1px solid #FFFFFF' : '1px solid #2A2A2A',
                       background: pagamento === p.id ? 'rgba(255,255,255,0.07)' : 'transparent',
                       color: pagamento === p.id ? '#FFFFFF' : '#666',
-                      fontSize: '14px',
-                      fontWeight: pagamento === p.id ? 600 : 400,
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      transition: 'all 0.15s',
-                      fontFamily: 'inherit',
+                      fontSize: '14px', fontWeight: pagamento === p.id ? 600 : 400,
+                      cursor: 'pointer', textAlign: 'left',
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      transition: 'all 0.15s', fontFamily: 'inherit',
                     }}
                   >
                     {p.label}
@@ -345,24 +416,11 @@ export default function PDV() {
                   </button>
                 ))}
               </div>
-
-              <div style={{
-                padding: '14px 16px',
-                background: 'rgba(255,255,255,0.04)',
-                borderRadius: '8px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                marginBottom: '20px',
-              }}>
+              <div style={{ padding: '14px 16px', background: 'rgba(255,255,255,0.04)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                 <span style={{ fontSize: '13px', color: '#A3A3A3' }}>Total a cobrar</span>
                 <span style={{ fontSize: '18px', fontWeight: 700, color: '#FFFFFF' }}>{formatCurrency(total)}</span>
               </div>
-
-              <button
-                className="btn btn-primary btn-full"
-                onClick={finalizarVenda}
-                disabled={saving}
-              >
+              <button className="btn btn-primary btn-full" onClick={finalizarVenda} disabled={saving}>
                 {saving ? 'Processando...' : 'Confirmar Pagamento'}
               </button>
             </motion.div>
@@ -378,14 +436,10 @@ export default function PDV() {
               position: 'fixed', bottom: '28px', right: '28px', zIndex: 100,
               display: 'flex', alignItems: 'center', gap: '10px',
               padding: '14px 20px',
-              background: '#1E1E1E',
-              border: '1px solid #333',
-              borderRadius: '10px',
+              background: '#1E1E1E', border: '1px solid #333', borderRadius: '10px',
               boxShadow: '0 8px 32px rgba(0,0,0,0.7)',
             }}
-            initial={{ opacity: 0, y: 16, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 16, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16 }}
           >
             <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Check size={14} style={{ color: '#FFFFFF' }} />
