@@ -75,7 +75,7 @@ export default function Login() {
         >
           <div className="login-logo">
             <span className="login-logo-ring" />
-            <img src="/logo.png" alt="Logo" style={{ width: '48px', height: '48px', objectFit: 'contain' }} />
+            <img src="/logo.png" alt="Logo" style={{ width: '100px', height: '100px', objectFit: 'contain' }} />
           </div>
           <h1 className="login-title">BarberOS</h1>
           <p className="login-sub">
@@ -242,10 +242,9 @@ function ScopedStyles() {
       .login-head { text-align: center; margin-bottom: 36px; }
       .login-logo {
         position: relative;
-        width: 72px; height: 72px;
+        width: 110px; height: 110px;
         margin: 0 auto 18px;
         background: transparent;
-        border-radius: 16px;
         display: flex; align-items: center; justify-content: center;
       }
       .login-logo-ring {
