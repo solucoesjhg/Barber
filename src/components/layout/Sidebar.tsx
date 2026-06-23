@@ -95,21 +95,17 @@ export default function Sidebar() {
         borderBottom: '1px solid #1F1F1F',
         flexShrink: 0,
       }}>
-        <div style={{
-          width: '28px', height: '28px',
-          background: '#FFFFFF',
-          borderRadius: '7px',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0,
-        }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0D0D0D" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="6" cy="6" r="3"/>
-            <circle cx="6" cy="18" r="3"/>
-            <line x1="20" y1="4" x2="8.12" y2="15.88"/>
-            <line x1="14.47" y1="14.48" x2="20" y2="20"/>
-            <line x1="8.12" y1="8.12" x2="12" y2="12"/>
-          </svg>
-        </div>
+        <img
+          src="/logo.png"
+          alt="Logo"
+          style={{
+            width: '32px',
+            height: '32px',
+            objectFit: 'contain',
+            flexShrink: 0,
+            filter: 'brightness(0) invert(1)',
+          }}
+        />
         <span style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
           BarberOS
         </span>
