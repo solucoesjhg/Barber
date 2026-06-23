@@ -34,6 +34,12 @@ export interface Servico {
   preco: number
   duracao_minutos: number
   ativo: boolean
+  profissionais?: Profissional[]
+}
+
+export interface ProfissionalServico {
+  profissional_id: string
+  servico_id: string
 }
 
 export interface Produto {

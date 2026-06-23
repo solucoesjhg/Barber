@@ -464,7 +464,7 @@ function SemanalView({
             </div>
 
             {/* Day columns */}
-            {weekDays.map((d, di) => {
+            {weekDays.map((d) => {
               const key  = toKey(d)
               const ags  = agForDay(key)
               const isToday = key === todayKey
@@ -693,6 +693,7 @@ export default function Agenda() {
   const [agenda, setAgenda]         = useState<Agendamento[]>(MOCK_AG)
   const [profissionais]             = useState<Profissional[]>(MOCK_PROF)
   const [servicos]                  = useState<Servico[]>(MOCK_SERV)
+  const [profServMap, setProfServMap] = useState<Record<string, string[]>>({})
   const [clientes, setClientes]     = useState<Cliente[]>([])
   const [showModal, setShowModal]   = useState(false)
 
@@ -715,6 +716,18 @@ export default function Agenda() {
 
     supabase.from('clientes').select('*').order('nome')
       .then(({ data }) => { if (data) setClientes(data as Cliente[]) })
+
+    supabase.from('profissional_servicos').select('*')
+      .then(({ data }) => {
+        if (data) {
+          const map: Record<string, string[]> = {}
+          ;(data as { profissional_id: string; servico_id: string }[]).forEach(ps => {
+            if (!map[ps.profissional_id]) map[ps.profissional_id] = []
+            map[ps.profissional_id].push(ps.servico_id)
+          })
+          setProfServMap(map)
+        }
+      })
   }, [selectedDate])
 
   async function handleSave() {
@@ -745,6 +758,10 @@ export default function Agenda() {
   }
 
   const showCalFilters = viewMode === 'semanal' || viewMode === 'mensal'
+
+  const servicosFiltrados = form.profissional_id && Object.keys(profServMap).length > 0
+    ? servicos.filter(s => (profServMap[form.profissional_id] ?? []).includes(s.id))
+    : servicos
 
   return (
     <div className="page">
@@ -907,7 +924,7 @@ export default function Agenda() {
                 )}
                 <div className="field">
                   <label className="label">Profissional *</label>
-                  <select className="input" value={form.profissional_id} onChange={e => setForm(f => ({ ...f, profissional_id: e.target.value }))}>
+                  <select className="input" value={form.profissional_id} onChange={e => setForm(f => ({ ...f, profissional_id: e.target.value, servico_id: '' }))}>
                     <option value="">Selecionar...</option>
                     {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
                   </select>
@@ -916,7 +933,7 @@ export default function Agenda() {
                   <label className="label">Serviço</label>
                   <select className="input" value={form.servico_id} onChange={e => setForm(f => ({ ...f, servico_id: e.target.value }))}>
                     <option value="">Selecionar...</option>
-                    {servicos.map(s => <option key={s.id} value={s.id}>{s.nome} · {formatCurrency(s.preco)}</option>)}
+                    {servicosFiltrados.map(s => <option key={s.id} value={s.id}>{s.nome} · {formatCurrency(s.preco)}</option>)}
                   </select>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
