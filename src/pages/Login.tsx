@@ -75,13 +75,7 @@ export default function Login() {
         >
           <div className="login-logo">
             <span className="login-logo-ring" />
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0D0D0D" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="6" cy="6" r="3"/>
-              <circle cx="6" cy="18" r="3"/>
-              <line x1="20" y1="4" x2="8.12" y2="15.88"/>
-              <line x1="14.47" y1="14.48" x2="20" y2="20"/>
-              <line x1="8.12" y1="8.12" x2="12" y2="12"/>
-            </svg>
+            <img src="/logo.png" alt="Logo" style={{ width: '48px', height: '48px', objectFit: 'contain' }} />
           </div>
           <h1 className="login-title">BarberOS</h1>
           <p className="login-sub">
@@ -248,12 +242,11 @@ function ScopedStyles() {
       .login-head { text-align: center; margin-bottom: 36px; }
       .login-logo {
         position: relative;
-        width: 56px; height: 56px;
+        width: 72px; height: 72px;
         margin: 0 auto 18px;
-        background: #FFFFFF;
+        background: transparent;
         border-radius: 16px;
         display: flex; align-items: center; justify-content: center;
-        box-shadow: 0 0 0 1px rgba(255,255,255,0.1), 0 8px 30px rgba(255,255,255,0.12);
       }
       .login-logo-ring {
         position: absolute;

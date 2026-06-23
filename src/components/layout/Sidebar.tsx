@@ -103,7 +103,6 @@ export default function Sidebar() {
             height: '32px',
             objectFit: 'contain',
             flexShrink: 0,
-            filter: 'brightness(0) invert(1)',
           }}
         />
         <span style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
