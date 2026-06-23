@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Plus, X, Clock, Check, Trash2 } from 'lucide-react'
+import {
+  ChevronLeft, ChevronRight, Plus, X, Clock,
+  Check, Trash2, List, CalendarDays, CalendarRange,
+} from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
 import type { Agendamento, AgendamentoStatus, Cliente, Profissional, Servico } from '../types'
 
+/* ── Types ──────────────────────────────────────────────── */
+type ViewMode = 'lista' | 'semanal' | 'mensal'
+
+/* ── Constants ──────────────────────────────────────────── */
 const STATUS_CFG: Record<AgendamentoStatus, { label: string; cls: string }> = {
   pendente:   { label: 'Pendente',   cls: 'badge badge-pending'   },
   confirmado: { label: 'Confirmado', cls: 'badge badge-confirmed' },
@@ -12,32 +19,121 @@ const STATUS_CFG: Record<AgendamentoStatus, { label: string; cls: string }> = {
   cancelado:  { label: 'Cancelado',  cls: 'badge badge-canceled'  },
 }
 
+const HOURS = Array.from({ length: 13 }, (_, i) => i + 8) // 8–20
+const HOUR_H = 64 // px per hour in weekly grid
+const GRID_START = 8
+
+const WEEK_DAYS_SHORT = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
+const MONTH_NAMES = [
+  'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro',
+]
+
+/* ── Date helpers ───────────────────────────────────────── */
 const toKey = (d: Date) => d.toISOString().split('T')[0]
+
+function startOfWeekMon(d: Date): Date {
+  const r = new Date(d)
+  const dow = r.getDay()
+  r.setDate(r.getDate() - (dow === 0 ? 6 : dow - 1))
+  r.setHours(0, 0, 0, 0)
+  return r
+}
+
+function getWeekDays(base: Date): Date[] {
+  const mon = startOfWeekMon(base)
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(mon)
+    d.setDate(mon.getDate() + i)
+    return d
+  })
+}
+
+function getMonthGrid(year: number, month: number): Date[] {
+  const first = new Date(year, month, 1)
+  const dow   = first.getDay()
+  const lead  = dow === 0 ? 6 : dow - 1
+  const days: Date[] = []
+  for (let i = lead - 1; i >= 0; i--) {
+    const d = new Date(year, month, -i)
+    days.push(d)
+  }
+  const last = new Date(year, month + 1, 0).getDate()
+  for (let i = 1; i <= last; i++) days.push(new Date(year, month, i))
+  while (days.length < 42) {
+    const prev = days[days.length - 1]
+    const d = new Date(prev)
+    d.setDate(prev.getDate() + 1)
+    days.push(d)
+  }
+  return days
+}
+
+/* ── Mock data ──────────────────────────────────────────── */
+const today = new Date()
+const pad = (n: number) => String(n).padStart(2, '0')
+const mockDh = (dayOffset: number, h: number, m = 0) => {
+  const d = new Date(today)
+  d.setDate(d.getDate() + dayOffset)
+  return `${toKey(d)}T${pad(h)}:${pad(m)}:00`
+}
 
 const MOCK_AG: Agendamento[] = [
   {
     id: '1', cliente_id: 'c1', profissional_id: 'p1', servico_id: 's1',
-    data_hora: new Date().toISOString().replace(/T.*/, 'T09:00:00'),
-    status: 'confirmado', created_at: '',
-    cliente: { id: 'c1', nome: 'Rafael Mendes', telefone: '(11) 99887-6655', created_at: '' },
-    profissional: { id: 'p1', nome: 'João Silva', especialidade: 'Cabelo e Barba', comissao_percentual: 50, ativo: true, created_at: '' },
-    servico: { id: 's1', nome: 'Combo Cabelo + Barba', preco: 65, duracao_minutos: 50, ativo: true },
+    data_hora: mockDh(0, 9), status: 'confirmado', created_at: '',
+    cliente:      { id: 'c1', nome: 'Rafael Mendes',  telefone: '(11) 99887-6655', created_at: '' },
+    profissional: { id: 'p1', nome: 'João Silva',     especialidade: 'Cabelo e Barba', comissao_percentual: 50, ativo: true, created_at: '' },
+    servico:      { id: 's1', nome: 'Combo Cabelo + Barba', preco: 65, duracao_minutos: 50, ativo: true },
   },
   {
     id: '2', cliente_id: 'c2', profissional_id: 'p2', servico_id: 's2',
-    data_hora: new Date().toISOString().replace(/T.*/, 'T10:00:00'),
-    status: 'pendente', created_at: '',
-    cliente: { id: 'c2', nome: 'Gustavo Lima', telefone: '(11) 98765-4321', created_at: '' },
-    profissional: { id: 'p2', nome: 'Pedro Santos', especialidade: 'Coloração', comissao_percentual: 55, ativo: true, created_at: '' },
-    servico: { id: 's2', nome: 'Pigmentação', preco: 80, duracao_minutos: 60, ativo: true },
+    data_hora: mockDh(0, 10), status: 'pendente', created_at: '',
+    cliente:      { id: 'c2', nome: 'Gustavo Lima',   telefone: '(11) 98765-4321', created_at: '' },
+    profissional: { id: 'p2', nome: 'Pedro Santos',   especialidade: 'Coloração', comissao_percentual: 55, ativo: true, created_at: '' },
+    servico:      { id: 's2', nome: 'Pigmentação',     preco: 80, duracao_minutos: 60, ativo: true },
   },
   {
     id: '3', cliente_id: 'c3', profissional_id: 'p1', servico_id: 's3',
-    data_hora: new Date().toISOString().replace(/T.*/, 'T14:00:00'),
-    status: 'pendente', created_at: '',
-    cliente: { id: 'c3', nome: 'Bruno Castro', telefone: '(11) 91234-5678', created_at: '' },
-    profissional: { id: 'p1', nome: 'João Silva', especialidade: 'Cabelo e Barba', comissao_percentual: 50, ativo: true, created_at: '' },
-    servico: { id: 's3', nome: 'Barba', preco: 30, duracao_minutos: 20, ativo: true },
+    data_hora: mockDh(0, 14), status: 'pendente', created_at: '',
+    cliente:      { id: 'c3', nome: 'Bruno Castro',   telefone: '(11) 91234-5678', created_at: '' },
+    profissional: { id: 'p1', nome: 'João Silva',     especialidade: 'Cabelo e Barba', comissao_percentual: 50, ativo: true, created_at: '' },
+    servico:      { id: 's3', nome: 'Barba',           preco: 30, duracao_minutos: 20, ativo: true },
+  },
+  {
+    id: '4', cliente_id: 'c4', profissional_id: 'p3', servico_id: 's4',
+    data_hora: mockDh(1, 11), status: 'confirmado', created_at: '',
+    cliente:      { id: 'c4', nome: 'Thiago Rocha',   telefone: '(11) 97654-3210', created_at: '' },
+    profissional: { id: 'p3', nome: 'Lucas Costa',    especialidade: 'Sênior', comissao_percentual: 60, ativo: true, created_at: '' },
+    servico:      { id: 's4', nome: 'Corte de Cabelo', preco: 45, duracao_minutos: 30, ativo: true },
+  },
+  {
+    id: '5', cliente_id: 'c5', profissional_id: 'p2', servico_id: 's5',
+    data_hora: mockDh(2, 15, 30), status: 'pendente', created_at: '',
+    cliente:      { id: 'c5', nome: 'Fábio Almeida',  telefone: '(11) 96543-2109', created_at: '' },
+    profissional: { id: 'p2', nome: 'Pedro Santos',   especialidade: 'Coloração', comissao_percentual: 55, ativo: true, created_at: '' },
+    servico:      { id: 's5', nome: 'Sobrancelha',     preco: 15, duracao_minutos: 10, ativo: true },
+  },
+  {
+    id: '6', cliente_id: 'c1', profissional_id: 'p1', servico_id: 's1',
+    data_hora: mockDh(3, 10, 30), status: 'confirmado', created_at: '',
+    cliente:      { id: 'c1', nome: 'Rafael Mendes',  telefone: '(11) 99887-6655', created_at: '' },
+    profissional: { id: 'p1', nome: 'João Silva',     especialidade: 'Cabelo e Barba', comissao_percentual: 50, ativo: true, created_at: '' },
+    servico:      { id: 's1', nome: 'Combo Cabelo + Barba', preco: 65, duracao_minutos: 50, ativo: true },
+  },
+  {
+    id: '7', cliente_id: 'c6', profissional_id: 'p3', servico_id: 's3',
+    data_hora: mockDh(-1, 9, 0), status: 'concluido', created_at: '',
+    cliente:      { id: 'c6', nome: 'Marcos Lima',    telefone: '(11) 95432-1098', created_at: '' },
+    profissional: { id: 'p3', nome: 'Lucas Costa',    especialidade: 'Sênior', comissao_percentual: 60, ativo: true, created_at: '' },
+    servico:      { id: 's3', nome: 'Barba',           preco: 30, duracao_minutos: 20, ativo: true },
+  },
+  {
+    id: '8', cliente_id: 'c2', profissional_id: 'p2', servico_id: 's2',
+    data_hora: mockDh(5, 14, 0), status: 'pendente', created_at: '',
+    cliente:      { id: 'c2', nome: 'Gustavo Lima',   telefone: '(11) 98765-4321', created_at: '' },
+    profissional: { id: 'p2', nome: 'Pedro Santos',   especialidade: 'Coloração', comissao_percentual: 55, ativo: true, created_at: '' },
+    servico:      { id: 's2', nome: 'Pigmentação',     preco: 80, duracao_minutos: 60, ativo: true },
   },
 ]
 
@@ -55,23 +151,550 @@ const MOCK_SERV: Servico[] = [
   { id: 's5', nome: 'Sobrancelha',          preco: 15, duracao_minutos: 10, ativo: true },
 ]
 
-function buildWeek(base: Date): Date[] {
-  const arr: Date[] = []
-  for (let i = -2; i <= 4; i++) {
-    const d = new Date(base)
-    d.setDate(d.getDate() + i)
-    arr.push(d)
-  }
-  return arr
+/* ── View toggle button ─────────────────────────────────── */
+function ViewBtn({
+  active, onClick, icon: Icon, label,
+}: { active: boolean; onClick: () => void; icon: typeof List; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      title={label}
+      style={{
+        display: 'flex', alignItems: 'center', gap: '6px',
+        padding: '7px 12px',
+        borderRadius: '7px',
+        border: active ? '1px solid #FFFFFF' : '1px solid transparent',
+        background: active ? 'rgba(255,255,255,0.07)' : 'transparent',
+        color: active ? '#FFFFFF' : '#555',
+        fontSize: '12px',
+        fontWeight: active ? 600 : 400,
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+        fontFamily: 'inherit',
+      }}
+      onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.color = '#A3A3A3' }}
+      onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.color = '#555' }}
+    >
+      <Icon size={13} />
+      {label}
+    </button>
+  )
 }
 
+/* ══════════════════════════════════════════════════════════
+   LISTA VIEW (existing)
+══════════════════════════════════════════════════════════ */
+function ListaView({
+  selectedDate, setSelectedDate, agenda, updateStatus,
+  onOpenModal, setFormDate,
+}: {
+  selectedDate: Date
+  setSelectedDate: (d: Date) => void
+  agenda: Agendamento[]
+  updateStatus: (id: string, s: AgendamentoStatus) => void
+  onOpenModal: () => void
+  setFormDate: (k: string) => void
+}) {
+  const dateKey  = toKey(selectedDate)
+  const todayKey = toKey(new Date())
+  const filtrado = agenda
+    .filter(a => a.data_hora.startsWith(dateKey))
+    .sort((a, b) => a.data_hora.localeCompare(b.data_hora))
+
+  const weekBase = new Date()
+  const weekDays: Date[] = []
+  for (let i = -2; i <= 4; i++) {
+    const d = new Date(weekBase)
+    d.setDate(d.getDate() + i)
+    weekDays.push(d)
+  }
+
+  const navDay = (n: number) => {
+    const d = new Date(selectedDate)
+    d.setDate(d.getDate() + n)
+    setSelectedDate(d)
+  }
+
+  return (
+    <>
+      {/* Week strip */}
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '28px', alignItems: 'center' }}>
+        <button className="btn-icon btn" onClick={() => navDay(-7)}>
+          <ChevronLeft size={14} />
+        </button>
+        {weekDays.map(d => {
+          const key = toKey(d)
+          const isSel   = key === dateKey
+          const isToday = key === todayKey
+          const count   = agenda.filter(a => a.data_hora.startsWith(key)).length
+          return (
+            <button key={key} onClick={() => setSelectedDate(new Date(d))} style={{
+              flex: 1, padding: '10px 8px', borderRadius: '8px', fontFamily: 'inherit',
+              border: isSel ? '1px solid #FFFFFF' : '1px solid #2A2A2A',
+              background: isSel ? '#FFFFFF' : 'transparent',
+              color: isSel ? '#0D0D0D' : isToday ? '#A3A3A3' : '#555',
+              cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s ease',
+            }}>
+              <div style={{ fontSize: '10px', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                {d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
+              </div>
+              <div style={{ fontSize: '16px', fontWeight: 700, lineHeight: 1 }}>{d.getDate()}</div>
+              {count > 0 && (
+                <div style={{
+                  marginTop: '5px', width: '5px', height: '5px', borderRadius: '50%',
+                  background: isSel ? '#0D0D0D' : '#555', margin: '5px auto 0',
+                }} />
+              )}
+            </button>
+          )
+        })}
+        <button className="btn-icon btn" onClick={() => navDay(7)}>
+          <ChevronRight size={14} />
+        </button>
+      </div>
+
+      {/* List */}
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '16px 24px', borderBottom: '1px solid #222', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Clock size={14} style={{ color: '#555' }} />
+          <span style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>
+            {filtrado.length} {filtrado.length === 1 ? 'agendamento' : 'agendamentos'}
+          </span>
+        </div>
+
+        {filtrado.length === 0 ? (
+          <div style={{ padding: '56px', textAlign: 'center' }}>
+            <p style={{ fontSize: '14px', color: '#555' }}>Nenhum agendamento neste dia.</p>
+            <button
+              className="btn btn-secondary btn-sm"
+              style={{ marginTop: '16px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              onClick={() => { setFormDate(dateKey); onOpenModal() }}
+            >
+              <Plus size={13} /> Agendar
+            </button>
+          </div>
+        ) : filtrado.map((ag, i) => {
+          const hora = new Date(ag.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+          const fim  = ag.servico
+            ? new Date(new Date(ag.data_hora).getTime() + ag.servico.duracao_minutos * 60000)
+                .toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+            : ''
+          const cfg = STATUS_CFG[ag.status]
+          return (
+            <motion.div
+              key={ag.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              style={{
+                display: 'flex', gap: '20px', padding: '18px 24px',
+                borderBottom: i < filtrado.length - 1 ? '1px solid #1F1F1F' : 'none',
+                alignItems: 'flex-start',
+              }}
+            >
+              <div style={{ width: '70px', flexShrink: 0, paddingTop: '2px' }}>
+                <p style={{ fontSize: '14px', fontWeight: 700, color: '#FFFFFF', fontVariantNumeric: 'tabular-nums' }}>{hora}</p>
+                {fim && <p style={{ fontSize: '11px', color: '#444', marginTop: '2px' }}>até {fim}</p>}
+              </div>
+              <div style={{ width: '2px', background: '#2A2A2A', borderRadius: '1px', alignSelf: 'stretch', flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                  <p style={{ fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>{ag.cliente?.nome ?? 'Sem cliente'}</p>
+                  <span className={cfg.cls}>{cfg.label}</span>
+                </div>
+                <p style={{ fontSize: '12px', color: '#555' }}>
+                  {ag.servico?.nome}{ag.servico?.preco ? ` · ${formatCurrency(ag.servico.preco)}` : ''}
+                  {ag.profissional ? ` · ${ag.profissional.nome}` : ''}
+                </p>
+                {ag.observacoes && (
+                  <p style={{ fontSize: '12px', color: '#444', marginTop: '4px', fontStyle: 'italic' }}>"{ag.observacoes}"</p>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                {ag.status === 'pendente' && (
+                  <button className="btn btn-icon" title="Confirmar" onClick={() => updateStatus(ag.id, 'confirmado')}>
+                    <Check size={13} />
+                  </button>
+                )}
+                {ag.status === 'confirmado' && (
+                  <button className="btn btn-icon" title="Concluir" onClick={() => updateStatus(ag.id, 'concluido')}>
+                    <Check size={13} />
+                  </button>
+                )}
+                <button className="btn btn-icon" title="Cancelar" onClick={() => updateStatus(ag.id, 'cancelado')}>
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            </motion.div>
+          )
+        })}
+      </div>
+    </>
+  )
+}
+
+/* ══════════════════════════════════════════════════════════
+   SEMANAL VIEW — time grid
+══════════════════════════════════════════════════════════ */
+function SemanalView({
+  baseDate, setBaseDate, agenda, filterProfId, onDayClick,
+}: {
+  baseDate: Date
+  setBaseDate: (d: Date) => void
+  agenda: Agendamento[]
+  filterProfId: string
+  onDayClick: (d: Date) => void
+}) {
+  const weekDays = getWeekDays(baseDate)
+  const todayKey = toKey(new Date())
+
+  const navWeek = (n: number) => {
+    const d = new Date(baseDate)
+    d.setDate(d.getDate() + n * 7)
+    setBaseDate(d)
+  }
+
+  const filtered = filterProfId
+    ? agenda.filter(a => a.profissional_id === filterProfId)
+    : agenda
+
+  // Get appointments for a specific day key, sorted
+  function agForDay(dayKey: string) {
+    return filtered
+      .filter(a => a.data_hora.startsWith(dayKey))
+      .sort((a, b) => a.data_hora.localeCompare(b.data_hora))
+  }
+
+  // Convert time to px offset from top of grid
+  function timeToPx(iso: string): number {
+    const d = new Date(iso)
+    const h = d.getHours() + d.getMinutes() / 60
+    return (h - GRID_START) * HOUR_H
+  }
+
+  function durationToPx(mins: number): number {
+    return Math.max((mins / 60) * HOUR_H, 28)
+  }
+
+  const weekLabel = `${weekDays[0].getDate()} ${MONTH_NAMES[weekDays[0].getMonth()]} — ${weekDays[6].getDate()} ${MONTH_NAMES[weekDays[6].getMonth()]} ${weekDays[6].getFullYear()}`
+
+  return (
+    <div>
+      {/* Week nav */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+        <button className="btn btn-icon" onClick={() => navWeek(-1)}><ChevronLeft size={14} /></button>
+        <span style={{ fontSize: '13px', fontWeight: 500, color: '#A3A3A3', flex: 1 }}>{weekLabel}</span>
+        <button className="btn btn-icon" onClick={() => navWeek(1)}><ChevronRight size={14} /></button>
+      </div>
+
+      {/* Grid */}
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        {/* Day headers */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '52px repeat(7, 1fr)',
+          borderBottom: '1px solid #222',
+          background: 'rgba(0,0,0,0.2)',
+        }}>
+          <div />
+          {weekDays.map((d, i) => {
+            const key     = toKey(d)
+            const isToday = key === todayKey
+            const count   = agForDay(key).length
+            return (
+              <div
+                key={key}
+                onClick={() => onDayClick(d)}
+                style={{
+                  padding: '10px 8px',
+                  textAlign: 'center',
+                  borderLeft: '1px solid #1A1A1A',
+                  cursor: 'pointer',
+                  transition: 'background 0.15s',
+                }}
+                onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.03)'}
+                onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'transparent'}
+              >
+                <p style={{
+                  fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em',
+                  color: isToday ? '#FFFFFF' : '#555', marginBottom: '4px',
+                }}>
+                  {WEEK_DAYS_SHORT[i]}
+                </p>
+                <p style={{
+                  fontSize: '18px', fontWeight: 700, lineHeight: 1, fontFamily: 'DM Sans, sans-serif',
+                  color: isToday ? '#FFFFFF' : '#A3A3A3',
+                }}>
+                  {d.getDate()}
+                </p>
+                {count > 0 && (
+                  <div style={{
+                    marginTop: '4px', fontSize: '10px', color: '#444',
+                    background: 'rgba(255,255,255,0.05)', borderRadius: '99px',
+                    padding: '1px 5px', display: 'inline-block',
+                  }}>
+                    {count}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Time body — scrollable */}
+        <div style={{ overflowY: 'auto', maxHeight: '520px' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '52px repeat(7, 1fr)',
+            position: 'relative',
+          }}>
+            {/* Hour labels column */}
+            <div style={{ borderRight: '1px solid #1A1A1A' }}>
+              {HOURS.map(h => (
+                <div key={h} style={{
+                  height: `${HOUR_H}px`, display: 'flex', alignItems: 'flex-start',
+                  justifyContent: 'flex-end', padding: '4px 8px 0 0',
+                  borderBottom: '1px solid #1A1A1A',
+                }}>
+                  <span style={{ fontSize: '10px', color: '#3A3A3A', fontVariantNumeric: 'tabular-nums' }}>
+                    {pad(h)}:00
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Day columns */}
+            {weekDays.map((d, di) => {
+              const key  = toKey(d)
+              const ags  = agForDay(key)
+              const isToday = key === todayKey
+              return (
+                <div key={key} style={{
+                  borderLeft: '1px solid #1A1A1A',
+                  position: 'relative',
+                  background: isToday ? 'rgba(255,255,255,0.015)' : 'transparent',
+                }}>
+                  {/* Hour lines */}
+                  {HOURS.map(h => (
+                    <div key={h} style={{ height: `${HOUR_H}px`, borderBottom: '1px solid #1A1A1A' }} />
+                  ))}
+
+                  {/* Appointments */}
+                  {ags.map(ag => {
+                    const top  = timeToPx(ag.data_hora)
+                    const h    = durationToPx(ag.servico?.duracao_minutos ?? 30)
+                    const cfg  = STATUS_CFG[ag.status]
+                    return (
+                      <div
+                        key={ag.id}
+                        title={`${ag.cliente?.nome} — ${ag.servico?.nome}`}
+                        style={{
+                          position: 'absolute',
+                          top: `${top}px`,
+                          left: '3px',
+                          right: '3px',
+                          height: `${h}px`,
+                          background: '#262626',
+                          border: '1px solid #3A3A3A',
+                          borderLeft: '2px solid #FFFFFF',
+                          borderRadius: '5px',
+                          padding: '4px 7px',
+                          overflow: 'hidden',
+                          cursor: 'default',
+                          zIndex: 1,
+                        }}
+                      >
+                        <p style={{
+                          fontSize: '11px', fontWeight: 600, color: '#FFFFFF',
+                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                          lineHeight: 1.2,
+                        }}>
+                          {ag.cliente?.nome ?? 'Cliente'}
+                        </p>
+                        {h >= 40 && (
+                          <p style={{
+                            fontSize: '10px', color: '#666',
+                            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                            marginTop: '2px',
+                          }}>
+                            {ag.servico?.nome}
+                          </p>
+                        )}
+                        {h >= 52 && (
+                          <span className={cfg.cls} style={{ fontSize: '9px', padding: '1px 6px', marginTop: '3px', display: 'inline-block' }}>
+                            {cfg.label}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ══════════════════════════════════════════════════════════
+   MENSAL VIEW — month calendar
+══════════════════════════════════════════════════════════ */
+function MensalView({
+  baseDate, setBaseDate, agenda, filterProfId, onDayClick, selectedDate,
+}: {
+  baseDate: Date
+  setBaseDate: (d: Date) => void
+  agenda: Agendamento[]
+  filterProfId: string
+  onDayClick: (d: Date) => void
+  selectedDate: Date
+}) {
+  const year  = baseDate.getFullYear()
+  const month = baseDate.getMonth()
+  const grid  = getMonthGrid(year, month)
+  const todayKey   = toKey(new Date())
+  const selectedKey = toKey(selectedDate)
+
+  const navMonth = (n: number) => {
+    const d = new Date(year, month + n, 1)
+    setBaseDate(d)
+  }
+
+  const filtered = filterProfId
+    ? agenda.filter(a => a.profissional_id === filterProfId)
+    : agenda
+
+  function agForDay(dayKey: string) {
+    return filtered.filter(a => a.data_hora.startsWith(dayKey))
+  }
+
+  return (
+    <div>
+      {/* Month nav */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+        <button className="btn btn-icon" onClick={() => navMonth(-1)}><ChevronLeft size={14} /></button>
+        <span style={{ fontSize: '15px', fontWeight: 600, color: '#FFFFFF', flex: 1 }}>
+          {MONTH_NAMES[month]} {year}
+        </span>
+        <button className="btn btn-icon" onClick={() => navMonth(1)}><ChevronRight size={14} /></button>
+      </div>
+
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        {/* Day of week headers */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
+          borderBottom: '1px solid #222',
+          background: 'rgba(0,0,0,0.2)',
+        }}>
+          {WEEK_DAYS_SHORT.map(d => (
+            <div key={d} style={{
+              padding: '10px 0',
+              textAlign: 'center',
+              fontSize: '10px', fontWeight: 600,
+              color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em',
+            }}>
+              {d}
+            </div>
+          ))}
+        </div>
+
+        {/* Month grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
+          {grid.map((d, i) => {
+            const key       = toKey(d)
+            const isToday   = key === todayKey
+            const isSel     = key === selectedKey
+            const isThisMon = d.getMonth() === month
+            const ags       = agForDay(key)
+            const maxShow   = 3
+            const extra     = Math.max(0, ags.length - maxShow)
+
+            return (
+              <motion.div
+                key={key}
+                onClick={() => onDayClick(d)}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: i * 0.004 }}
+                style={{
+                  minHeight: '90px',
+                  padding: '8px',
+                  borderRight: (i + 1) % 7 === 0 ? 'none' : '1px solid #1A1A1A',
+                  borderBottom: i < grid.length - 7 ? '1px solid #1A1A1A' : 'none',
+                  cursor: 'pointer',
+                  background: isSel ? 'rgba(255,255,255,0.06)' : 'transparent',
+                  transition: 'background 0.12s',
+                  position: 'relative',
+                }}
+                whileHover={{ backgroundColor: 'rgba(255,255,255,0.03)' }}
+              >
+                {/* Day number */}
+                <div style={{
+                  width: '26px', height: '26px',
+                  borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  marginBottom: '6px',
+                  background: isToday ? '#FFFFFF' : 'transparent',
+                }}>
+                  <span style={{
+                    fontSize: '13px',
+                    fontWeight: isToday ? 700 : 400,
+                    color: isToday ? '#0D0D0D' : isThisMon ? (isSel ? '#FFFFFF' : '#A3A3A3') : '#333',
+                    fontFamily: 'DM Sans, sans-serif',
+                  }}>
+                    {d.getDate()}
+                  </span>
+                </div>
+
+                {/* Appointment pills */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  {ags.slice(0, maxShow).map(ag => {
+                    const hora = new Date(ag.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                    return (
+                      <div key={ag.id} style={{
+                        fontSize: '10px', color: '#A3A3A3',
+                        background: 'rgba(255,255,255,0.06)',
+                        border: '1px solid #2A2A2A',
+                        borderRadius: '3px',
+                        padding: '1px 5px',
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      }}>
+                        <span style={{ color: '#555', marginRight: '4px' }}>{hora}</span>
+                        {ag.cliente?.nome ?? ag.servico?.nome}
+                      </div>
+                    )
+                  })}
+                  {extra > 0 && (
+                    <div style={{ fontSize: '10px', color: '#444', paddingLeft: '2px' }}>
+                      +{extra} mais
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ══════════════════════════════════════════════════════════
+   MAIN COMPONENT
+══════════════════════════════════════════════════════════ */
 export default function Agenda() {
+  const [viewMode, setViewMode]     = useState<ViewMode>('lista')
   const [selectedDate, setSelectedDate] = useState(new Date())
-  const [agenda, setAgenda]   = useState<Agendamento[]>(MOCK_AG)
-  const [profissionais]       = useState<Profissional[]>(MOCK_PROF)
-  const [servicos]            = useState<Servico[]>(MOCK_SERV)
-  const [clientes, setClientes] = useState<Cliente[]>([])
-  const [showModal, setShowModal] = useState(false)
+  const [calBase, setCalBase]       = useState(new Date()) // week/month navigation base
+  const [filterProfId, setFilterProfId] = useState('')
+
+  const [agenda, setAgenda]         = useState<Agendamento[]>(MOCK_AG)
+  const [profissionais]             = useState<Profissional[]>(MOCK_PROF)
+  const [servicos]                  = useState<Servico[]>(MOCK_SERV)
+  const [clientes, setClientes]     = useState<Cliente[]>([])
+  const [showModal, setShowModal]   = useState(false)
 
   const [form, setForm] = useState({
     cliente_id: '', profissional_id: '', servico_id: '',
@@ -79,11 +702,6 @@ export default function Agenda() {
   })
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState('')
-
-  const dateKey = toKey(selectedDate)
-  const filtrado = agenda.filter(a => a.data_hora.startsWith(dateKey))
-
-  const week = buildWeek(new Date())
 
   useEffect(() => {
     const day = toKey(selectedDate)
@@ -100,15 +718,12 @@ export default function Agenda() {
   }, [selectedDate])
 
   async function handleSave() {
-    if (!form.cliente_id && !form.profissional_id) {
-      setError('Selecione um cliente e um profissional.')
-      return
-    }
+    if (!form.profissional_id) { setError('Selecione um profissional.'); return }
     setSaving(true); setError('')
     const data_hora = `${form.data}T${form.hora}:00`
     const { error: err } = await supabase.from('agendamentos').insert({
       cliente_id: form.cliente_id || null,
-      profissional_id: form.profissional_id || null,
+      profissional_id: form.profissional_id,
       servico_id: form.servico_id || null,
       data_hora, observacoes: form.obs, status: 'pendente',
     })
@@ -123,189 +738,149 @@ export default function Agenda() {
     await supabase.from('agendamentos').update({ status }).eq('id', id)
   }
 
-  const navDay = (n: number) => {
-    const d = new Date(selectedDate)
-    d.setDate(d.getDate() + n)
+  // When clicking a day in semanal/mensal views
+  function handleDayClick(d: Date) {
     setSelectedDate(d)
+    setViewMode('lista')
   }
+
+  const showCalFilters = viewMode === 'semanal' || viewMode === 'mensal'
 
   return (
     <div className="page">
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px' }}>
         <div>
           <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Agenda</h1>
           <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
-            {selectedDate.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+            {viewMode === 'lista'
+              ? selectedDate.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
+              : viewMode === 'mensal'
+              ? `${MONTH_NAMES[calBase.getMonth()]} ${calBase.getFullYear()}`
+              : `Semana de ${getWeekDays(calBase)[0].toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })}`
+            }
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Plus size={14} strokeWidth={2.5} /> Agendar
-        </button>
-      </div>
 
-      {/* Week strip */}
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '28px', alignItems: 'center' }}>
-        <button className="btn-icon btn" onClick={() => navDay(-7)} style={{ marginRight: '4px' }}>
-          <ChevronLeft size={14} />
-        </button>
-        {week.map(d => {
-          const key = toKey(d)
-          const isSelected = key === dateKey
-          const isToday = key === toKey(new Date())
-          const count = agenda.filter(a => a.data_hora.startsWith(key)).length
-          return (
-            <button
-              key={key}
-              onClick={() => setSelectedDate(new Date(d))}
-              style={{
-                flex: 1,
-                padding: '10px 8px',
-                borderRadius: '8px',
-                border: isSelected ? '1px solid #FFFFFF' : '1px solid #2A2A2A',
-                background: isSelected ? '#FFFFFF' : 'transparent',
-                color: isSelected ? '#0D0D0D' : isToday ? '#A3A3A3' : '#555',
-                cursor: 'pointer',
-                textAlign: 'center',
-                transition: 'all 0.15s ease',
-                fontFamily: 'inherit',
-              }}
-            >
-              <div style={{ fontSize: '10px', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                {d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
-              </div>
-              <div style={{ fontSize: '16px', fontWeight: 700, lineHeight: 1 }}>
-                {d.getDate()}
-              </div>
-              {count > 0 && (
-                <div style={{
-                  marginTop: '5px', width: '5px', height: '5px', borderRadius: '50%',
-                  background: isSelected ? '#0D0D0D' : '#555',
-                  margin: '5px auto 0',
-                }} />
-              )}
-            </button>
-          )
-        })}
-        <button className="btn-icon btn" onClick={() => navDay(7)} style={{ marginLeft: '4px' }}>
-          <ChevronRight size={14} />
-        </button>
-      </div>
-
-      {/* Appointments list */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{
-          padding: '16px 24px',
-          borderBottom: '1px solid #222',
-          display: 'flex', alignItems: 'center', gap: '8px',
-        }}>
-          <Clock size={14} style={{ color: '#555' }} />
-          <span style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>
-            {filtrado.length} {filtrado.length === 1 ? 'agendamento' : 'agendamentos'}
-          </span>
-        </div>
-
-        {filtrado.length === 0 ? (
-          <div style={{ padding: '56px', textAlign: 'center' }}>
-            <p style={{ fontSize: '14px', color: '#555' }}>Nenhum agendamento neste dia.</p>
-            <button
-              className="btn btn-secondary btn-sm"
-              style={{ marginTop: '16px' }}
-              onClick={() => { setForm(f => ({ ...f, data: dateKey })); setShowModal(true) }}
-            >
-              <Plus size={13} /> Agendar
-            </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* View toggle */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '2px',
+            padding: '4px',
+            background: '#1A1A1A',
+            border: '1px solid #252525',
+            borderRadius: '9px',
+          }}>
+            <ViewBtn active={viewMode === 'lista'}   onClick={() => setViewMode('lista')}   icon={List}          label="Lista"   />
+            <ViewBtn active={viewMode === 'semanal'} onClick={() => { setViewMode('semanal'); setCalBase(selectedDate) }} icon={CalendarDays} label="Semanal" />
+            <ViewBtn active={viewMode === 'mensal'}  onClick={() => { setViewMode('mensal');  setCalBase(selectedDate) }} icon={CalendarRange} label="Mensal"  />
           </div>
-        ) : filtrado.sort((a, b) => a.data_hora.localeCompare(b.data_hora)).map((ag, i) => {
-          const hora = new Date(ag.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-          const fim = ag.servico ? new Date(new Date(ag.data_hora).getTime() + ag.servico.duracao_minutos * 60000)
-            .toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''
-          const cfg = STATUS_CFG[ag.status]
 
-          return (
-            <motion.div
-              key={ag.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              style={{
-                display: 'flex',
-                gap: '20px',
-                padding: '18px 24px',
-                borderBottom: i < filtrado.length - 1 ? '1px solid #1F1F1F' : 'none',
-                alignItems: 'flex-start',
-              }}
-            >
-              {/* Time */}
-              <div style={{ width: '70px', flexShrink: 0, paddingTop: '2px' }}>
-                <p style={{ fontSize: '14px', fontWeight: 700, color: '#FFFFFF', fontVariantNumeric: 'tabular-nums' }}>{hora}</p>
-                {fim && <p style={{ fontSize: '11px', color: '#444', marginTop: '2px' }}>até {fim}</p>}
-              </div>
-
-              {/* Left strip */}
-              <div style={{ width: '2px', background: '#2A2A2A', borderRadius: '1px', alignSelf: 'stretch', flexShrink: 0 }} />
-
-              {/* Content */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-                  <p style={{ fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>{ag.cliente?.nome ?? 'Sem cliente'}</p>
-                  <span className={cfg.cls}>{cfg.label}</span>
-                </div>
-                <p style={{ fontSize: '12px', color: '#555' }}>
-                  {ag.servico?.nome}{ag.servico?.preco ? ` · ${formatCurrency(ag.servico.preco)}` : ''}
-                  {ag.profissional ? ` · ${ag.profissional.nome}` : ''}
-                </p>
-                {ag.observacoes && (
-                  <p style={{ fontSize: '12px', color: '#444', marginTop: '4px', fontStyle: 'italic' }}>"{ag.observacoes}"</p>
-                )}
-              </div>
-
-              {/* Actions */}
-              <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
-                {ag.status === 'pendente' && (
-                  <button
-                    className="btn btn-icon"
-                    title="Confirmar"
-                    onClick={() => updateStatus(ag.id, 'confirmado')}
-                  >
-                    <Check size={13} />
-                  </button>
-                )}
-                {ag.status === 'confirmado' && (
-                  <button
-                    className="btn btn-icon"
-                    title="Concluir"
-                    onClick={() => updateStatus(ag.id, 'concluido')}
-                  >
-                    <Check size={13} />
-                  </button>
-                )}
-                <button
-                  className="btn btn-icon"
-                  title="Cancelar"
-                  onClick={() => updateStatus(ag.id, 'cancelado')}
-                >
-                  <Trash2 size={13} />
-                </button>
-              </div>
-            </motion.div>
-          )
-        })}
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowModal(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            <Plus size={14} strokeWidth={2.5} /> Agendar
+          </button>
+        </div>
       </div>
+
+      {/* Calendar-mode filters */}
+      <AnimatePresence>
+        {showCalFilters && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+            animate={{ opacity: 1, height: 'auto', marginBottom: 20 }}
+            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '12px', color: '#444' }}>Filtrar por profissional:</span>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setFilterProfId('')}
+                  style={{
+                    padding: '5px 12px', borderRadius: '99px', fontFamily: 'inherit',
+                    border: filterProfId === '' ? '1px solid #FFFFFF' : '1px solid #2A2A2A',
+                    background: filterProfId === '' ? 'rgba(255,255,255,0.08)' : 'transparent',
+                    color: filterProfId === '' ? '#FFFFFF' : '#555',
+                    fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s',
+                  }}
+                >
+                  Todos
+                </button>
+                {profissionais.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => setFilterProfId(p.id)}
+                    style={{
+                      padding: '5px 12px', borderRadius: '99px', fontFamily: 'inherit',
+                      border: filterProfId === p.id ? '1px solid #FFFFFF' : '1px solid #2A2A2A',
+                      background: filterProfId === p.id ? 'rgba(255,255,255,0.08)' : 'transparent',
+                      color: filterProfId === p.id ? '#FFFFFF' : '#555',
+                      fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s',
+                    }}
+                  >
+                    {p.nome}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Views */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={viewMode}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.18 }}
+        >
+          {viewMode === 'lista' && (
+            <ListaView
+              selectedDate={selectedDate}
+              setSelectedDate={setSelectedDate}
+              agenda={agenda}
+              updateStatus={updateStatus}
+              onOpenModal={() => setShowModal(true)}
+              setFormDate={k => setForm(f => ({ ...f, data: k }))}
+            />
+          )}
+          {viewMode === 'semanal' && (
+            <SemanalView
+              baseDate={calBase}
+              setBaseDate={setCalBase}
+              agenda={agenda}
+              filterProfId={filterProfId}
+              onDayClick={handleDayClick}
+            />
+          )}
+          {viewMode === 'mensal' && (
+            <MensalView
+              baseDate={calBase}
+              setBaseDate={setCalBase}
+              agenda={agenda}
+              filterProfId={filterProfId}
+              onDayClick={handleDayClick}
+              selectedDate={selectedDate}
+            />
+          )}
+        </motion.div>
+      </AnimatePresence>
 
       {/* Modal */}
       <AnimatePresence>
         {showModal && (
           <motion.div
             style={{
-              position: 'fixed', inset: 0, zIndex: 50,
-              background: 'rgba(0,0,0,0.75)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              padding: '20px',
+              position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
             }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={e => e.target === e.currentTarget && setShowModal(false)}
           >
             <motion.div
@@ -317,9 +892,7 @@ export default function Agenda() {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>Novo Agendamento</h2>
-                <button className="btn btn-icon" onClick={() => setShowModal(false)}>
-                  <X size={14} />
-                </button>
+                <button className="btn btn-icon" onClick={() => setShowModal(false)}><X size={14} /></button>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -332,15 +905,13 @@ export default function Agenda() {
                     </select>
                   </div>
                 )}
-
                 <div className="field">
-                  <label className="label">Profissional</label>
+                  <label className="label">Profissional *</label>
                   <select className="input" value={form.profissional_id} onChange={e => setForm(f => ({ ...f, profissional_id: e.target.value }))}>
                     <option value="">Selecionar...</option>
                     {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
                   </select>
                 </div>
-
                 <div className="field">
                   <label className="label">Serviço</label>
                   <select className="input" value={form.servico_id} onChange={e => setForm(f => ({ ...f, servico_id: e.target.value }))}>
@@ -348,7 +919,6 @@ export default function Agenda() {
                     {servicos.map(s => <option key={s.id} value={s.id}>{s.nome} · {formatCurrency(s.preco)}</option>)}
                   </select>
                 </div>
-
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="field">
                     <label className="label">Data</label>
@@ -359,14 +929,11 @@ export default function Agenda() {
                     <input type="time" className="input" value={form.hora} onChange={e => setForm(f => ({ ...f, hora: e.target.value }))} />
                   </div>
                 </div>
-
                 <div className="field">
                   <label className="label">Observações</label>
                   <input type="text" className="input" placeholder="Opcional..." value={form.obs} onChange={e => setForm(f => ({ ...f, obs: e.target.value }))} />
                 </div>
-
                 {error && <p style={{ fontSize: '13px', color: '#888' }}>{error}</p>}
-
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
                   <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancelar</button>
                   <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSave} disabled={saving}>
