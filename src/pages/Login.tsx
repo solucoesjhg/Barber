@@ -75,7 +75,7 @@ export default function Login() {
         >
           <div className="login-logo">
             <span className="login-logo-ring" />
-            <img src="/logo.png" alt="Logo" style={{ width: '100px', height: '100px', objectFit: 'contain' }} />
+            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Logo" style={{ width: '100px', height: '100px', objectFit: 'contain' }} />
           </div>
           <h1 className="login-title">BarberOS</h1>
           <p className="login-sub">

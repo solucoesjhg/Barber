@@ -96,7 +96,7 @@ export default function Sidebar() {
         flexShrink: 0,
       }}>
         <img
-          src="/logo.png"
+          src={`${import.meta.env.BASE_URL}logo.png`}
           alt="Logo"
           style={{
             width: '32px',
