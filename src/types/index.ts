@@ -113,7 +113,23 @@ export interface MovimentoCaixa {
   valor: number
   data: string
   comanda_id?: string
+  sessao_caixa_id?: string
   created_at: string
+}
+
+export type SessaoCaixaStatus = 'aberto' | 'fechado'
+
+export interface SessaoCaixa {
+  id: string
+  usuario_id: string
+  valor_inicial: number
+  aberto_em: string
+  fechado_em?: string
+  saldo_esperado?: number
+  valor_informado?: number
+  diferenca?: number
+  observacao_fechamento?: string
+  status: SessaoCaixaStatus
 }
 
 export interface DashboardStats {

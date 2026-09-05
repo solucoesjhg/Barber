@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Agenda from './pages/Agenda'
 import PDV from './pages/PDV'
+import Caixa from './pages/Caixa'
 import Clientes from './pages/Clientes'
 import Profissionais from './pages/Profissionais'
 import Produtos from './pages/Produtos'
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="/dashboard"     element={<Dashboard />} />
           <Route path="/agenda"        element={<Agenda />} />
           <Route path="/pdv"           element={<PDV />} />
+          <Route path="/caixa"         element={<Caixa />} />
           <Route path="/clientes"      element={<Clientes />} />
           <Route path="/profissionais" element={<Profissionais />} />
           <Route path="/produtos"      element={<Produtos />} />
