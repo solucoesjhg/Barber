@@ -13,6 +13,8 @@ const PAGE_NAMES: Record<string, string> = {
   '/produtos':      'Produtos',
   '/fornecedores':  'Fornecedores',
   '/financeiro':    'Financeiro',
+  '/contas-pagar':   'Contas a Pagar',
+  '/contas-receber': 'Contas a Receber',
 }
 
 export default function AppLayout() {

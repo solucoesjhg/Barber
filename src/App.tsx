@@ -10,6 +10,8 @@ import Clientes from './pages/Clientes'
 import Profissionais from './pages/Profissionais'
 import Produtos from './pages/Produtos'
 import Fornecedores from './pages/Fornecedores'
+import ContasPagar from './pages/ContasPagar'
+import ContasReceber from './pages/ContasReceber'
 import Financeiro from './pages/Financeiro'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -48,6 +50,8 @@ export default function App() {
           <Route path="/produtos"      element={<Produtos />} />
           <Route path="/fornecedores"  element={<Fornecedores />} />
           <Route path="/financeiro"    element={<Financeiro />} />
+          <Route path="/contas-pagar"   element={<ContasPagar />} />
+          <Route path="/contas-receber" element={<ContasReceber />} />
         </Route>
       </Routes>
     </BrowserRouter>

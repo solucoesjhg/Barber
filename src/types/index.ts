@@ -200,6 +200,53 @@ export interface MovimentacaoEstoque {
   created_at: string
 }
 
+export type ContaStatus = 'aberta' | 'parcial' | 'paga' | 'cancelada'
+
+export interface ContaPagar {
+  id: string
+  fornecedor_id?: string
+  categoria_id?: string
+  descricao: string
+  valor: number
+  valor_pago: number
+  data_emissao: string
+  data_vencimento: string
+  data_pagamento?: string
+  forma_pagamento_id?: string
+  status: ContaStatus
+  centro_custo?: string
+  observacao?: string
+  origem: string
+  numero_parcela: number
+  total_parcelas: number
+  grupo_parcelamento?: string
+  created_at: string
+  fornecedor?: Fornecedor
+  categoria?: CategoriaFinanceira
+}
+
+export interface ContaReceber {
+  id: string
+  cliente_id?: string
+  categoria_id?: string
+  descricao: string
+  valor: number
+  valor_pago: number
+  data_emissao: string
+  data_vencimento: string
+  data_pagamento?: string
+  forma_pagamento_id?: string
+  status: ContaStatus
+  observacao?: string
+  origem: string
+  numero_parcela: number
+  total_parcelas: number
+  grupo_parcelamento?: string
+  created_at: string
+  cliente?: Cliente
+  categoria?: CategoriaFinanceira
+}
+
 export interface UsuarioPerfil {
   usuario_id: string
   papel: PapelUsuario

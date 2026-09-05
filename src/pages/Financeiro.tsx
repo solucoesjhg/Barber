@@ -9,25 +9,7 @@ import { supabase } from '../lib/supabase'
 import { formatCurrency, formatDate } from '../lib/utils'
 import type { MovimentoCaixa } from '../types'
 
-const MOCK_MOV: MovimentoCaixa[] = [
-  { id: '1', tipo: 'entrada', categoria: 'venda', descricao: 'Venda — Rafael Mendes', valor: 65, data: new Date().toISOString().split('T')[0], created_at: '' },
-  { id: '2', tipo: 'entrada', categoria: 'venda', descricao: 'Venda — Balcão (2x Heineken)', valor: 16, data: new Date().toISOString().split('T')[0], created_at: '' },
-  { id: '3', tipo: 'entrada', categoria: 'venda', descricao: 'Venda — Gustavo Lima', valor: 80, data: new Date().toISOString().split('T')[0], created_at: '' },
-  { id: '4', tipo: 'saida',  categoria: 'custo_fixo', descricao: 'Reposição estoque cervejas', valor: 120, data: new Date().toISOString().split('T')[0], created_at: '' },
-  { id: '5', tipo: 'entrada', categoria: 'venda', descricao: 'Venda — Bruno Castro', valor: 45, data: new Date(Date.now() - 86400000).toISOString().split('T')[0], created_at: '' },
-  { id: '6', tipo: 'saida',  categoria: 'comissao', descricao: 'Comissão João Silva', valor: 80, data: new Date(Date.now() - 86400000).toISOString().split('T')[0], created_at: '' },
-  { id: '7', tipo: 'entrada', categoria: 'venda', descricao: 'Venda — Thiago Rocha', valor: 95, data: new Date(Date.now() - 86400000 * 2).toISOString().split('T')[0], created_at: '' },
-]
-
-const CHART_MOCK = [
-  { dia: 'Seg', entrada: 180, saida: 60 },
-  { dia: 'Ter', entrada: 240, saida: 80 },
-  { dia: 'Qua', entrada: 160, saida: 45 },
-  { dia: 'Qui', entrada: 310, saida: 100 },
-  { dia: 'Sex', entrada: 420, saida: 130 },
-  { dia: 'Sáb', entrada: 560, saida: 160 },
-  { dia: 'Dom', entrada: 200, saida: 55 },
-]
+const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
 function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number; dataKey: string }[]; label?: string }) {
   if (!active || !payload?.length) return null
@@ -44,7 +26,10 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 }
 
 export default function Financeiro() {
-  const [movimentos, setMovimentos] = useState<MovimentoCaixa[]>(MOCK_MOV)
+  const [movimentos, setMovimentos] = useState<MovimentoCaixa[]>([])
+  const [chartData, setChartData] = useState<{ dia: string; entrada: number; saida: number }[]>([])
+  const [aPagar, setAPagar] = useState({ aberto: 0, vencido: 0 })
+  const [aReceber, setAReceber] = useState({ aberto: 0, vencido: 0 })
   const [showModal, setShowModal]   = useState(false)
   const [form, setForm] = useState({ tipo: 'saida', categoria: '', descricao: '', valor: '' })
   const [saving, setSaving] = useState(false)
@@ -58,7 +43,41 @@ export default function Financeiro() {
 
   useEffect(() => {
     supabase.from('movimentos_caixa').select('*').order('created_at', { ascending: false }).limit(50)
-      .then(({ data }) => { if (data && data.length > 0) setMovimentos(data as MovimentoCaixa[]) })
+      .then(({ data }) => { setMovimentos((data ?? []) as MovimentoCaixa[]) })
+
+    const seteDiasAtras = new Date(Date.now() - 6 * 86400000).toISOString().split('T')[0]
+    supabase.from('movimentos_caixa').select('tipo, valor, data').gte('data', seteDiasAtras)
+      .then(({ data }) => {
+        const porDia: Record<string, { entrada: number; saida: number }> = {}
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date(Date.now() - i * 86400000)
+          porDia[d.toISOString().split('T')[0]] = { entrada: 0, saida: 0 }
+        }
+        ;((data ?? []) as { tipo: string; valor: number; data: string }[]).forEach(m => {
+          if (porDia[m.data]) porDia[m.data][m.tipo === 'entrada' ? 'entrada' : 'saida'] += m.valor
+        })
+        setChartData(Object.entries(porDia).map(([data, v]) => ({
+          dia: DIAS_SEMANA[new Date(`${data}T12:00:00`).getDay()], ...v,
+        })))
+      })
+
+    const hoje2 = new Date().toISOString().split('T')[0]
+    supabase.from('contas_pagar').select('valor, valor_pago, status, data_vencimento').in('status', ['aberta', 'parcial'])
+      .then(({ data }) => {
+        const rows = (data ?? []) as { valor: number; valor_pago: number; data_vencimento: string }[]
+        setAPagar({
+          aberto: rows.reduce((s, c) => s + (c.valor - c.valor_pago), 0),
+          vencido: rows.filter(c => c.data_vencimento < hoje2).reduce((s, c) => s + (c.valor - c.valor_pago), 0),
+        })
+      })
+    supabase.from('contas_receber').select('valor, valor_pago, status, data_vencimento').in('status', ['aberta', 'parcial'])
+      .then(({ data }) => {
+        const rows = (data ?? []) as { valor: number; valor_pago: number; data_vencimento: string }[]
+        setAReceber({
+          aberto: rows.reduce((s, c) => s + (c.valor - c.valor_pago), 0),
+          vencido: rows.filter(c => c.data_vencimento < hoje2).reduce((s, c) => s + (c.valor - c.valor_pago), 0),
+        })
+      })
   }, [])
 
   async function handleSave() {
@@ -87,11 +106,13 @@ export default function Financeiro() {
       </div>
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '24px' }}>
         {[
           { label: 'Entradas (total)', value: formatCurrency(entradas), icon: TrendingUp, suffix: `Hoje: ${formatCurrency(entradasHoje)}` },
           { label: 'Saídas (total)',   value: formatCurrency(saidas),   icon: TrendingDown, suffix: '' },
           { label: 'Lucro Líquido',    value: formatCurrency(lucro),    icon: DollarSign, suffix: '' },
+          { label: 'A Pagar',          value: formatCurrency(aPagar.aberto),   icon: TrendingDown, suffix: aPagar.vencido > 0 ? `${formatCurrency(aPagar.vencido)} vencido` : '' },
+          { label: 'A Receber',        value: formatCurrency(aReceber.aberto), icon: TrendingUp, suffix: aReceber.vencido > 0 ? `${formatCurrency(aReceber.vencido)} vencido` : '' },
         ].map((s, i) => {
           const Icon = s.icon
           return (
@@ -129,7 +150,7 @@ export default function Financeiro() {
           Últimos 7 dias
         </p>
         <ResponsiveContainer width="100%" height={200}>
-          <AreaChart data={CHART_MOCK}>
+          <AreaChart data={chartData}>
             <defs>
               <linearGradient id="gEntrada" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%"  stopColor="#FFFFFF" stopOpacity={0.08} />
