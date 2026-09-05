@@ -106,3 +106,45 @@ export interface DashboardStats {
   clientes_novos: number
   ticket_medio: number
 }
+
+/* ── Fundação financeira/administrativa (Fase 1) ─────────────── */
+
+export type PapelUsuario = 'administrador' | 'gerente' | 'atendente' | 'profissional'
+export type CategoriaFinanceiraTipo = 'receita' | 'despesa'
+
+export interface CategoriaFinanceira {
+  id: string
+  nome: string
+  tipo: CategoriaFinanceiraTipo
+  categoria_pai_id?: string
+  ativo: boolean
+  created_at: string
+}
+
+export interface FormaPagamentoCadastro {
+  id: string
+  nome: string
+  ativo: boolean
+  created_at: string
+}
+
+export interface Fornecedor {
+  id: string
+  nome: string
+  nome_fantasia?: string
+  documento?: string
+  telefone?: string
+  email?: string
+  endereco?: string
+  observacoes?: string
+  ativo: boolean
+  created_at: string
+}
+
+export interface UsuarioPerfil {
+  usuario_id: string
+  papel: PapelUsuario
+  profissional_id?: string
+  ativo: boolean
+  created_at: string
+}
