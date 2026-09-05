@@ -64,6 +64,7 @@ export interface Produto {
   estoque_maximo?: number
   sku?: string
   unidade: string
+  comissao_percentual?: number
   ativo: boolean
 }
 

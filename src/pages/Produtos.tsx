@@ -20,6 +20,7 @@ export default function Produtos() {
   const [prodForm, setProdForm] = useState({
     nome: '', categoria: 'bebidas' as ProdutoCategoria, sku: '', unidade: 'un',
     preco_custo: '', preco_venda: '', estoque_atual: '', estoque_minimo: '5', estoque_maximo: '',
+    comissao_percentual: '',
   })
 
   // Serviços
@@ -72,11 +73,12 @@ export default function Produtos() {
       estoque_atual: Number(prodForm.estoque_atual) || 0,
       estoque_minimo: Number(prodForm.estoque_minimo) || 5,
       estoque_maximo: prodForm.estoque_maximo ? Number(prodForm.estoque_maximo) : null,
+      comissao_percentual: prodForm.comissao_percentual ? Number(prodForm.comissao_percentual) : null,
       ativo: true,
     }).select('*').single()
     if (err) { setError(err.message); setSaving(false); return }
     if (data) setProdutos(prev => [...prev, data as Produto])
-    setProdForm({ nome: '', categoria: 'bebidas', sku: '', unidade: 'un', preco_custo: '', preco_venda: '', estoque_atual: '', estoque_minimo: '5', estoque_maximo: '' })
+    setProdForm({ nome: '', categoria: 'bebidas', sku: '', unidade: 'un', preco_custo: '', preco_venda: '', estoque_atual: '', estoque_minimo: '5', estoque_maximo: '', comissao_percentual: '' })
     setShowProdModal(false); setSaving(false)
   }
 
@@ -238,6 +240,7 @@ export default function Produtos() {
                         <span style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{p.nome}</span>
                         {p.sku && <span style={{ fontSize: '10px', color: '#444', marginLeft: '8px' }}>#{p.sku}</span>}
                         {margem && <span style={{ fontSize: '10px', color: '#555', marginLeft: '8px' }}>+{margem}% margem</span>}
+                        {p.comissao_percentual != null && <span style={{ fontSize: '10px', color: '#555', marginLeft: '8px' }}>comissão {p.comissao_percentual}%</span>}
                       </div>
                     </div>
                     <span style={{ fontSize: '12px', color: '#666', textTransform: 'capitalize' }}>{CAT_LABEL[p.categoria]}</span>
@@ -381,9 +384,15 @@ export default function Produtos() {
                     <input className="input" type="number" min={0} placeholder="opcional" value={prodForm.estoque_maximo} onChange={e => setProdForm(f => ({ ...f, estoque_maximo: e.target.value }))} />
                   </div>
                 </div>
-                <div className="field">
-                  <label className="label">Unidade</label>
-                  <input className="input" placeholder="un, kg, ml..." value={prodForm.unidade} onChange={e => setProdForm(f => ({ ...f, unidade: e.target.value }))} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="field">
+                    <label className="label">Unidade</label>
+                    <input className="input" placeholder="un, kg, ml..." value={prodForm.unidade} onChange={e => setProdForm(f => ({ ...f, unidade: e.target.value }))} />
+                  </div>
+                  <div className="field">
+                    <label className="label">Comissão (%)</label>
+                    <input className="input" type="number" min={0} max={100} placeholder="usa a do profissional" value={prodForm.comissao_percentual} onChange={e => setProdForm(f => ({ ...f, comissao_percentual: e.target.value }))} />
+                  </div>
                 </div>
                 {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>

@@ -33,6 +33,7 @@ export default function Financeiro() {
   const [showModal, setShowModal]   = useState(false)
   const [form, setForm] = useState({ tipo: 'saida', categoria: '', descricao: '', valor: '' })
   const [saving, setSaving] = useState(false)
+  const [formError, setFormError] = useState('')
 
   const hoje = new Date().toISOString().split('T')[0]
   const movHoje    = movimentos.filter(m => m.data === hoje)
@@ -82,14 +83,17 @@ export default function Financeiro() {
 
   async function handleSave() {
     if (!form.descricao || !form.valor) return
-    setSaving(true)
-    const { data } = await supabase.from('movimentos_caixa').insert({
-      tipo: form.tipo, categoria: form.categoria || form.tipo,
-      descricao: form.descricao, valor: Number(form.valor), data: hoje,
-    }).select('*').single()
-    if (data) setMovimentos(prev => [data as MovimentoCaixa, ...prev])
+    setSaving(true); setFormError('')
+    const { error: err } = await supabase.rpc('registrar_movimento_caixa', {
+      p_tipo: form.tipo, p_categoria: form.categoria || form.tipo,
+      p_descricao: form.descricao, p_valor: Number(form.valor),
+    })
+    setSaving(false)
+    if (err) { setFormError(err.message); return }
+    supabase.from('movimentos_caixa').select('*').order('created_at', { ascending: false }).limit(50)
+      .then(({ data }) => { setMovimentos((data ?? []) as MovimentoCaixa[]) })
     setForm({ tipo: 'saida', categoria: '', descricao: '', valor: '' })
-    setShowModal(false); setSaving(false)
+    setShowModal(false)
   }
 
   return (
@@ -100,7 +104,7 @@ export default function Financeiro() {
           <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Financeiro</h1>
           <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>Fluxo de caixa e relatórios</p>
         </div>
-        <button className="btn btn-secondary" onClick={() => setShowModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <button className="btn btn-secondary" onClick={() => { setFormError(''); setShowModal(true) }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Plus size={14} /> Lançar Saída
         </button>
       </div>
@@ -261,6 +265,7 @@ export default function Financeiro() {
                 <label className="label">Valor (R$) *</label>
                 <input className="input" type="number" min={0} step={0.01} placeholder="0,00" value={form.valor} onChange={e => setForm(f => ({ ...f, valor: e.target.value }))} />
               </div>
+              {formError && <p style={{ fontSize: '12px', color: '#666' }}>{formError}</p>}
               <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
                 <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancelar</button>
                 <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSave} disabled={saving}>
