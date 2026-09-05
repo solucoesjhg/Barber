@@ -5,22 +5,19 @@ import { supabase } from '../lib/supabase'
 import { initials } from '../lib/utils'
 import type { Profissional } from '../types'
 
-const MOCK: Profissional[] = [
-  { id: 'p1', nome: 'João Silva',   especialidade: 'Cabelo e Barba', comissao_percentual: 50, ativo: true, telefone: '(11) 99111-2233', created_at: '' },
-  { id: 'p2', nome: 'Pedro Santos', especialidade: 'Coloração',      comissao_percentual: 55, ativo: true, telefone: '(11) 99444-5566', created_at: '' },
-  { id: 'p3', nome: 'Lucas Costa',  especialidade: 'Barbeiro Sênior',comissao_percentual: 60, ativo: true, telefone: '(11) 99777-8899', created_at: '' },
-]
+const FORM_INICIAL = { nome: '', especialidade: '', comissao_percentual: '50', telefone: '', email: '', documento: '', valor_fixo: '' }
 
 export default function Profissionais() {
-  const [profissionais, setProfissionais] = useState<Profissional[]>(MOCK)
+  const [profissionais, setProfissionais] = useState<Profissional[]>([])
+  const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
-  const [form, setForm] = useState({ nome: '', especialidade: '', comissao_percentual: '50', telefone: '' })
+  const [form, setForm] = useState(FORM_INICIAL)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
     supabase.from('profissionais').select('*').order('nome')
-      .then(({ data }) => { if (data && data.length > 0) setProfissionais(data as Profissional[]) })
+      .then(({ data }) => { setProfissionais((data ?? []) as Profissional[]); setLoading(false) })
   }, [])
 
   async function handleSave() {
@@ -30,11 +27,20 @@ export default function Profissionais() {
     setSaving(true); setError('')
     const { data, error: err } = await supabase
       .from('profissionais')
-      .insert({ nome: form.nome, especialidade: form.especialidade, comissao_percentual: Number(form.comissao_percentual), telefone: form.telefone || null, ativo: true })
+      .insert({
+        nome: form.nome,
+        especialidade: form.especialidade,
+        comissao_percentual: Number(form.comissao_percentual),
+        telefone: form.telefone || null,
+        email: form.email || null,
+        documento: form.documento || null,
+        valor_fixo: form.valor_fixo ? Number(form.valor_fixo) : null,
+        ativo: true,
+      })
       .select('*').single()
     if (err) { setError(err.message); setSaving(false); return }
     if (data) setProfissionais(prev => [...prev, data as Profissional])
-    setForm({ nome: '', especialidade: '', comissao_percentual: '50', telefone: '' })
+    setForm(FORM_INICIAL)
     setShowModal(false); setSaving(false)
   }
 
@@ -55,6 +61,13 @@ export default function Profissionais() {
         </button>
       </div>
 
+      {loading ? (
+        <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Carregando...</div>
+      ) : profissionais.length === 0 ? (
+        <div className="card" style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+          Nenhum profissional cadastrado.
+        </div>
+      ) : (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
         {profissionais.map((p, i) => (
           <motion.div
@@ -93,6 +106,11 @@ export default function Profissionais() {
                   <Scissors size={11} style={{ color: '#444' }} />
                   <span style={{ fontSize: '12px', color: '#666' }}>{p.especialidade}</span>
                 </div>
+                {(p.email || p.documento) && (
+                  <p style={{ fontSize: '11px', color: '#444', marginTop: '4px' }}>
+                    {[p.email, p.documento].filter(Boolean).join(' · ')}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -109,12 +127,17 @@ export default function Profissionais() {
                 </div>
               </div>
 
-              {p.telefone && (
+              {p.valor_fixo ? (
+                <div>
+                  <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Valor fixo</p>
+                  <p style={{ fontSize: '13px', color: '#A3A3A3' }}>R$ {p.valor_fixo.toFixed(2)}</p>
+                </div>
+              ) : p.telefone ? (
                 <div>
                   <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Telefone</p>
                   <p style={{ fontSize: '13px', color: '#A3A3A3' }}>{p.telefone}</p>
                 </div>
-              )}
+              ) : null}
 
               <button
                 onClick={() => toggleAtivo(p.id, p.ativo)}
@@ -126,6 +149,7 @@ export default function Profissionais() {
           </motion.div>
         ))}
       </div>
+      )}
 
       {/* Modal */}
       <AnimatePresence>
@@ -137,7 +161,7 @@ export default function Profissionais() {
           >
             <motion.div
               className="card"
-              style={{ width: '100%', maxWidth: '420px', padding: '28px' }}
+              style={{ width: '100%', maxWidth: '460px', padding: '28px', maxHeight: '85vh', overflowY: 'auto' }}
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
@@ -153,13 +177,29 @@ export default function Profissionais() {
                   <label className="label">Especialidade *</label>
                   <input className="input" placeholder="Ex: Cabelo e Barba" value={form.especialidade} onChange={e => setForm(f => ({ ...f, especialidade: e.target.value }))} />
                 </div>
-                <div className="field">
-                  <label className="label">Comissão (%)</label>
-                  <input className="input" type="number" min={0} max={100} value={form.comissao_percentual} onChange={e => setForm(f => ({ ...f, comissao_percentual: e.target.value }))} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="field">
+                    <label className="label">Comissão (%)</label>
+                    <input className="input" type="number" min={0} max={100} value={form.comissao_percentual} onChange={e => setForm(f => ({ ...f, comissao_percentual: e.target.value }))} />
+                  </div>
+                  <div className="field">
+                    <label className="label">Valor fixo (R$)</label>
+                    <input className="input" type="number" min={0} step={0.01} placeholder="opcional" value={form.valor_fixo} onChange={e => setForm(f => ({ ...f, valor_fixo: e.target.value }))} />
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="field">
+                    <label className="label">Telefone</label>
+                    <input className="input" placeholder="(11) 99999-9999" value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} />
+                  </div>
+                  <div className="field">
+                    <label className="label">E-mail</label>
+                    <input className="input" type="email" placeholder="email@exemplo.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+                  </div>
                 </div>
                 <div className="field">
-                  <label className="label">Telefone</label>
-                  <input className="input" placeholder="(11) 99999-9999" value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} />
+                  <label className="label">Documento (CPF)</label>
+                  <input className="input" placeholder="000.000.000-00" value={form.documento} onChange={e => setForm(f => ({ ...f, documento: e.target.value }))} />
                 </div>
                 {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>

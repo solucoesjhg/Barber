@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   LayoutDashboard, Calendar, ShoppingCart, Users,
-  Scissors, Package, BarChart2, LogOut,
+  Scissors, Package, Truck, BarChart2, LogOut,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { initials } from '../../lib/utils'
@@ -14,6 +14,7 @@ const NAV = [
   { to: '/clientes',     icon: Users,           label: 'Clientes'      },
   { to: '/profissionais',icon: Scissors,        label: 'Profissionais' },
   { to: '/produtos',     icon: Package,         label: 'Produtos'      },
+  { to: '/fornecedores', icon: Truck,           label: 'Fornecedores'  },
   { to: '/financeiro',   icon: BarChart2,       label: 'Financeiro'    },
 ]
 

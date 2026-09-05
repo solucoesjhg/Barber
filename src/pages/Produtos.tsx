@@ -7,24 +7,6 @@ import type { Produto, ProdutoCategoria, Servico, Profissional } from '../types'
 
 type Secao = 'produtos' | 'servicos'
 
-const MOCK_PROD: Produto[] = [
-  { id: 'p1', nome: 'Heineken Lata',   categoria: 'bebidas',  preco_custo: 4,   preco_venda: 8,  estoque_atual: 24, estoque_minimo: 12, ativo: true },
-  { id: 'p2', nome: 'Skol Lata',       categoria: 'bebidas',  preco_custo: 3.5, preco_venda: 7,  estoque_atual: 8,  estoque_minimo: 12, ativo: true },
-  { id: 'p3', nome: 'Água Mineral',    categoria: 'bebidas',  preco_custo: 1.5, preco_venda: 4,  estoque_atual: 30, estoque_minimo: 10, ativo: true },
-  { id: 'p4', nome: 'Pomada Uppercut', categoria: 'pomadas',  preco_custo: 25,  preco_venda: 55, estoque_atual: 8,  estoque_minimo: 3,  ativo: true },
-  { id: 'p5', nome: 'Pomada Leve',     categoria: 'pomadas',  preco_custo: 18,  preco_venda: 38, estoque_atual: 3,  estoque_minimo: 3,  ativo: true },
-  { id: 'p6', nome: 'Petisco Misto',   categoria: 'petiscos', preco_custo: 8,   preco_venda: 18, estoque_atual: 15, estoque_minimo: 5,  ativo: true },
-  { id: 'p7', nome: 'Batata Chips',    categoria: 'petiscos', preco_custo: 5,   preco_venda: 12, estoque_atual: 20, estoque_minimo: 5,  ativo: true },
-]
-
-const MOCK_SERV: Servico[] = [
-  { id: 's1', nome: 'Combo Cabelo + Barba', preco: 65, duracao_minutos: 50, ativo: true },
-  { id: 's2', nome: 'Pigmentação',          preco: 80, duracao_minutos: 60, ativo: true },
-  { id: 's3', nome: 'Corte de Cabelo',      preco: 45, duracao_minutos: 30, ativo: true },
-  { id: 's4', nome: 'Barba',                preco: 30, duracao_minutos: 20, ativo: true },
-  { id: 's5', nome: 'Sobrancelha',          preco: 15, duracao_minutos: 10, ativo: true },
-]
-
 const CAT_LABEL: Record<ProdutoCategoria, string> = {
   bebidas: 'Bebidas', pomadas: 'Pomadas', petiscos: 'Petiscos', outros: 'Outros',
 }
@@ -33,22 +15,23 @@ export default function Produtos() {
   const [secao, setSecao] = useState<Secao>('produtos')
 
   // Produtos
-  const [produtos, setProdutos] = useState<Produto[]>(MOCK_PROD)
+  const [produtos, setProdutos] = useState<Produto[]>([])
   const [showProdModal, setShowProdModal] = useState(false)
   const [prodForm, setProdForm] = useState({
-    nome: '', categoria: 'bebidas' as ProdutoCategoria,
-    preco_custo: '', preco_venda: '', estoque_atual: '', estoque_minimo: '5',
+    nome: '', categoria: 'bebidas' as ProdutoCategoria, sku: '', unidade: 'un',
+    preco_custo: '', preco_venda: '', estoque_atual: '', estoque_minimo: '5', estoque_maximo: '',
   })
 
   // Serviços
-  const [servicos, setServicos] = useState<Servico[]>(MOCK_SERV)
+  const [servicos, setServicos] = useState<Servico[]>([])
   const [profissionais, setProfissionais] = useState<Profissional[]>([])
   const [showServModal, setShowServModal] = useState(false)
   const [servForm, setServForm] = useState({
-    nome: '', preco: '', duracao_minutos: '30',
+    nome: '', preco: '', duracao_minutos: '30', descricao: '', categoria: '', comissao_percentual: '',
     profissional_ids: [] as string[],
   })
 
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -56,20 +39,19 @@ export default function Produtos() {
 
   useEffect(() => {
     supabase.from('produtos').select('*').order('nome')
-      .then(({ data }) => { if (data && data.length > 0) setProdutos(data as Produto[]) })
+      .then(({ data }) => { setProdutos((data ?? []) as Produto[]) })
 
     supabase
       .from('servicos')
       .select('*, profissionais:profissional_servicos(profissional:profissionais(*))')
       .order('nome')
       .then(({ data }) => {
-        if (data && data.length > 0) {
-          const mapped = (data as any[]).map(s => ({
-            ...s,
-            profissionais: (s.profissionais ?? []).map((ps: any) => ps.profissional).filter(Boolean),
-          }))
-          setServicos(mapped as Servico[])
-        }
+        const mapped = ((data ?? []) as any[]).map(s => ({
+          ...s,
+          profissionais: (s.profissionais ?? []).map((ps: any) => ps.profissional).filter(Boolean),
+        }))
+        setServicos(mapped as Servico[])
+        setLoading(false)
       })
 
     supabase.from('profissionais').select('*').order('nome')
@@ -83,15 +65,18 @@ export default function Produtos() {
     setSaving(true); setError('')
     const { data, error: err } = await supabase.from('produtos').insert({
       nome: prodForm.nome, categoria: prodForm.categoria,
+      sku: prodForm.sku || null,
+      unidade: prodForm.unidade || 'un',
       preco_custo: Number(prodForm.preco_custo) || 0,
       preco_venda: Number(prodForm.preco_venda),
       estoque_atual: Number(prodForm.estoque_atual) || 0,
       estoque_minimo: Number(prodForm.estoque_minimo) || 5,
+      estoque_maximo: prodForm.estoque_maximo ? Number(prodForm.estoque_maximo) : null,
       ativo: true,
     }).select('*').single()
     if (err) { setError(err.message); setSaving(false); return }
     if (data) setProdutos(prev => [...prev, data as Produto])
-    setProdForm({ nome: '', categoria: 'bebidas', preco_custo: '', preco_venda: '', estoque_atual: '', estoque_minimo: '5' })
+    setProdForm({ nome: '', categoria: 'bebidas', sku: '', unidade: 'un', preco_custo: '', preco_venda: '', estoque_atual: '', estoque_minimo: '5', estoque_maximo: '' })
     setShowProdModal(false); setSaving(false)
   }
 
@@ -104,6 +89,9 @@ export default function Produtos() {
       nome: servForm.nome,
       preco: Number(servForm.preco),
       duracao_minutos: Number(servForm.duracao_minutos) || 30,
+      descricao: servForm.descricao || null,
+      categoria: servForm.categoria || null,
+      comissao_percentual: servForm.comissao_percentual ? Number(servForm.comissao_percentual) : null,
       ativo: true,
     }).select('*').single()
     if (err) { setError(err.message); setSaving(false); return }
@@ -119,7 +107,7 @@ export default function Produtos() {
       }
       setServicos(prev => [...prev, novoServ])
     }
-    setServForm({ nome: '', preco: '', duracao_minutos: '30', profissional_ids: [] })
+    setServForm({ nome: '', preco: '', duracao_minutos: '30', descricao: '', categoria: '', comissao_percentual: '', profissional_ids: [] })
     setShowServModal(false); setSaving(false)
   }
 
@@ -224,7 +212,11 @@ export default function Produtos() {
                 <span>Venda</span><span>Estoque</span><span>Mínimo</span>
               </div>
 
-              {produtos.map((p, i) => {
+              {produtos.length === 0 ? (
+                <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+                  Nenhum produto cadastrado.
+                </div>
+              ) : produtos.map((p, i) => {
                 const baixo  = p.estoque_atual <= p.estoque_minimo
                 const margem = p.preco_custo > 0 ? ((p.preco_venda - p.preco_custo) / p.preco_custo * 100).toFixed(0) : null
                 return (
@@ -244,6 +236,7 @@ export default function Produtos() {
                       <Package size={13} style={{ color: '#444', flexShrink: 0 }} />
                       <div>
                         <span style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{p.nome}</span>
+                        {p.sku && <span style={{ fontSize: '10px', color: '#444', marginLeft: '8px' }}>#{p.sku}</span>}
                         {margem && <span style={{ fontSize: '10px', color: '#555', marginLeft: '8px' }}>+{margem}% margem</span>}
                       </div>
                     </div>
@@ -251,7 +244,7 @@ export default function Produtos() {
                     <span style={{ fontSize: '13px', color: '#555' }}>{formatCurrency(p.preco_custo)}</span>
                     <span style={{ fontSize: '13px', color: '#A3A3A3', fontWeight: 500 }}>{formatCurrency(p.preco_venda)}</span>
                     <span style={{ fontSize: '14px', fontWeight: 700, color: baixo ? '#FFFFFF' : '#A3A3A3' }}>
-                      {p.estoque_atual}
+                      {p.estoque_atual} {p.unidade}
                       {baixo && <AlertTriangle size={12} style={{ marginLeft: '4px', color: '#777', verticalAlign: 'middle' }} />}
                     </span>
                     <span style={{ fontSize: '13px', color: '#444' }}>{p.estoque_minimo}</span>
@@ -265,17 +258,21 @@ export default function Produtos() {
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 120px 100px 1fr',
+                gridTemplateColumns: '1fr 100px 120px 90px 1fr',
                 padding: '10px 24px',
                 borderBottom: '1px solid #222',
                 fontSize: '10px', fontWeight: 600, color: '#444',
                 textTransform: 'uppercase', letterSpacing: '0.1em',
                 background: 'rgba(0,0,0,0.2)',
               }}>
-                <span>Serviço</span><span>Preço</span><span>Duração</span><span>Profissionais</span>
+                <span>Serviço</span><span>Preço</span><span>Duração</span><span>Comissão</span><span>Profissionais</span>
               </div>
 
-              {servicos.length === 0 ? (
+              {loading ? (
+                <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+                  Carregando...
+                </div>
+              ) : servicos.length === 0 ? (
                 <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
                   Nenhum serviço cadastrado.
                 </div>
@@ -285,7 +282,7 @@ export default function Produtos() {
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '1fr 120px 100px 1fr',
+                    gridTemplateColumns: '1fr 100px 120px 90px 1fr',
                     padding: '14px 24px',
                     borderBottom: i < servicos.length - 1 ? '1px solid #1F1F1F' : 'none',
                     alignItems: 'center',
@@ -294,10 +291,14 @@ export default function Produtos() {
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <Scissors size={13} style={{ color: '#444', flexShrink: 0 }} />
-                    <span style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{s.nome}</span>
+                    <div>
+                      <span style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{s.nome}</span>
+                      {s.categoria && <span style={{ fontSize: '10px', color: '#444', marginLeft: '8px' }}>{s.categoria}</span>}
+                    </div>
                   </div>
                   <span style={{ fontSize: '13px', color: '#A3A3A3', fontWeight: 500 }}>{formatCurrency(s.preco)}</span>
                   <span style={{ fontSize: '12px', color: '#666' }}>{s.duracao_minutos} min</span>
+                  <span style={{ fontSize: '12px', color: '#666' }}>{s.comissao_percentual != null ? `${s.comissao_percentual}%` : '—'}</span>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                     {s.profissionais && s.profissionais.length > 0
                       ? s.profissionais.map(p => (
@@ -329,7 +330,7 @@ export default function Produtos() {
           >
             <motion.div
               className="card"
-              style={{ width: '100%', maxWidth: '460px', padding: '28px' }}
+              style={{ width: '100%', maxWidth: '460px', padding: '28px', maxHeight: '85vh', overflowY: 'auto' }}
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
@@ -341,14 +342,20 @@ export default function Produtos() {
                   <label className="label">Nome *</label>
                   <input className="input" placeholder="Nome do produto" value={prodForm.nome} onChange={e => setProdForm(f => ({ ...f, nome: e.target.value }))} />
                 </div>
-                <div className="field">
-                  <label className="label">Categoria</label>
-                  <select className="input" value={prodForm.categoria} onChange={e => setProdForm(f => ({ ...f, categoria: e.target.value as ProdutoCategoria }))}>
-                    <option value="bebidas">Bebidas</option>
-                    <option value="pomadas">Pomadas</option>
-                    <option value="petiscos">Petiscos</option>
-                    <option value="outros">Outros</option>
-                  </select>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="field">
+                    <label className="label">Categoria</label>
+                    <select className="input" value={prodForm.categoria} onChange={e => setProdForm(f => ({ ...f, categoria: e.target.value as ProdutoCategoria }))}>
+                      <option value="bebidas">Bebidas</option>
+                      <option value="pomadas">Pomadas</option>
+                      <option value="petiscos">Petiscos</option>
+                      <option value="outros">Outros</option>
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label className="label">SKU / Código</label>
+                    <input className="input" placeholder="opcional" value={prodForm.sku} onChange={e => setProdForm(f => ({ ...f, sku: e.target.value }))} />
+                  </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="field">
@@ -360,7 +367,7 @@ export default function Produtos() {
                     <input className="input" type="number" min={0} step={0.01} placeholder="0,00" value={prodForm.preco_venda} onChange={e => setProdForm(f => ({ ...f, preco_venda: e.target.value }))} />
                   </div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                   <div className="field">
                     <label className="label">Estoque Atual</label>
                     <input className="input" type="number" min={0} placeholder="0" value={prodForm.estoque_atual} onChange={e => setProdForm(f => ({ ...f, estoque_atual: e.target.value }))} />
@@ -369,6 +376,14 @@ export default function Produtos() {
                     <label className="label">Estoque Mínimo</label>
                     <input className="input" type="number" min={0} placeholder="5" value={prodForm.estoque_minimo} onChange={e => setProdForm(f => ({ ...f, estoque_minimo: e.target.value }))} />
                   </div>
+                  <div className="field">
+                    <label className="label">Estoque Máximo</label>
+                    <input className="input" type="number" min={0} placeholder="opcional" value={prodForm.estoque_maximo} onChange={e => setProdForm(f => ({ ...f, estoque_maximo: e.target.value }))} />
+                  </div>
+                </div>
+                <div className="field">
+                  <label className="label">Unidade</label>
+                  <input className="input" placeholder="un, kg, ml..." value={prodForm.unidade} onChange={e => setProdForm(f => ({ ...f, unidade: e.target.value }))} />
                 </div>
                 {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
@@ -393,7 +408,7 @@ export default function Produtos() {
           >
             <motion.div
               className="card"
-              style={{ width: '100%', maxWidth: '460px', padding: '28px' }}
+              style={{ width: '100%', maxWidth: '460px', padding: '28px', maxHeight: '85vh', overflowY: 'auto' }}
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
@@ -405,6 +420,10 @@ export default function Produtos() {
                   <label className="label">Nome *</label>
                   <input className="input" placeholder="Nome do serviço" value={servForm.nome} onChange={e => setServForm(f => ({ ...f, nome: e.target.value }))} />
                 </div>
+                <div className="field">
+                  <label className="label">Descrição</label>
+                  <input className="input" placeholder="opcional" value={servForm.descricao} onChange={e => setServForm(f => ({ ...f, descricao: e.target.value }))} />
+                </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="field">
                     <label className="label">Preço *</label>
@@ -413,6 +432,16 @@ export default function Produtos() {
                   <div className="field">
                     <label className="label">Duração (min)</label>
                     <input className="input" type="number" min={5} step={5} placeholder="30" value={servForm.duracao_minutos} onChange={e => setServForm(f => ({ ...f, duracao_minutos: e.target.value }))} />
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="field">
+                    <label className="label">Categoria</label>
+                    <input className="input" placeholder="Ex: Cabelo, Barba..." value={servForm.categoria} onChange={e => setServForm(f => ({ ...f, categoria: e.target.value }))} />
+                  </div>
+                  <div className="field">
+                    <label className="label">Comissão (%)</label>
+                    <input className="input" type="number" min={0} max={100} placeholder="usa a do profissional" value={servForm.comissao_percentual} onChange={e => setServForm(f => ({ ...f, comissao_percentual: e.target.value }))} />
                   </div>
                 </div>
                 {profissionais.length > 0 && (

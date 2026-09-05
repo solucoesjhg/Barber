@@ -17,6 +17,9 @@ export interface Profissional {
   comissao_percentual: number
   ativo: boolean
   telefone?: string
+  email?: string
+  documento?: string
+  valor_fixo?: number
   created_at: string
 }
 
@@ -25,6 +28,11 @@ export interface Cliente {
   nome: string
   telefone: string
   email?: string
+  cpf?: string
+  data_nascimento?: string
+  endereco?: string
+  observacoes?: string
+  ativo: boolean
   created_at: string
 }
 
@@ -33,6 +41,9 @@ export interface Servico {
   nome: string
   preco: number
   duracao_minutos: number
+  descricao?: string
+  categoria?: string
+  comissao_percentual?: number
   ativo: boolean
   profissionais?: Profissional[]
 }
@@ -50,6 +61,9 @@ export interface Produto {
   preco_venda: number
   estoque_atual: number
   estoque_minimo: number
+  estoque_maximo?: number
+  sku?: string
+  unidade: string
   ativo: boolean
 }
 

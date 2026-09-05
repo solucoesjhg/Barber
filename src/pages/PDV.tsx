@@ -5,24 +5,6 @@ import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
 import type { ItemComanda, PagamentoMetodo, Produto, Servico } from '../types'
 
-const SERVICOS_MOCK: Servico[] = [
-  { id: 's1', nome: 'Combo Cabelo + Barba', preco: 65, duracao_minutos: 50, ativo: true },
-  { id: 's2', nome: 'Corte de Cabelo',      preco: 45, duracao_minutos: 30, ativo: true },
-  { id: 's3', nome: 'Barba',                preco: 30, duracao_minutos: 20, ativo: true },
-  { id: 's4', nome: 'Pigmentação',          preco: 80, duracao_minutos: 60, ativo: true },
-  { id: 's5', nome: 'Sobrancelha',          preco: 15, duracao_minutos: 10, ativo: true },
-]
-
-const PRODUTOS_MOCK: Produto[] = [
-  { id: 'p1', nome: 'Heineken Lata',   categoria: 'bebidas',  preco_custo: 4,   preco_venda: 8,  estoque_atual: 24, estoque_minimo: 12, ativo: true },
-  { id: 'p2', nome: 'Skol Lata',       categoria: 'bebidas',  preco_custo: 3.5, preco_venda: 7,  estoque_atual: 18, estoque_minimo: 12, ativo: true },
-  { id: 'p3', nome: 'Água Mineral',    categoria: 'bebidas',  preco_custo: 1.5, preco_venda: 4,  estoque_atual: 30, estoque_minimo: 10, ativo: true },
-  { id: 'p4', nome: 'Pomada Uppercut', categoria: 'pomadas',  preco_custo: 25,  preco_venda: 55, estoque_atual: 8,  estoque_minimo: 3,  ativo: true },
-  { id: 'p5', nome: 'Pomada Leve',     categoria: 'pomadas',  preco_custo: 18,  preco_venda: 38, estoque_atual: 6,  estoque_minimo: 3,  ativo: true },
-  { id: 'p6', nome: 'Petisco Misto',   categoria: 'petiscos', preco_custo: 8,   preco_venda: 18, estoque_atual: 15, estoque_minimo: 5,  ativo: true },
-  { id: 'p7', nome: 'Batata Chips',    categoria: 'petiscos', preco_custo: 5,   preco_venda: 12, estoque_atual: 20, estoque_minimo: 5,  ativo: true },
-]
-
 const PAGAMENTOS: { id: PagamentoMetodo; label: string }[] = [
   { id: 'pix',      label: 'Pix'            },
   { id: 'credito',  label: 'Cartão Crédito' },
@@ -37,8 +19,8 @@ type Tab = 'servicos' | 'produtos'
 export default function PDV() {
   const [tab, setTab]         = useState<Tab>('servicos')
   const [search, setSearch]   = useState('')
-  const [servicos, setServicos] = useState<Servico[]>(SERVICOS_MOCK)
-  const [produtos, setProdutos] = useState<Produto[]>(PRODUTOS_MOCK)
+  const [servicos, setServicos] = useState<Servico[]>([])
+  const [produtos, setProdutos] = useState<Produto[]>([])
 
   const [cart, setCart]           = useState<ItemComanda[]>([])
   const [clienteNome, setClienteNome] = useState('')
@@ -51,10 +33,10 @@ export default function PDV() {
 
   useEffect(() => {
     supabase.from('servicos').select('*').eq('ativo', true).order('nome')
-      .then(({ data }) => { if (data && data.length > 0) setServicos(data as Servico[]) })
+      .then(({ data }) => { if (data) setServicos(data as Servico[]) })
 
     supabase.from('produtos').select('*').eq('ativo', true).order('nome')
-      .then(({ data }) => { if (data && data.length > 0) setProdutos(data as Produto[]) })
+      .then(({ data }) => { if (data) setProdutos(data as Produto[]) })
   }, [])
 
   const servicosFiltrados = useMemo(() =>

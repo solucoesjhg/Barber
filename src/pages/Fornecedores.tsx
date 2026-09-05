@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Search, X, Phone } from 'lucide-react'
+import { Plus, Search, X, Phone, Truck } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { formatDate, initials } from '../lib/utils'
-import type { Cliente } from '../types'
+import { initials } from '../lib/utils'
+import type { Fornecedor } from '../types'
 
-const FORM_INICIAL = { nome: '', telefone: '', email: '', cpf: '', data_nascimento: '', endereco: '', observacoes: '' }
+const FORM_INICIAL = { nome: '', nome_fantasia: '', documento: '', telefone: '', email: '', endereco: '', observacoes: '' }
 
-export default function Clientes() {
-  const [clientes, setClientes] = useState<Cliente[]>([])
+export default function Fornecedores() {
+  const [fornecedores, setFornecedores] = useState<Fornecedor[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [mostrarInativos, setMostrarInativos] = useState(false)
@@ -18,46 +18,46 @@ export default function Clientes() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    supabase.from('clientes').select('*').order('nome')
-      .then(({ data }) => { setClientes((data ?? []) as Cliente[]); setLoading(false) })
+    supabase.from('fornecedores').select('*').order('nome')
+      .then(({ data }) => { setFornecedores((data ?? []) as Fornecedor[]); setLoading(false) })
   }, [])
 
-  const filtered = clientes
-    .filter(c => mostrarInativos || c.ativo)
-    .filter(c =>
-      c.nome.toLowerCase().includes(search.toLowerCase()) ||
-      c.telefone.includes(search)
+  const filtered = fornecedores
+    .filter(f => mostrarInativos || f.ativo)
+    .filter(f =>
+      f.nome.toLowerCase().includes(search.toLowerCase()) ||
+      (f.nome_fantasia ?? '').toLowerCase().includes(search.toLowerCase())
     )
 
   async function handleSave() {
-    if (!form.nome.trim() || !form.telefone.trim()) {
-      setError('Nome e telefone são obrigatórios.')
+    if (!form.nome.trim()) {
+      setError('Nome é obrigatório.')
       return
     }
     setSaving(true); setError('')
     const { data, error: err } = await supabase
-      .from('clientes')
+      .from('fornecedores')
       .insert({
         nome: form.nome,
-        telefone: form.telefone,
+        nome_fantasia: form.nome_fantasia || null,
+        documento: form.documento || null,
+        telefone: form.telefone || null,
         email: form.email || null,
-        cpf: form.cpf || null,
-        data_nascimento: form.data_nascimento || null,
         endereco: form.endereco || null,
         observacoes: form.observacoes || null,
       })
       .select('*')
       .single()
     if (err) { setError(err.message); setSaving(false); return }
-    if (data) setClientes(prev => [...prev, data as Cliente])
+    if (data) setFornecedores(prev => [...prev, data as Fornecedor])
     setForm(FORM_INICIAL)
     setShowModal(false)
     setSaving(false)
   }
 
   async function toggleAtivo(id: string, ativo: boolean) {
-    setClientes(prev => prev.map(c => c.id === id ? { ...c, ativo: !ativo } : c))
-    await supabase.from('clientes').update({ ativo: !ativo }).eq('id', id)
+    setFornecedores(prev => prev.map(f => f.id === id ? { ...f, ativo: !ativo } : f))
+    await supabase.from('fornecedores').update({ ativo: !ativo }).eq('id', id)
   }
 
   return (
@@ -65,13 +65,13 @@ export default function Clientes() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Clientes</h1>
+          <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Fornecedores</h1>
           <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
-            {clientes.filter(c => c.ativo).length} ativos · {clientes.length} cadastrados
+            {fornecedores.filter(f => f.ativo).length} ativos · {fornecedores.length} cadastrados
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Plus size={14} strokeWidth={2.5} /> Novo Cliente
+        <button className="btn btn-primary" onClick={() => { setError(''); setShowModal(true) }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Plus size={14} strokeWidth={2.5} /> Novo Fornecedor
         </button>
       </div>
 
@@ -87,7 +87,7 @@ export default function Clientes() {
         <Search size={14} style={{ color: '#444', flexShrink: 0 }} />
         <input
           style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: '13px', color: '#FFFFFF', fontFamily: 'inherit' }}
-          placeholder="Buscar por nome ou telefone..."
+          placeholder="Buscar por nome..."
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
@@ -106,7 +106,7 @@ export default function Clientes() {
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 160px 180px 110px 90px',
+          gridTemplateColumns: '1fr 160px 220px 90px',
           padding: '10px 24px',
           borderBottom: '1px solid #222',
           fontSize: '10px', fontWeight: 600, color: '#444',
@@ -116,7 +116,6 @@ export default function Clientes() {
           <span>Nome</span>
           <span>Telefone</span>
           <span>E-mail</span>
-          <span>Cadastro</span>
           <span>Status</span>
         </div>
 
@@ -126,21 +125,20 @@ export default function Clientes() {
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
-            Nenhum cliente encontrado.
+            Nenhum fornecedor encontrado.
           </div>
-        ) : filtered.map((c, i) => (
+        ) : filtered.map((f, i) => (
           <motion.div
-            key={c.id}
+            key={f.id}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: i * 0.03 }}
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 160px 180px 110px 90px',
+              gridTemplateColumns: '1fr 160px 220px 90px',
               padding: '14px 24px',
               borderBottom: i < filtered.length - 1 ? '1px solid #1F1F1F' : 'none',
               alignItems: 'center',
-              transition: 'background 0.12s',
             }}
             whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
           >
@@ -154,29 +152,31 @@ export default function Clientes() {
                 fontSize: '11px', fontWeight: 700, color: '#A3A3A3',
                 flexShrink: 0,
               }}>
-                {initials(c.nome)}
+                {initials(f.nome)}
               </div>
-              <span style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{c.nome}</span>
+              <div>
+                <span style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{f.nome}</span>
+                {f.nome_fantasia && <p style={{ fontSize: '11px', color: '#555' }}>{f.nome_fantasia}</p>}
+              </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#A3A3A3' }}>
-              <Phone size={11} style={{ color: '#444' }} /> {c.telefone}
+              {f.telefone ? <><Phone size={11} style={{ color: '#444' }} /> {f.telefone}</> : <span style={{ color: '#333' }}>—</span>}
             </div>
             <div style={{ fontSize: '13px', color: '#555' }}>
-              {c.email ?? <span style={{ color: '#333' }}>—</span>}
+              {f.email ?? <span style={{ color: '#333' }}>—</span>}
             </div>
-            <div style={{ fontSize: '12px', color: '#444' }}>{formatDate(c.created_at)}</div>
             <div>
               <button
-                onClick={() => toggleAtivo(c.id, c.ativo)}
+                onClick={() => toggleAtivo(f.id, f.ativo)}
                 style={{
                   fontSize: '10px', padding: '3px 9px', borderRadius: '99px',
-                  border: c.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
+                  border: f.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
                   background: 'transparent',
-                  color: c.ativo ? '#A3A3A3' : '#444',
+                  color: f.ativo ? '#A3A3A3' : '#444',
                   cursor: 'pointer',
                 }}
               >
-                {c.ativo ? 'Ativo' : 'Inativo'}
+                {f.ativo ? 'Ativo' : 'Inativo'}
               </button>
             </div>
           </motion.div>
@@ -197,33 +197,35 @@ export default function Clientes() {
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>Novo Cliente</h2>
+                <h2 style={{ fontSize: '18px', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Truck size={16} /> Novo Fornecedor
+                </h2>
                 <button className="btn btn-icon" onClick={() => setShowModal(false)}><X size={14} /></button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div className="field">
-                  <label className="label">Nome *</label>
-                  <input className="input" placeholder="Nome completo" value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="field">
+                    <label className="label">Nome / Razão Social *</label>
+                    <input className="input" placeholder="Nome completo" value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} />
+                  </div>
+                  <div className="field">
+                    <label className="label">Nome Fantasia</label>
+                    <input className="input" placeholder="opcional" value={form.nome_fantasia} onChange={e => setForm(f => ({ ...f, nome_fantasia: e.target.value }))} />
+                  </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="field">
-                    <label className="label">Telefone *</label>
+                    <label className="label">Telefone</label>
                     <input className="input" placeholder="(11) 99999-9999" value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} />
                   </div>
                   <div className="field">
-                    <label className="label">CPF</label>
-                    <input className="input" placeholder="000.000.000-00" value={form.cpf} onChange={e => setForm(f => ({ ...f, cpf: e.target.value }))} />
+                    <label className="label">CNPJ/CPF</label>
+                    <input className="input" placeholder="opcional" value={form.documento} onChange={e => setForm(f => ({ ...f, documento: e.target.value }))} />
                   </div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div className="field">
-                    <label className="label">E-mail</label>
-                    <input className="input" type="email" placeholder="email@exemplo.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
-                  </div>
-                  <div className="field">
-                    <label className="label">Nascimento</label>
-                    <input className="input" type="date" value={form.data_nascimento} onChange={e => setForm(f => ({ ...f, data_nascimento: e.target.value }))} />
-                  </div>
+                <div className="field">
+                  <label className="label">E-mail</label>
+                  <input className="input" type="email" placeholder="email@exemplo.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
                 </div>
                 <div className="field">
                   <label className="label">Endereço</label>
@@ -231,7 +233,7 @@ export default function Clientes() {
                 </div>
                 <div className="field">
                   <label className="label">Observações</label>
-                  <input className="input" placeholder="Preferências, alergias, etc." value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))} />
+                  <input className="input" placeholder="opcional" value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))} />
                 </div>
                 {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>

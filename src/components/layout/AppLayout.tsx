@@ -10,6 +10,7 @@ const PAGE_NAMES: Record<string, string> = {
   '/clientes':      'Clientes',
   '/profissionais': 'Profissionais',
   '/produtos':      'Produtos',
+  '/fornecedores':  'Fornecedores',
   '/financeiro':    'Financeiro',
 }
 
