@@ -32,6 +32,21 @@ ALTER TABLE public.agendamentos DROP CONSTRAINT IF EXISTS agendamentos_status_ch
 ALTER TABLE public.agendamentos ADD CONSTRAINT agendamentos_status_check
   CHECK (status IN ('pendente','confirmado','em_atendimento','concluido','cancelado','nao_compareceu'));
 
+-- tstzrange(data_hora, data_hora + duracao) não pode ir direto num
+-- índice: o operador timestamptz + interval é STABLE (o Postgres
+-- não garante que dê o mesmo resultado independente do timezone da
+-- sessão), e GiST exige expressões IMMUTABLE. Como aqui o intervalo
+-- é sempre em minutos (nunca dias/meses, que são os casos realmente
+-- sensíveis a fuso/DST), é seguro embrulhar numa função declarada
+-- IMMUTABLE.
+CREATE OR REPLACE FUNCTION public.agendamento_intervalo(p_inicio TIMESTAMPTZ, p_duracao_minutos INTEGER)
+RETURNS TSTZRANGE
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT tstzrange(p_inicio, p_inicio + (p_duracao_minutos * interval '1 minute'));
+$$;
+
 -- Impede sobreposição de horário por profissional (ignora
 -- agendamentos cancelados/não compareceu, que não ocupam agenda).
 ALTER TABLE public.agendamentos DROP CONSTRAINT IF EXISTS agendamentos_sem_conflito;
@@ -39,6 +54,6 @@ ALTER TABLE public.agendamentos
   ADD CONSTRAINT agendamentos_sem_conflito
   EXCLUDE USING gist (
     profissional_id WITH =,
-    tstzrange(data_hora, data_hora + (duracao_minutos * interval '1 minute')) WITH &&
+    public.agendamento_intervalo(data_hora, duracao_minutos) WITH &&
   )
   WHERE (status NOT IN ('cancelado', 'nao_compareceu'));
