@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ShoppingCart, Plus, Minus, Trash2, X, Check, Search, Scissors, Package } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
-import type { ItemComanda, PagamentoMetodo, Produto, Servico } from '../types'
+import type { ItemComanda, PagamentoMetodo, Produto, Profissional, Servico } from '../types'
 
 const PAGAMENTOS: { id: PagamentoMetodo; label: string }[] = [
   { id: 'pix',      label: 'Pix'            },
@@ -21,6 +21,8 @@ export default function PDV() {
   const [search, setSearch]   = useState('')
   const [servicos, setServicos] = useState<Servico[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
+  const [profissionais, setProfissionais] = useState<Profissional[]>([])
+  const [profissionalId, setProfissionalId] = useState('')
 
   const [cart, setCart]           = useState<ItemComanda[]>([])
   const [clienteNome, setClienteNome] = useState('')
@@ -28,6 +30,7 @@ export default function PDV() {
   const [showPayModal, setShowPayModal] = useState(false)
   const [done, setDone]         = useState(false)
   const [saving, setSaving]     = useState(false)
+  const [error, setError]       = useState('')
 
   const total = cart.reduce((s, i) => s + i.preco_unitario * i.quantidade, 0)
 
@@ -37,6 +40,9 @@ export default function PDV() {
 
     supabase.from('produtos').select('*').eq('ativo', true).order('nome')
       .then(({ data }) => { if (data) setProdutos(data as Produto[]) })
+
+    supabase.from('profissionais').select('*').eq('ativo', true).order('nome')
+      .then(({ data }) => { if (data) setProfissionais(data as Profissional[]) })
   }, [])
 
   const servicosFiltrados = useMemo(() =>
@@ -53,7 +59,7 @@ export default function PDV() {
     setCart(prev => {
       const ex = prev.find(i => i.tipo === 'servico' && i.referencia_id === s.id)
       if (ex) return prev.map(i => i.id === ex.id ? { ...i, quantidade: i.quantidade + 1 } : i)
-      return [...prev, { id: uid(), tipo: 'servico', referencia_id: s.id, nome: s.nome, quantidade: 1, preco_unitario: s.preco }]
+      return [...prev, { id: uid(), tipo: 'servico', referencia_id: s.id, nome: s.nome, quantidade: 1, preco_unitario: s.preco, profissional_id: profissionalId || undefined }]
     })
   }
 
@@ -61,7 +67,7 @@ export default function PDV() {
     setCart(prev => {
       const ex = prev.find(i => i.tipo === 'produto' && i.referencia_id === p.id)
       if (ex) return prev.map(i => i.id === ex.id ? { ...i, quantidade: i.quantidade + 1 } : i)
-      return [...prev, { id: uid(), tipo: 'produto', referencia_id: p.id, nome: p.nome, quantidade: 1, preco_unitario: p.preco_venda }]
+      return [...prev, { id: uid(), tipo: 'produto', referencia_id: p.id, nome: p.nome, quantidade: 1, preco_unitario: p.preco_venda, profissional_id: profissionalId || undefined }]
     })
   }
 
@@ -76,39 +82,31 @@ export default function PDV() {
   }
 
   async function finalizarVenda() {
-    setSaving(true)
-    const { data: comanda, error } = await supabase
-      .from('comandas')
-      .insert({ cliente_nome: clienteNome || 'Balcão', status: 'fechada', total, forma_pagamento: pagamento })
-      .select('id')
-      .single()
-
-    if (!error && comanda) {
-      await supabase.from('itens_comanda').insert(
-        cart.map(i => ({
-          comanda_id: comanda.id,
-          tipo: i.tipo,
-          referencia_id: i.referencia_id,
-          nome: i.nome,
-          quantidade: i.quantidade,
-          preco_unitario: i.preco_unitario,
-        }))
-      )
-      await supabase.from('movimentos_caixa').insert({
-        tipo: 'entrada',
-        categoria: 'venda',
-        descricao: `Venda — ${clienteNome || 'Balcão'}`,
-        valor: total,
-        comanda_id: comanda.id,
-      })
-    }
+    setSaving(true); setError('')
+    const { error: err } = await supabase.rpc('finalizar_venda', {
+      p_cliente_nome: clienteNome || null,
+      p_cliente_id: null,
+      p_forma_pagamento: pagamento,
+      p_itens: cart.map(i => ({
+        tipo: i.tipo,
+        referencia_id: i.referencia_id,
+        nome: i.nome,
+        quantidade: i.quantidade,
+        preco_unitario: i.preco_unitario,
+        profissional_id: i.profissional_id ?? null,
+      })),
+    })
 
     setSaving(false)
+    if (err) { setError(err.message); return }
+
     setDone(true)
     setCart([])
     setClienteNome('')
     setShowPayModal(false)
     setTimeout(() => setDone(false), 2500)
+    supabase.from('produtos').select('*').eq('ativo', true).order('nome')
+      .then(({ data }) => { if (data) setProdutos(data as Produto[]) })
   }
 
   return (
@@ -297,6 +295,17 @@ export default function PDV() {
             value={clienteNome}
             onChange={e => setClienteNome(e.target.value)}
           />
+          {profissionais.length > 0 && (
+            <select
+              className="input"
+              style={{ marginTop: '8px', fontSize: '13px' }}
+              value={profissionalId}
+              onChange={e => setProfissionalId(e.target.value)}
+            >
+              <option value="">Profissional (comissão)</option>
+              {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+            </select>
+          )}
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
@@ -402,6 +411,7 @@ export default function PDV() {
                 <span style={{ fontSize: '13px', color: '#A3A3A3' }}>Total a cobrar</span>
                 <span style={{ fontSize: '18px', fontWeight: 700, color: '#FFFFFF' }}>{formatCurrency(total)}</span>
               </div>
+              {error && <p style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>{error}</p>}
               <button className="btn btn-primary btn-full" onClick={finalizarVenda} disabled={saving}>
                 {saving ? 'Processando...' : 'Confirmar Pagamento'}
               </button>

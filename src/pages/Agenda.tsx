@@ -13,10 +13,12 @@ type ViewMode = 'lista' | 'semanal' | 'mensal'
 
 /* ── Constants ──────────────────────────────────────────── */
 const STATUS_CFG: Record<AgendamentoStatus, { label: string; cls: string }> = {
-  pendente:   { label: 'Pendente',   cls: 'badge badge-pending'   },
-  confirmado: { label: 'Confirmado', cls: 'badge badge-confirmed' },
-  concluido:  { label: 'Concluído',  cls: 'badge badge-done'      },
-  cancelado:  { label: 'Cancelado',  cls: 'badge badge-canceled'  },
+  pendente:       { label: 'Pendente',        cls: 'badge badge-pending'   },
+  confirmado:     { label: 'Confirmado',      cls: 'badge badge-confirmed' },
+  em_atendimento: { label: 'Em atendimento',  cls: 'badge badge-confirmed' },
+  concluido:      { label: 'Concluído',       cls: 'badge badge-done'      },
+  cancelado:      { label: 'Cancelado',       cls: 'badge badge-canceled'  },
+  nao_compareceu: { label: 'Não compareceu',  cls: 'badge badge-canceled'  },
 }
 
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 8) // 8–20
@@ -135,20 +137,6 @@ const MOCK_AG: Agendamento[] = [
     profissional: { id: 'p2', nome: 'Pedro Santos',   especialidade: 'Coloração', comissao_percentual: 55, ativo: true, created_at: '' },
     servico:      { id: 's2', nome: 'Pigmentação',     preco: 80, duracao_minutos: 60, ativo: true },
   },
-]
-
-const MOCK_PROF: Profissional[] = [
-  { id: 'p1', nome: 'João Silva',    especialidade: 'Cabelo e Barba', comissao_percentual: 50, ativo: true, created_at: '' },
-  { id: 'p2', nome: 'Pedro Santos',  especialidade: 'Coloração',      comissao_percentual: 55, ativo: true, created_at: '' },
-  { id: 'p3', nome: 'Lucas Costa',   especialidade: 'Sênior',         comissao_percentual: 60, ativo: true, created_at: '' },
-]
-
-const MOCK_SERV: Servico[] = [
-  { id: 's1', nome: 'Combo Cabelo + Barba', preco: 65, duracao_minutos: 50, ativo: true },
-  { id: 's2', nome: 'Pigmentação',          preco: 80, duracao_minutos: 60, ativo: true },
-  { id: 's3', nome: 'Corte de Cabelo',      preco: 45, duracao_minutos: 30, ativo: true },
-  { id: 's4', nome: 'Barba',                preco: 30, duracao_minutos: 20, ativo: true },
-  { id: 's5', nome: 'Sobrancelha',          preco: 15, duracao_minutos: 10, ativo: true },
 ]
 
 /* ── View toggle button ─────────────────────────────────── */
@@ -317,13 +305,25 @@ function ListaView({
                   </button>
                 )}
                 {ag.status === 'confirmado' && (
+                  <button className="btn btn-icon" title="Iniciar atendimento" onClick={() => updateStatus(ag.id, 'em_atendimento')}>
+                    <Check size={13} />
+                  </button>
+                )}
+                {ag.status === 'em_atendimento' && (
                   <button className="btn btn-icon" title="Concluir" onClick={() => updateStatus(ag.id, 'concluido')}>
                     <Check size={13} />
                   </button>
                 )}
-                <button className="btn btn-icon" title="Cancelar" onClick={() => updateStatus(ag.id, 'cancelado')}>
-                  <Trash2 size={13} />
-                </button>
+                {(ag.status === 'pendente' || ag.status === 'confirmado') && (
+                  <button className="btn btn-icon" title="Não compareceu" onClick={() => updateStatus(ag.id, 'nao_compareceu')}>
+                    <Clock size={13} />
+                  </button>
+                )}
+                {ag.status !== 'concluido' && ag.status !== 'cancelado' && (
+                  <button className="btn btn-icon" title="Cancelar" onClick={() => updateStatus(ag.id, 'cancelado')}>
+                    <Trash2 size={13} />
+                  </button>
+                )}
               </div>
             </motion.div>
           )
@@ -691,8 +691,8 @@ export default function Agenda() {
   const [filterProfId, setFilterProfId] = useState('')
 
   const [agenda, setAgenda]         = useState<Agendamento[]>(MOCK_AG)
-  const [profissionais]             = useState<Profissional[]>(MOCK_PROF)
-  const [servicos]                  = useState<Servico[]>(MOCK_SERV)
+  const [profissionais, setProfissionais] = useState<Profissional[]>([])
+  const [servicos, setServicos]     = useState<Servico[]>([])
   const [profServMap, setProfServMap] = useState<Record<string, string[]>>({})
   const [clientes, setClientes]     = useState<Cliente[]>([])
   const [showModal, setShowModal]   = useState(false)
@@ -713,9 +713,17 @@ export default function Agenda() {
       .lte('data_hora', `${day}T23:59:59`)
       .order('data_hora')
       .then(({ data }) => { if (data && data.length > 0) setAgenda(data as Agendamento[]) })
+  }, [selectedDate])
 
+  useEffect(() => {
     supabase.from('clientes').select('*').order('nome')
       .then(({ data }) => { if (data) setClientes(data as Cliente[]) })
+
+    supabase.from('profissionais').select('*').eq('ativo', true).order('nome')
+      .then(({ data }) => { if (data) setProfissionais(data as Profissional[]) })
+
+    supabase.from('servicos').select('*').eq('ativo', true).order('nome')
+      .then(({ data }) => { if (data) setServicos(data as Servico[]) })
 
     supabase.from('profissional_servicos').select('*')
       .then(({ data }) => {
@@ -728,22 +736,40 @@ export default function Agenda() {
           setProfServMap(map)
         }
       })
-  }, [selectedDate])
+  }, [])
 
   async function handleSave() {
     if (!form.profissional_id) { setError('Selecione um profissional.'); return }
     setSaving(true); setError('')
     const data_hora = `${form.data}T${form.hora}:00`
+    const servicoSelecionado = servicos.find(s => s.id === form.servico_id)
     const { error: err } = await supabase.from('agendamentos').insert({
       cliente_id: form.cliente_id || null,
       profissional_id: form.profissional_id,
       servico_id: form.servico_id || null,
-      data_hora, observacoes: form.obs, status: 'pendente',
+      data_hora,
+      duracao_minutos: servicoSelecionado?.duracao_minutos ?? 30,
+      valor: servicoSelecionado?.preco ?? null,
+      observacoes: form.obs, status: 'pendente',
     })
-    if (err) { setError(err.message); setSaving(false); return }
+    if (err) {
+      setError(
+        err.code === '23P01'
+          ? 'Esse profissional já tem outro atendimento nesse horário.'
+          : err.message
+      )
+      setSaving(false); return
+    }
     setShowModal(false)
     setForm({ cliente_id: '', profissional_id: '', servico_id: '', data: toKey(new Date()), hora: '09:00', obs: '' })
     setSaving(false)
+    supabase
+      .from('agendamentos')
+      .select('*, cliente:clientes(*), profissional:profissionais(*), servico:servicos(*)')
+      .gte('data_hora', `${form.data}T00:00:00`)
+      .lte('data_hora', `${form.data}T23:59:59`)
+      .order('data_hora')
+      .then(({ data }) => { if (data) setAgenda(data as Agendamento[]) })
   }
 
   async function updateStatus(id: string, status: AgendamentoStatus) {

@@ -2,7 +2,7 @@
    TIPOS DO SISTEMA ERP — Barbearia & Conveniência
    ============================================================ */
 
-export type AgendamentoStatus = 'pendente' | 'confirmado' | 'concluido' | 'cancelado'
+export type AgendamentoStatus = 'pendente' | 'confirmado' | 'em_atendimento' | 'concluido' | 'cancelado' | 'nao_compareceu'
 export type PagamentoMetodo = 'pix' | 'credito' | 'debito' | 'dinheiro'
 export type ProdutoCategoria = 'bebidas' | 'pomadas' | 'petiscos' | 'outros'
 export type MovimentoTipo = 'entrada' | 'saida'
@@ -73,6 +73,8 @@ export interface Agendamento {
   profissional_id: string
   servico_id: string
   data_hora: string
+  duracao_minutos?: number
+  valor?: number
   status: AgendamentoStatus
   observacoes?: string
   created_at: string
@@ -152,6 +154,33 @@ export interface Fornecedor {
   endereco?: string
   observacoes?: string
   ativo: boolean
+  created_at: string
+}
+
+export type ComissaoStatus = 'pendente' | 'aprovada' | 'paga' | 'cancelada'
+export type MovimentoEstoqueTipo = 'entrada' | 'saida' | 'ajuste' | 'perda' | 'devolucao' | 'venda' | 'inventario'
+
+export interface Comissao {
+  id: string
+  profissional_id: string
+  comanda_id?: string
+  item_comanda_id?: string
+  valor_base: number
+  percentual: number
+  valor_comissao: number
+  status: ComissaoStatus
+  created_at: string
+  profissional?: Profissional
+}
+
+export interface MovimentacaoEstoque {
+  id: string
+  produto_id: string
+  tipo: MovimentoEstoqueTipo
+  quantidade: number
+  motivo?: string
+  referencia_tipo?: string
+  referencia_id?: string
   created_at: string
 }
 
