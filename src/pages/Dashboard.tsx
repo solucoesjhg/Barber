@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Calendar, Users, DollarSign, TrendingUp, Plus, Clock, ChevronRight } from 'lucide-react'
+import { Calendar, Users, DollarSign, TrendingUp, TrendingDown, Wallet, Plus, Clock, ChevronRight } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
 import type { Agendamento } from '../types'
@@ -19,40 +19,14 @@ const STATUS_CLASS: Record<string, string> = {
   cancelado:  'badge badge-canceled',
 }
 
-const MOCK_AGENDA: Agendamento[] = [
-  {
-    id: '1', cliente_id: 'c1', profissional_id: 'p1', servico_id: 's1',
-    data_hora: new Date().toISOString().replace(/T.*/, 'T09:00:00'), status: 'confirmado', created_at: '',
-    cliente: { id: 'c1', nome: 'Rafael Mendes', telefone: '(11) 99887-6655', ativo: true, created_at: '' },
-    profissional: { id: 'p1', nome: 'João Silva', especialidade: 'Cabelo e Barba', comissao_percentual: 50, ativo: true, created_at: '' },
-    servico: { id: 's1', nome: 'Combo Cabelo + Barba', preco: 65, duracao_minutos: 50, ativo: true },
-  },
-  {
-    id: '2', cliente_id: 'c2', profissional_id: 'p2', servico_id: 's2',
-    data_hora: new Date().toISOString().replace(/T.*/, 'T10:00:00'), status: 'pendente', created_at: '',
-    cliente: { id: 'c2', nome: 'Gustavo Lima', telefone: '(11) 98765-4321', ativo: true, created_at: '' },
-    profissional: { id: 'p2', nome: 'Pedro Santos', especialidade: 'Coloração', comissao_percentual: 55, ativo: true, created_at: '' },
-    servico: { id: 's2', nome: 'Pigmentação', preco: 80, duracao_minutos: 60, ativo: true },
-  },
-  {
-    id: '3', cliente_id: 'c3', profissional_id: 'p1', servico_id: 's3',
-    data_hora: new Date().toISOString().replace(/T.*/, 'T11:30:00'), status: 'concluido', created_at: '',
-    cliente: { id: 'c3', nome: 'Bruno Castro', telefone: '(11) 91234-5678', ativo: true, created_at: '' },
-    profissional: { id: 'p1', nome: 'João Silva', especialidade: 'Cabelo e Barba', comissao_percentual: 50, ativo: true, created_at: '' },
-    servico: { id: 's3', nome: 'Corte de Cabelo', preco: 45, duracao_minutos: 30, ativo: true },
-  },
-  {
-    id: '4', cliente_id: 'c4', profissional_id: 'p3', servico_id: 's4',
-    data_hora: new Date().toISOString().replace(/T.*/, 'T14:00:00'), status: 'pendente', created_at: '',
-    cliente: { id: 'c4', nome: 'Thiago Rocha', telefone: '(11) 97654-3210', ativo: true, created_at: '' },
-    profissional: { id: 'p3', nome: 'Lucas Costa', especialidade: 'Sênior', comissao_percentual: 60, ativo: true, created_at: '' },
-    servico: { id: 's4', nome: 'Barba', preco: 30, duracao_minutos: 20, ativo: true },
-  },
-]
+interface RankItem { nome: string; total: number }
 
 export default function Dashboard() {
-  const [agenda, setAgenda] = useState<Agendamento[]>(MOCK_AGENDA)
-  const [loading, setLoading] = useState(false)
+  const [agenda, setAgenda] = useState<Agendamento[]>([])
+  const [loading, setLoading] = useState(true)
+  const [financeiro, setFinanceiro] = useState({ faturamentoMes: 0, despesasMes: 0, aReceber: 0, aPagar: 0, saldoCaixa: 0, caixaAberto: false })
+  const [topServicos, setTopServicos] = useState<RankItem[]>([])
+  const [topProfissionais, setTopProfissionais] = useState<RankItem[]>([])
 
   const hora = new Date().getHours()
   const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite'
@@ -67,22 +41,85 @@ export default function Dashboard() {
       .lte('data_hora', `${today}T23:59:59`)
       .order('data_hora')
       .then(({ data }) => {
-        if (data && data.length > 0) setAgenda(data as Agendamento[])
+        setAgenda((data ?? []) as Agendamento[])
         setLoading(false)
+      })
+
+    const primeiroDiaMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
+
+    supabase.from('movimentos_caixa').select('tipo, valor').gte('data', primeiroDiaMes)
+      .then(({ data }) => {
+        const rows = (data ?? []) as { tipo: string; valor: number }[]
+        const faturamentoMes = rows.filter(r => r.tipo === 'entrada').reduce((s, r) => s + r.valor, 0)
+        const despesasMes = rows.filter(r => r.tipo === 'saida').reduce((s, r) => s + r.valor, 0)
+        setFinanceiro(f => ({ ...f, faturamentoMes, despesasMes }))
+      })
+
+    supabase.from('contas_receber').select('valor, valor_pago').in('status', ['aberta', 'parcial'])
+      .then(({ data }) => {
+        const total = ((data ?? []) as { valor: number; valor_pago: number }[]).reduce((s, c) => s + (c.valor - c.valor_pago), 0)
+        setFinanceiro(f => ({ ...f, aReceber: total }))
+      })
+    supabase.from('contas_pagar').select('valor, valor_pago').in('status', ['aberta', 'parcial'])
+      .then(({ data }) => {
+        const total = ((data ?? []) as { valor: number; valor_pago: number }[]).reduce((s, c) => s + (c.valor - c.valor_pago), 0)
+        setFinanceiro(f => ({ ...f, aPagar: total }))
+      })
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      supabase.from('sessoes_caixa').select('*').eq('usuario_id', user.id).eq('status', 'aberto').maybeSingle()
+        .then(async ({ data: sessao }) => {
+          if (!sessao) { setFinanceiro(f => ({ ...f, caixaAberto: false })); return }
+          const { data: movs } = await supabase.from('movimentos_caixa').select('tipo, valor').eq('sessao_caixa_id', sessao.id)
+          const rows = (movs ?? []) as { tipo: string; valor: number }[]
+          const saldo = sessao.valor_inicial
+            + rows.filter(r => r.tipo === 'entrada').reduce((s, r) => s + r.valor, 0)
+            - rows.filter(r => r.tipo === 'saida').reduce((s, r) => s + r.valor, 0)
+          setFinanceiro(f => ({ ...f, saldoCaixa: saldo, caixaAberto: true }))
+        })
+    })
+
+    supabase
+      .from('itens_comanda')
+      .select('tipo, nome, preco_unitario, quantidade, profissional:profissionais(nome), comanda:comandas(data, status)')
+      .then(({ data }) => {
+        const rows = ((data ?? []) as any[]).filter(i => i.comanda?.status === 'fechada' && i.comanda?.data >= primeiroDiaMes)
+
+        const servicos: Record<string, number> = {}
+        const profissionaisMap: Record<string, number> = {}
+        rows.forEach(i => {
+          const valor = i.preco_unitario * i.quantidade
+          if (i.tipo === 'servico') servicos[i.nome] = (servicos[i.nome] ?? 0) + valor
+          if (i.profissional?.nome) profissionaisMap[i.profissional.nome] = (profissionaisMap[i.profissional.nome] ?? 0) + valor
+        })
+        setTopServicos(Object.entries(servicos).map(([nome, total]) => ({ nome, total })).sort((a, b) => b.total - a.total).slice(0, 5))
+        setTopProfissionais(Object.entries(profissionaisMap).map(([nome, total]) => ({ nome, total })).sort((a, b) => b.total - a.total).slice(0, 5))
       })
   }, [])
 
   const confirmados = agenda.filter(a => a.status === 'confirmado').length
   const concluidos  = agenda.filter(a => a.status === 'concluido').length
-  const faturamento = agenda
+  const cancelados  = agenda.filter(a => a.status === 'cancelado' || a.status === 'nao_compareceu').length
+  const faturamentoHoje = agenda
     .filter(a => a.status === 'concluido')
-    .reduce((sum, a) => sum + (a.servico?.preco ?? 0), 0)
+    .reduce((sum, a) => sum + (a.valor ?? a.servico?.preco ?? 0), 0)
 
   const stats = [
     { label: 'Agendamentos', value: agenda.length, sub: 'hoje', icon: Calendar },
     { label: 'Confirmados',  value: confirmados,   sub: 'aguardando', icon: Users },
     { label: 'Concluídos',   value: concluidos,    sub: 'finalizados', icon: TrendingUp },
-    { label: 'Faturamento',  value: formatCurrency(faturamento), sub: 'hoje', icon: DollarSign },
+    { label: 'Cancelamentos', value: cancelados,   sub: 'hoje', icon: TrendingDown },
+    { label: 'Faturamento',  value: formatCurrency(faturamentoHoje), sub: 'hoje', icon: DollarSign },
+  ]
+
+  const statsFinanceiro = [
+    { label: 'Faturamento (mês)', value: formatCurrency(financeiro.faturamentoMes), icon: TrendingUp },
+    { label: 'Despesas (mês)',    value: formatCurrency(financeiro.despesasMes),    icon: TrendingDown },
+    { label: 'Lucro estimado',    value: formatCurrency(financeiro.faturamentoMes - financeiro.despesasMes), icon: DollarSign },
+    { label: 'A Receber',         value: formatCurrency(financeiro.aReceber), icon: TrendingUp },
+    { label: 'A Pagar',           value: formatCurrency(financeiro.aPagar),   icon: TrendingDown },
+    { label: 'Saldo de Caixa',    value: financeiro.caixaAberto ? formatCurrency(financeiro.saldoCaixa) : 'Fechado', icon: Wallet },
   ]
 
   return (
@@ -108,7 +145,7 @@ export default function Dashboard() {
       </motion.div>
 
       {/* Stat cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '28px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '28px' }}>
         {stats.map((s, i) => {
           const Icon = s.icon
           return (
@@ -137,6 +174,52 @@ export default function Dashboard() {
             </motion.div>
           )
         })}
+      </div>
+
+      {/* Financeiro do mês */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px', marginBottom: '28px' }}>
+        {statsFinanceiro.map((s, i) => {
+          const Icon = s.icon
+          return (
+            <motion.div
+              key={s.label}
+              className="card"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 + i * 0.05, duration: 0.3 }}
+            >
+              <Icon size={14} style={{ color: '#555', marginBottom: '10px' }} strokeWidth={1.75} />
+              <p style={{ fontSize: '18px', fontWeight: 700, color: '#FFFFFF', fontFamily: 'DM Sans, sans-serif' }}>{s.value}</p>
+              <p style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>{s.label}</p>
+            </motion.div>
+          )
+        })}
+      </div>
+
+      {/* Rankings do mês */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '28px' }}>
+        <div className="card">
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', marginBottom: '14px' }}>Serviços mais vendidos (mês)</p>
+          {topServicos.length === 0 ? (
+            <p style={{ fontSize: '12px', color: '#444' }}>Sem vendas no mês.</p>
+          ) : topServicos.map(s => (
+            <div key={s.nome} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #1A1A1A' }}>
+              <span style={{ fontSize: '13px', color: '#A3A3A3' }}>{s.nome}</span>
+              <span style={{ fontSize: '13px', color: '#FFFFFF', fontWeight: 600 }}>{formatCurrency(s.total)}</span>
+            </div>
+          ))}
+        </div>
+        <div className="card">
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', marginBottom: '14px' }}>Profissionais — faturamento (mês)</p>
+          {topProfissionais.length === 0 ? (
+            <p style={{ fontSize: '12px', color: '#444' }}>Sem vendas no mês.</p>
+          ) : topProfissionais.map(p => (
+            <div key={p.nome} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #1A1A1A' }}>
+              <span style={{ fontSize: '13px', color: '#A3A3A3' }}>{p.nome}</span>
+              <span style={{ fontSize: '13px', color: '#FFFFFF', fontWeight: 600 }}>{formatCurrency(p.total)}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Agenda do dia */}

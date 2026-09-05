@@ -2,7 +2,8 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   LayoutDashboard, Calendar, ShoppingCart, Wallet, Users,
-  Scissors, Package, Truck, BarChart2, ArrowDownCircle, ArrowUpCircle, LogOut,
+  Scissors, Package, Truck, BarChart2, ArrowDownCircle, ArrowUpCircle,
+  Percent, FileBarChart, LogOut,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { initials } from '../../lib/utils'
@@ -19,6 +20,8 @@ const NAV = [
   { to: '/financeiro',   icon: BarChart2,       label: 'Financeiro'    },
   { to: '/contas-pagar',   icon: ArrowUpCircle,   label: 'Contas a Pagar'   },
   { to: '/contas-receber', icon: ArrowDownCircle, label: 'Contas a Receber' },
+  { to: '/comissoes',    icon: Percent,         label: 'Comissões'     },
+  { to: '/dre',          icon: FileBarChart,    label: 'DRE'           },
 ]
 
 function NavItem({ to, icon: Icon, label }: { to: string; icon: typeof LayoutDashboard; label: string }) {

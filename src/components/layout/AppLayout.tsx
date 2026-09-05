@@ -15,6 +15,8 @@ const PAGE_NAMES: Record<string, string> = {
   '/financeiro':    'Financeiro',
   '/contas-pagar':   'Contas a Pagar',
   '/contas-receber': 'Contas a Receber',
+  '/comissoes':     'Comissões',
+  '/dre':           'DRE',
 }
 
 export default function AppLayout() {

@@ -71,73 +71,7 @@ function getMonthGrid(year: number, month: number): Date[] {
   return days
 }
 
-/* ── Mock data ──────────────────────────────────────────── */
-const today = new Date()
 const pad = (n: number) => String(n).padStart(2, '0')
-const mockDh = (dayOffset: number, h: number, m = 0) => {
-  const d = new Date(today)
-  d.setDate(d.getDate() + dayOffset)
-  return `${toKey(d)}T${pad(h)}:${pad(m)}:00`
-}
-
-const MOCK_AG: Agendamento[] = [
-  {
-    id: '1', cliente_id: 'c1', profissional_id: 'p1', servico_id: 's1',
-    data_hora: mockDh(0, 9), status: 'confirmado', created_at: '',
-    cliente:      { id: 'c1', nome: 'Rafael Mendes',  telefone: '(11) 99887-6655', ativo: true, created_at: '' },
-    profissional: { id: 'p1', nome: 'João Silva',     especialidade: 'Cabelo e Barba', comissao_percentual: 50, ativo: true, created_at: '' },
-    servico:      { id: 's1', nome: 'Combo Cabelo + Barba', preco: 65, duracao_minutos: 50, ativo: true },
-  },
-  {
-    id: '2', cliente_id: 'c2', profissional_id: 'p2', servico_id: 's2',
-    data_hora: mockDh(0, 10), status: 'pendente', created_at: '',
-    cliente:      { id: 'c2', nome: 'Gustavo Lima',   telefone: '(11) 98765-4321', ativo: true, created_at: '' },
-    profissional: { id: 'p2', nome: 'Pedro Santos',   especialidade: 'Coloração', comissao_percentual: 55, ativo: true, created_at: '' },
-    servico:      { id: 's2', nome: 'Pigmentação',     preco: 80, duracao_minutos: 60, ativo: true },
-  },
-  {
-    id: '3', cliente_id: 'c3', profissional_id: 'p1', servico_id: 's3',
-    data_hora: mockDh(0, 14), status: 'pendente', created_at: '',
-    cliente:      { id: 'c3', nome: 'Bruno Castro',   telefone: '(11) 91234-5678', ativo: true, created_at: '' },
-    profissional: { id: 'p1', nome: 'João Silva',     especialidade: 'Cabelo e Barba', comissao_percentual: 50, ativo: true, created_at: '' },
-    servico:      { id: 's3', nome: 'Barba',           preco: 30, duracao_minutos: 20, ativo: true },
-  },
-  {
-    id: '4', cliente_id: 'c4', profissional_id: 'p3', servico_id: 's4',
-    data_hora: mockDh(1, 11), status: 'confirmado', created_at: '',
-    cliente:      { id: 'c4', nome: 'Thiago Rocha',   telefone: '(11) 97654-3210', ativo: true, created_at: '' },
-    profissional: { id: 'p3', nome: 'Lucas Costa',    especialidade: 'Sênior', comissao_percentual: 60, ativo: true, created_at: '' },
-    servico:      { id: 's4', nome: 'Corte de Cabelo', preco: 45, duracao_minutos: 30, ativo: true },
-  },
-  {
-    id: '5', cliente_id: 'c5', profissional_id: 'p2', servico_id: 's5',
-    data_hora: mockDh(2, 15, 30), status: 'pendente', created_at: '',
-    cliente:      { id: 'c5', nome: 'Fábio Almeida',  telefone: '(11) 96543-2109', ativo: true, created_at: '' },
-    profissional: { id: 'p2', nome: 'Pedro Santos',   especialidade: 'Coloração', comissao_percentual: 55, ativo: true, created_at: '' },
-    servico:      { id: 's5', nome: 'Sobrancelha',     preco: 15, duracao_minutos: 10, ativo: true },
-  },
-  {
-    id: '6', cliente_id: 'c1', profissional_id: 'p1', servico_id: 's1',
-    data_hora: mockDh(3, 10, 30), status: 'confirmado', created_at: '',
-    cliente:      { id: 'c1', nome: 'Rafael Mendes',  telefone: '(11) 99887-6655', ativo: true, created_at: '' },
-    profissional: { id: 'p1', nome: 'João Silva',     especialidade: 'Cabelo e Barba', comissao_percentual: 50, ativo: true, created_at: '' },
-    servico:      { id: 's1', nome: 'Combo Cabelo + Barba', preco: 65, duracao_minutos: 50, ativo: true },
-  },
-  {
-    id: '7', cliente_id: 'c6', profissional_id: 'p3', servico_id: 's3',
-    data_hora: mockDh(-1, 9, 0), status: 'concluido', created_at: '',
-    cliente:      { id: 'c6', nome: 'Marcos Lima',    telefone: '(11) 95432-1098', ativo: true, created_at: '' },
-    profissional: { id: 'p3', nome: 'Lucas Costa',    especialidade: 'Sênior', comissao_percentual: 60, ativo: true, created_at: '' },
-    servico:      { id: 's3', nome: 'Barba',           preco: 30, duracao_minutos: 20, ativo: true },
-  },
-  {
-    id: '8', cliente_id: 'c2', profissional_id: 'p2', servico_id: 's2',
-    data_hora: mockDh(5, 14, 0), status: 'pendente', created_at: '',
-    cliente:      { id: 'c2', nome: 'Gustavo Lima',   telefone: '(11) 98765-4321', ativo: true, created_at: '' },
-    profissional: { id: 'p2', nome: 'Pedro Santos',   especialidade: 'Coloração', comissao_percentual: 55, ativo: true, created_at: '' },
-    servico:      { id: 's2', nome: 'Pigmentação',     preco: 80, duracao_minutos: 60, ativo: true },
-  },
-]
 
 /* ── View toggle button ─────────────────────────────────── */
 function ViewBtn({
@@ -690,7 +624,7 @@ export default function Agenda() {
   const [calBase, setCalBase]       = useState(new Date()) // week/month navigation base
   const [filterProfId, setFilterProfId] = useState('')
 
-  const [agenda, setAgenda]         = useState<Agendamento[]>(MOCK_AG)
+  const [agenda, setAgenda]         = useState<Agendamento[]>([])
   const [profissionais, setProfissionais] = useState<Profissional[]>([])
   const [servicos, setServicos]     = useState<Servico[]>([])
   const [profServMap, setProfServMap] = useState<Record<string, string[]>>({})
@@ -705,15 +639,25 @@ export default function Agenda() {
   const [error, setError]   = useState('')
 
   useEffect(() => {
-    const day = toKey(selectedDate)
+    let inicio: string
+    let fim: string
+    if (viewMode === 'semanal') {
+      const dias = getWeekDays(calBase)
+      inicio = toKey(dias[0]); fim = toKey(dias[6])
+    } else if (viewMode === 'mensal') {
+      const dias = getMonthGrid(calBase.getFullYear(), calBase.getMonth())
+      inicio = toKey(dias[0]); fim = toKey(dias[dias.length - 1])
+    } else {
+      inicio = toKey(selectedDate); fim = inicio
+    }
     supabase
       .from('agendamentos')
       .select('*, cliente:clientes(*), profissional:profissionais(*), servico:servicos(*)')
-      .gte('data_hora', `${day}T00:00:00`)
-      .lte('data_hora', `${day}T23:59:59`)
+      .gte('data_hora', `${inicio}T00:00:00`)
+      .lte('data_hora', `${fim}T23:59:59`)
       .order('data_hora')
-      .then(({ data }) => { if (data && data.length > 0) setAgenda(data as Agendamento[]) })
-  }, [selectedDate])
+      .then(({ data }) => { setAgenda((data ?? []) as Agendamento[]) })
+  }, [selectedDate, viewMode, calBase])
 
   useEffect(() => {
     supabase.from('clientes').select('*').order('nome')
