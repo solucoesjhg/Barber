@@ -3,8 +3,7 @@ import { motion } from 'framer-motion'
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
-
-type Periodo = 'mes' | 'trimestre' | 'ano' | 'personalizado'
+import { type Periodo, toISO, rangeFor, periodoAnterior } from '../lib/periodo'
 
 interface DreData {
   receita_servicos: number
@@ -18,35 +17,6 @@ interface DreData {
   despesas_por_categoria: { categoria: string; valor: number }[]
   despesas_total: number
   resultado_operacional: number
-}
-
-function toISO(d: Date) { return d.toISOString().split('T')[0] }
-
-function rangeFor(periodo: Periodo, ref: Date, custom: { inicio: string; fim: string }): [string, string] {
-  if (periodo === 'personalizado') return [custom.inicio, custom.fim]
-  if (periodo === 'mes') {
-    const inicio = new Date(ref.getFullYear(), ref.getMonth(), 1)
-    const fim = new Date(ref.getFullYear(), ref.getMonth() + 1, 0)
-    return [toISO(inicio), toISO(fim)]
-  }
-  if (periodo === 'trimestre') {
-    const q = Math.floor(ref.getMonth() / 3)
-    const inicio = new Date(ref.getFullYear(), q * 3, 1)
-    const fim = new Date(ref.getFullYear(), q * 3 + 3, 0)
-    return [toISO(inicio), toISO(fim)]
-  }
-  const inicio = new Date(ref.getFullYear(), 0, 1)
-  const fim = new Date(ref.getFullYear(), 11, 31)
-  return [toISO(inicio), toISO(fim)]
-}
-
-function periodoAnterior(inicio: string, fim: string): [string, string] {
-  const di = new Date(`${inicio}T12:00:00`)
-  const df = new Date(`${fim}T12:00:00`)
-  const dias = Math.round((df.getTime() - di.getTime()) / 86400000) + 1
-  const novoFim = new Date(di.getTime() - 86400000)
-  const novoInicio = new Date(novoFim.getTime() - (dias - 1) * 86400000)
-  return [toISO(novoInicio), toISO(novoFim)]
 }
 
 function Linha({ label, value, bold, indent, pct, delta }: { label: string; value: number; bold?: boolean; indent?: boolean; pct?: number; delta?: number }) {

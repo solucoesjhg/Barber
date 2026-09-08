@@ -14,6 +14,7 @@ import ContasPagar from './pages/ContasPagar'
 import ContasReceber from './pages/ContasReceber'
 import Comissoes from './pages/Comissoes'
 import DRE from './pages/DRE'
+import Relatorios from './pages/Relatorios'
 import Auditoria from './pages/Auditoria'
 import Configuracoes from './pages/Configuracoes'
 import Usuarios from './pages/Usuarios'
@@ -59,6 +60,7 @@ export default function App() {
           <Route path="/contas-receber" element={<ContasReceber />} />
           <Route path="/comissoes"     element={<Comissoes />} />
           <Route path="/dre"           element={<DRE />} />
+          <Route path="/relatorios"    element={<Relatorios />} />
           <Route path="/auditoria"     element={<Auditoria />} />
           <Route path="/configuracoes" element={<Configuracoes />} />
           <Route path="/usuarios"      element={<Usuarios />} />
