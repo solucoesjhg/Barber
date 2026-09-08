@@ -248,6 +248,41 @@ export interface ContaReceber {
   categoria?: CategoriaFinanceira
 }
 
+export interface Auditoria {
+  id: string
+  usuario_id?: string
+  acao: 'insert' | 'update' | 'delete'
+  modulo: string
+  registro_id?: string
+  dados_antes?: Record<string, unknown>
+  dados_depois?: Record<string, unknown>
+  created_at: string
+}
+
+export interface Configuracoes {
+  id: number
+  nome_empresa: string
+  cnpj?: string
+  telefone?: string
+  endereco?: string
+  logo_url?: string
+  horario_abertura: string
+  horario_fechamento: string
+  duracao_padrao_min: number
+  tolerancia_atraso_min: number
+  regras_cancelamento?: string
+  updated_at: string
+}
+
+export interface UsuarioListado {
+  usuario_id: string
+  email: string
+  papel: PapelUsuario
+  profissional_id?: string
+  ativo: boolean
+  criado_em: string
+}
+
 export interface UsuarioPerfil {
   usuario_id: string
   papel: PapelUsuario

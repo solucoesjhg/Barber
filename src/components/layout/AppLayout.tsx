@@ -17,6 +17,9 @@ const PAGE_NAMES: Record<string, string> = {
   '/contas-receber': 'Contas a Receber',
   '/comissoes':     'Comissões',
   '/dre':           'DRE',
+  '/auditoria':     'Auditoria',
+  '/usuarios':      'Usuários',
+  '/configuracoes': 'Configurações',
 }
 
 export default function AppLayout() {

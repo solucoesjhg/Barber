@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import {
   LayoutDashboard, Calendar, ShoppingCart, Wallet, Users,
   Scissors, Package, Truck, BarChart2, ArrowDownCircle, ArrowUpCircle,
-  Percent, FileBarChart, LogOut,
+  Percent, FileBarChart, ClipboardList, Settings, UserCog, LogOut,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { initials } from '../../lib/utils'
@@ -22,6 +22,9 @@ const NAV = [
   { to: '/contas-receber', icon: ArrowDownCircle, label: 'Contas a Receber' },
   { to: '/comissoes',    icon: Percent,         label: 'Comissões'     },
   { to: '/dre',          icon: FileBarChart,    label: 'DRE'           },
+  { to: '/auditoria',    icon: ClipboardList,   label: 'Auditoria'     },
+  { to: '/usuarios',     icon: UserCog,         label: 'Usuários'      },
+  { to: '/configuracoes',icon: Settings,        label: 'Configurações' },
 ]
 
 function NavItem({ to, icon: Icon, label }: { to: string; icon: typeof LayoutDashboard; label: string }) {

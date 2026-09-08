@@ -14,6 +14,9 @@ import ContasPagar from './pages/ContasPagar'
 import ContasReceber from './pages/ContasReceber'
 import Comissoes from './pages/Comissoes'
 import DRE from './pages/DRE'
+import Auditoria from './pages/Auditoria'
+import Configuracoes from './pages/Configuracoes'
+import Usuarios from './pages/Usuarios'
 import Financeiro from './pages/Financeiro'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -56,6 +59,9 @@ export default function App() {
           <Route path="/contas-receber" element={<ContasReceber />} />
           <Route path="/comissoes"     element={<Comissoes />} />
           <Route path="/dre"           element={<DRE />} />
+          <Route path="/auditoria"     element={<Auditoria />} />
+          <Route path="/configuracoes" element={<Configuracoes />} />
+          <Route path="/usuarios"      element={<Usuarios />} />
         </Route>
       </Routes>
     </BrowserRouter>
