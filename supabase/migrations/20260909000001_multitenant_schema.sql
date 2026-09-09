@@ -18,27 +18,30 @@ CREATE TABLE IF NOT EXISTS public.empresas (
 );
 ALTER TABLE public.empresas ENABLE ROW LEVEL SECURITY;
 
--- Zera os dados operacionais (mantém cadastros de login intactos)
-TRUNCATE TABLE
-  public.itens_comanda,
-  public.comandas,
-  public.movimentos_caixa,
-  public.movimentacoes_estoque,
-  public.comissoes,
-  public.contas_pagar,
-  public.contas_receber,
-  public.agendamentos,
-  public.profissional_servicos,
-  public.sessoes_caixa,
-  public.auditoria,
-  public.produtos,
-  public.servicos,
-  public.clientes,
-  public.profissionais,
-  public.fornecedores,
-  public.categorias_financeiras,
-  public.formas_pagamento
-  CASCADE;
+-- Zera os dados operacionais (mantém cadastros de login intactos).
+-- Usa DELETE em vez de TRUNCATE ... CASCADE de propósito: TRUNCATE
+-- CASCADE ignora "ON DELETE SET NULL" e simplesmente esvazia
+-- qualquer tabela que referencie as listadas - incluindo
+-- usuario_perfis (que referencia profissionais), apagando o papel
+-- de acesso de todo mundo. DELETE respeita SET NULL corretamente.
+DELETE FROM public.itens_comanda;
+DELETE FROM public.comandas;
+DELETE FROM public.movimentos_caixa;
+DELETE FROM public.movimentacoes_estoque;
+DELETE FROM public.comissoes;
+DELETE FROM public.contas_pagar;
+DELETE FROM public.contas_receber;
+DELETE FROM public.agendamentos;
+DELETE FROM public.profissional_servicos;
+DELETE FROM public.sessoes_caixa;
+DELETE FROM public.auditoria;
+DELETE FROM public.produtos;
+DELETE FROM public.servicos;
+DELETE FROM public.clientes;
+DELETE FROM public.profissionais;
+DELETE FROM public.fornecedores;
+DELETE FROM public.categorias_financeiras;
+DELETE FROM public.formas_pagamento;
 
 -- empresa_id em toda tabela operacional
 DO $$
