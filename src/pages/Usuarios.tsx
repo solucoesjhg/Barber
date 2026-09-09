@@ -27,11 +27,12 @@ export default function Usuarios() {
       setUsuarios((data ?? []) as UsuarioListado[])
       setLoading(false)
     })
-    supabase.from('profissionais').select('*').order('nome')
-      .then(({ data }) => { if (data) setProfissionais(data as Profissional[]) })
     if (souSuperAdmin) {
       supabase.from('empresas').select('*').eq('ativo', true).order('nome')
         .then(({ data }) => { if (data) setEmpresas(data as Empresa[]) })
+    } else {
+      supabase.from('profissionais').select('*').order('nome')
+        .then(({ data }) => { if (data) setProfissionais(data as Profissional[]) })
     }
   }
 
@@ -50,11 +51,11 @@ export default function Usuarios() {
     })
     setSavingId(null)
     if (err) { setError(err.message); carregar(); return }
-    if (campo === 'empresa_id') carregar()
+    carregar()
   }
 
   const colunas = souSuperAdmin
-    ? '1fr 140px 160px 160px 80px 100px'
+    ? '1fr 140px 200px 100px'
     : '1fr 140px 180px 80px 100px'
 
   return (
@@ -62,7 +63,9 @@ export default function Usuarios() {
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Usuários</h1>
         <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
-          {souSuperAdmin ? 'Todos os usuários da plataforma, de todas as lojas' : 'Papéis de acesso da sua loja'}
+          {souSuperAdmin
+            ? 'Vincule cada login a uma loja — papel, profissional e ativo/inativo ficam por conta da gerência de cada loja'
+            : 'Papéis, profissional vinculado e ativo/inativo da sua equipe'}
         </p>
       </div>
 
@@ -77,9 +80,8 @@ export default function Usuarios() {
         }}>
           <span>E-mail</span>
           <span>Papel</span>
-          {souSuperAdmin && <span>Loja</span>}
-          <span>{souSuperAdmin ? 'Profissional' : 'Vinculado a'}</span>
-          <span>Ativo</span>
+          {souSuperAdmin ? <span>Loja</span> : <span>Vinculado a</span>}
+          {!souSuperAdmin && <span>Ativo</span>}
           <span>Desde</span>
         </div>
 
@@ -106,18 +108,24 @@ export default function Usuarios() {
                 <p style={{ fontSize: '10px', color: '#A3A3A3' }}>aguardando vínculo com uma loja</p>
               )}
             </div>
-            <select
-              className="input"
-              style={{ fontSize: '12px', padding: '6px 8px' }}
-              value={u.papel}
-              onChange={e => salvar(u, 'papel', e.target.value)}
-              disabled={!souSuperAdmin && u.papel === 'super_admin'}
-            >
-              {Object.entries(PAPEL_LABEL)
-                .filter(([k]) => souSuperAdmin || k !== 'super_admin')
-                .map(([k, label]) => <option key={k} value={k}>{label}</option>)}
-            </select>
-            {souSuperAdmin && (
+
+            {souSuperAdmin ? (
+              <span style={{ fontSize: '12px', color: '#A3A3A3' }}>{PAPEL_LABEL[u.papel]}</span>
+            ) : (
+              <select
+                className="input"
+                style={{ fontSize: '12px', padding: '6px 8px' }}
+                value={u.papel}
+                onChange={e => salvar(u, 'papel', e.target.value)}
+                disabled={u.papel === 'super_admin'}
+              >
+                {Object.entries(PAPEL_LABEL)
+                  .filter(([k]) => k !== 'super_admin')
+                  .map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+              </select>
+            )}
+
+            {souSuperAdmin ? (
               <select
                 className="input"
                 style={{ fontSize: '12px', padding: '6px 8px' }}
@@ -127,17 +135,21 @@ export default function Usuarios() {
                 <option value="">Sem loja</option>
                 {empresas.map(emp => <option key={emp.id} value={emp.id}>{emp.nome}</option>)}
               </select>
+            ) : (
+              <select
+                className="input"
+                style={{ fontSize: '12px', padding: '6px 8px' }}
+                value={u.profissional_id ?? ''}
+                onChange={e => salvar(u, 'profissional_id', e.target.value)}
+              >
+                <option value="">Nenhum profissional</option>
+                {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+              </select>
             )}
-            <select
-              className="input"
-              style={{ fontSize: '12px', padding: '6px 8px' }}
-              value={u.profissional_id ?? ''}
-              onChange={e => salvar(u, 'profissional_id', e.target.value)}
-            >
-              <option value="">Nenhum profissional</option>
-              {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-            </select>
-            <input type="checkbox" checked={u.ativo} onChange={e => salvar(u, 'ativo', e.target.checked)} />
+
+            {!souSuperAdmin && (
+              <input type="checkbox" checked={u.ativo} onChange={e => salvar(u, 'ativo', e.target.checked)} />
+            )}
             <span style={{ fontSize: '12px', color: '#444' }}>{formatDate(u.criado_em)}</span>
           </motion.div>
         ))}
