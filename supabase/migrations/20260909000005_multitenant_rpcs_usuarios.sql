@@ -9,6 +9,10 @@
 -- loja. Administrador de loja só mexe em quem já é da própria loja,
 -- não pode trocar de loja nem conceder super_admin.
 
+-- Postgres não deixa trocar o formato de retorno de uma função TABLE
+-- via CREATE OR REPLACE - precisa dropar primeiro (idempotente).
+DROP FUNCTION IF EXISTS public.listar_usuarios();
+
 CREATE OR REPLACE FUNCTION public.listar_usuarios()
 RETURNS TABLE (
   usuario_id UUID, email TEXT, papel TEXT, profissional_id UUID,
