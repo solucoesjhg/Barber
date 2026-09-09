@@ -142,7 +142,17 @@ export interface DashboardStats {
 
 /* ── Fundação financeira/administrativa (Fase 1) ─────────────── */
 
-export type PapelUsuario = 'administrador' | 'gerente' | 'atendente' | 'profissional'
+export type PapelUsuario = 'super_admin' | 'administrador' | 'gerente' | 'atendente' | 'profissional'
+
+export interface Empresa {
+  id: string
+  nome: string
+  cnpj?: string
+  telefone?: string
+  email?: string
+  ativo: boolean
+  created_at: string
+}
 export type CategoriaFinanceiraTipo = 'receita' | 'despesa'
 
 export interface CategoriaFinanceira {
@@ -260,7 +270,7 @@ export interface Auditoria {
 }
 
 export interface Configuracoes {
-  id: number
+  empresa_id: string
   nome_empresa: string
   cnpj?: string
   telefone?: string
@@ -281,12 +291,15 @@ export interface UsuarioListado {
   profissional_id?: string
   ativo: boolean
   criado_em: string
+  empresa_id?: string
+  empresa_nome?: string
 }
 
 export interface UsuarioPerfil {
   usuario_id: string
   papel: PapelUsuario
   profissional_id?: string
+  empresa_id?: string
   ativo: boolean
   created_at: string
 }

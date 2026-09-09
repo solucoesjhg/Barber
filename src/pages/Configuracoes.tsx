@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Save } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { usePerfil } from '../hooks/usePerfil'
 import type { Configuracoes as ConfigRow } from '../types'
 
 export default function Configuracoes() {
+  const { empresaId, loading: perfilLoading } = usePerfil()
   const [form, setForm] = useState<Partial<ConfigRow>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -12,11 +14,13 @@ export default function Configuracoes() {
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    supabase.from('configuracoes').select('*').eq('id', 1).single()
+    if (!empresaId) { setLoading(false); return }
+    supabase.from('configuracoes').select('*').eq('empresa_id', empresaId).single()
       .then(({ data }) => { if (data) setForm(data as ConfigRow); setLoading(false) })
-  }, [])
+  }, [empresaId])
 
   async function handleSave() {
+    if (!empresaId) return
     setSaving(true); setError(''); setSaved(false)
     const { error: err } = await supabase.from('configuracoes').update({
       nome_empresa: form.nome_empresa,
@@ -29,15 +33,23 @@ export default function Configuracoes() {
       tolerancia_atraso_min: Number(form.tolerancia_atraso_min) || 10,
       regras_cancelamento: form.regras_cancelamento || null,
       updated_at: new Date().toISOString(),
-    }).eq('id', 1)
+    }).eq('empresa_id', empresaId)
     setSaving(false)
     if (err) { setError(err.message); return }
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
   }
 
-  if (loading) {
+  if (loading || perfilLoading) {
     return <div className="page"><p style={{ color: '#444', fontSize: '13px' }}>Carregando...</p></div>
+  }
+
+  if (!empresaId) {
+    return (
+      <div className="page">
+        <p style={{ color: '#444', fontSize: '13px' }}>Sua conta não está vinculada a nenhuma loja, então não há configurações pra mostrar.</p>
+      </div>
+    )
   }
 
   return (

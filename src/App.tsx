@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import AppLayout from './components/layout/AppLayout'
 import Login from './pages/Login'
+import Signup from './pages/Signup'
+import Empresas from './pages/Empresas'
 import Dashboard from './pages/Dashboard'
 import Agenda from './pages/Agenda'
 import PDV from './pages/PDV'
@@ -45,8 +47,10 @@ export default function App() {
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/cadastro" element={<Signup />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
+          <Route path="/empresas"      element={<Empresas />} />
           <Route path="/dashboard"     element={<Dashboard />} />
           <Route path="/agenda"        element={<Agenda />} />
           <Route path="/pdv"           element={<PDV />} />

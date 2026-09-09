@@ -3,10 +3,21 @@ import { motion } from 'framer-motion'
 import {
   LayoutDashboard, Calendar, ShoppingCart, Wallet, Users,
   Scissors, Package, Truck, BarChart2, ArrowDownCircle, ArrowUpCircle,
-  Percent, FileBarChart, FileText, ClipboardList, Settings, UserCog, LogOut,
+  Percent, FileBarChart, FileText, ClipboardList, Settings, UserCog, LogOut, Building2,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
+import { usePerfil } from '../../hooks/usePerfil'
 import { initials } from '../../lib/utils'
+import type { PapelUsuario } from '../../types'
+
+const PAPEL_LABEL: Record<PapelUsuario, string> = {
+  super_admin: 'Super Admin', administrador: 'Administrador', gerente: 'Gerente', atendente: 'Atendente', profissional: 'Profissional',
+}
+
+const NAV_SUPER_ADMIN = [
+  { to: '/empresas',     icon: Building2,       label: 'Empresas'      },
+  { to: '/usuarios',     icon: UserCog,         label: 'Usuários'      },
+]
 
 const NAV = [
   { to: '/dashboard',    icon: LayoutDashboard, label: 'Dashboard'     },
@@ -72,9 +83,11 @@ function NavItem({ to, icon: Icon, label }: { to: string; icon: typeof LayoutDas
 
 export default function Sidebar() {
   const { user, signOut } = useAuth()
+  const { papel } = usePerfil()
   const navigate = useNavigate()
   const name = user?.email?.split('@')[0] ?? 'Usuário'
   const ini = initials(name)
+  const nav = papel === 'super_admin' ? NAV_SUPER_ADMIN : NAV
 
   async function handleSignOut() {
     await signOut()
@@ -147,7 +160,7 @@ export default function Sidebar() {
         }}>
           Menu
         </p>
-        {NAV.map(item => <NavItem key={item.to} {...item} />)}
+        {nav.map(item => <NavItem key={item.to} {...item} />)}
       </nav>
 
       {/* User */}
@@ -177,7 +190,7 @@ export default function Sidebar() {
             <p style={{ fontSize: '12px', fontWeight: 500, color: '#FFFFFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {name}
             </p>
-            <p style={{ fontSize: '10px', color: '#444' }}>Administrador</p>
+            <p style={{ fontSize: '10px', color: '#444' }}>{papel ? PAPEL_LABEL[papel] : '—'}</p>
           </div>
           <button
             onClick={handleSignOut}

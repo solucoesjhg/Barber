@@ -2,8 +2,10 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronRight, Bell, Search } from 'lucide-react'
 import Sidebar from './Sidebar'
+import { usePerfil } from '../../hooks/usePerfil'
 
 const PAGE_NAMES: Record<string, string> = {
+  '/empresas':      'Empresas',
   '/dashboard':     'Dashboard',
   '/agenda':        'Agenda',
   '/pdv':           'PDV',
@@ -26,6 +28,9 @@ const PAGE_NAMES: Record<string, string> = {
 export default function AppLayout() {
   const location = useLocation()
   const pageName = PAGE_NAMES[location.pathname] ?? ''
+  const { papel, empresaId, loading: perfilLoading } = usePerfil()
+
+  const semLoja = !perfilLoading && papel !== null && papel !== 'super_admin' && !empresaId && location.pathname !== '/empresas'
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#0D0D0D' }}>
@@ -117,7 +122,18 @@ export default function AppLayout() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
-            <Outlet />
+            {perfilLoading ? (
+              <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Carregando...</div>
+            ) : semLoja ? (
+              <div style={{ padding: '80px 40px', textAlign: 'center', maxWidth: '440px', margin: '0 auto' }}>
+                <h2 style={{ fontSize: '18px', color: '#FFFFFF', marginBottom: '10px' }}>Aguardando vínculo com uma loja</h2>
+                <p style={{ fontSize: '13px', color: '#A3A3A3', lineHeight: 1.6 }}>
+                  Sua conta foi criada, mas ainda não está vinculada a nenhuma loja. Peça para um administrador te vincular em Usuários.
+                </p>
+              </div>
+            ) : (
+              <Outlet />
+            )}
           </motion.main>
         </AnimatePresence>
       </div>

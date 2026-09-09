@@ -33,3 +33,25 @@ Supabase vira `administrador` automaticamente — ninguém perde acesso.
 A Fase 7 (itens 14-17) foi dividida em 4 arquivos menores em vez de um só,
 porque a versão original deu timeout de conexão no SQL Editor. Cada um desses
 4 é seguro de rodar de novo caso dê timeout no meio.
+
+## Fase 8 — Multi-tenant (⚠️ apaga os dados operacionais atuais)
+
+18. `20260909000001_multitenant_schema.sql` — cria `empresas`, **zera clientes/
+    produtos/agendamentos/vendas/financeiro/etc.** (combinado com a usuária),
+    adiciona `empresa_id` em toda tabela operacional, recria `configuracoes`
+    por loja, e promove `adm@dev.com` a `super_admin`
+19. `20260909000002_multitenant_rls.sql` — RLS: cada loja só enxerga os
+    próprios dados; super_admin só gerencia empresas/usuários, não vê dado
+    operacional de nenhuma loja
+20. `20260909000003_multitenant_rpcs_caixa.sql` — abrir/fechar caixa, lançar
+    movimento e finalizar venda, todos escopados por loja
+21. `20260909000004_multitenant_rpcs_financeiro.sql` — contas a pagar/receber
+    e DRE escopados por loja
+22. `20260909000005_multitenant_rpcs_usuarios.sql` — listar usuários e
+    atualizar papel/loja de um usuário (só super_admin vincula/troca loja)
+23. `20260909000006_seed_nova_empresa.sql` — toda loja nova nasce com
+    configurações, categorias financeiras e formas de pagamento padrão
+
+Depois de rodar tudo isso: `adm@dev.com` vira super administradora da
+plataforma (sem loja própria) e usa a tela **Empresas** pra cadastrar as
+lojas clientes, e **Usuários** pra vincular o primeiro login de cada uma.

@@ -1,16 +1,21 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
+import { usePerfil } from '../hooks/usePerfil'
 import { formatDate } from '../lib/utils'
-import type { UsuarioListado, PapelUsuario, Profissional } from '../types'
+import type { UsuarioListado, PapelUsuario, Profissional, Empresa } from '../types'
 
 const PAPEL_LABEL: Record<PapelUsuario, string> = {
-  administrador: 'Administrador', gerente: 'Gerente', atendente: 'Atendente', profissional: 'Profissional',
+  super_admin: 'Super Admin', administrador: 'Administrador', gerente: 'Gerente', atendente: 'Atendente', profissional: 'Profissional',
 }
 
 export default function Usuarios() {
+  const { papel: meuPapel } = usePerfil()
+  const souSuperAdmin = meuPapel === 'super_admin'
+
   const [usuarios, setUsuarios] = useState<UsuarioListado[]>([])
   const [profissionais, setProfissionais] = useState<Profissional[]>([])
+  const [empresas, setEmpresas] = useState<Empresa[]>([])
   const [loading, setLoading] = useState(true)
   const [savingId, setSavingId] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -24,11 +29,15 @@ export default function Usuarios() {
     })
     supabase.from('profissionais').select('*').order('nome')
       .then(({ data }) => { if (data) setProfissionais(data as Profissional[]) })
+    if (souSuperAdmin) {
+      supabase.from('empresas').select('*').eq('ativo', true).order('nome')
+        .then(({ data }) => { if (data) setEmpresas(data as Empresa[]) })
+    }
   }
 
-  useEffect(() => { carregar() }, [])
+  useEffect(() => { carregar() }, [souSuperAdmin])
 
-  async function salvar(u: UsuarioListado, campo: 'papel' | 'profissional_id' | 'ativo', valor: string | boolean) {
+  async function salvar(u: UsuarioListado, campo: 'papel' | 'profissional_id' | 'ativo' | 'empresa_id', valor: string | boolean) {
     const atualizado = { ...u, [campo]: valor === '' ? null : valor }
     setUsuarios(prev => prev.map(x => x.usuario_id === u.usuario_id ? atualizado : x))
     setSavingId(u.usuario_id)
@@ -37,56 +46,88 @@ export default function Usuarios() {
       p_papel: atualizado.papel,
       p_profissional_id: atualizado.profissional_id || null,
       p_ativo: atualizado.ativo,
+      p_empresa_id: atualizado.empresa_id || null,
     })
     setSavingId(null)
-    if (err) setError(err.message)
+    if (err) { setError(err.message); carregar(); return }
+    if (campo === 'empresa_id') carregar()
   }
+
+  const colunas = souSuperAdmin
+    ? '1fr 140px 160px 160px 80px 100px'
+    : '1fr 140px 180px 80px 100px'
 
   return (
     <div className="page">
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Usuários</h1>
-        <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>Papéis de acesso (visível só pra administradores)</p>
+        <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
+          {souSuperAdmin ? 'Todos os usuários da plataforma, de todas as lojas' : 'Papéis de acesso da sua loja'}
+        </p>
       </div>
 
       {error && <p style={{ fontSize: '12px', color: '#666', marginBottom: '16px' }}>{error}</p>}
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 160px 200px 90px 100px',
+          display: 'grid', gridTemplateColumns: colunas,
           padding: '10px 24px', borderBottom: '1px solid #222',
           fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
           background: 'rgba(0,0,0,0.2)',
         }}>
-          <span>E-mail</span><span>Papel</span><span>Vinculado a</span><span>Ativo</span><span>Desde</span>
+          <span>E-mail</span>
+          <span>Papel</span>
+          {souSuperAdmin && <span>Loja</span>}
+          <span>{souSuperAdmin ? 'Profissional' : 'Vinculado a'}</span>
+          <span>Ativo</span>
+          <span>Desde</span>
         </div>
 
         {loading ? (
           <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Carregando...</div>
         ) : usuarios.length === 0 ? (
           <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
-            Nenhum usuário encontrado (ou você não tem permissão de administrador).
+            Nenhum usuário encontrado (ou você não tem permissão pra ver essa tela).
           </div>
         ) : usuarios.map((u, i) => (
           <motion.div
             key={u.usuario_id}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
             style={{
-              display: 'grid', gridTemplateColumns: '1fr 160px 200px 90px 100px',
+              display: 'grid', gridTemplateColumns: colunas,
               padding: '12px 24px', alignItems: 'center',
               borderBottom: i < usuarios.length - 1 ? '1px solid #1A1A1A' : 'none',
               opacity: savingId === u.usuario_id ? 0.6 : 1,
             }}
           >
-            <span style={{ fontSize: '13px', color: '#FFFFFF' }}>{u.email}</span>
+            <div>
+              <span style={{ fontSize: '13px', color: '#FFFFFF' }}>{u.email}</span>
+              {souSuperAdmin && !u.empresa_id && u.papel !== 'super_admin' && (
+                <p style={{ fontSize: '10px', color: '#A3A3A3' }}>aguardando vínculo com uma loja</p>
+              )}
+            </div>
             <select
               className="input"
               style={{ fontSize: '12px', padding: '6px 8px' }}
               value={u.papel}
               onChange={e => salvar(u, 'papel', e.target.value)}
+              disabled={!souSuperAdmin && u.papel === 'super_admin'}
             >
-              {Object.entries(PAPEL_LABEL).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+              {Object.entries(PAPEL_LABEL)
+                .filter(([k]) => souSuperAdmin || k !== 'super_admin')
+                .map(([k, label]) => <option key={k} value={k}>{label}</option>)}
             </select>
+            {souSuperAdmin && (
+              <select
+                className="input"
+                style={{ fontSize: '12px', padding: '6px 8px' }}
+                value={u.empresa_id ?? ''}
+                onChange={e => salvar(u, 'empresa_id', e.target.value)}
+              >
+                <option value="">Sem loja</option>
+                {empresas.map(emp => <option key={emp.id} value={emp.id}>{emp.nome}</option>)}
+              </select>
+            )}
             <select
               className="input"
               style={{ fontSize: '12px', padding: '6px 8px' }}
