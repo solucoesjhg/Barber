@@ -15,6 +15,7 @@ const PAGE_NAMES: Record<string, string> = {
   '/produtos':      'Produtos',
   '/fornecedores':  'Fornecedores',
   '/financeiro':    'Financeiro',
+  '/categorias':    'Categorias',
   '/contas-pagar':   'Contas a Pagar',
   '/contas-receber': 'Contas a Receber',
   '/comissoes':     'Comissões',

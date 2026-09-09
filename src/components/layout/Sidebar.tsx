@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import {
   LayoutDashboard, Calendar, ShoppingCart, Wallet, Users,
   Scissors, Package, Truck, BarChart2, ArrowDownCircle, ArrowUpCircle,
-  Percent, FileBarChart, FileText, ClipboardList, Settings, UserCog, LogOut, Building2,
+  Percent, FileBarChart, FileText, ClipboardList, Settings, UserCog, LogOut, Building2, Tags,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { usePerfil } from '../../hooks/usePerfil'
@@ -29,6 +29,7 @@ const NAV = [
   { to: '/produtos',     icon: Package,         label: 'Produtos'      },
   { to: '/fornecedores', icon: Truck,           label: 'Fornecedores'  },
   { to: '/financeiro',   icon: BarChart2,       label: 'Financeiro'    },
+  { to: '/categorias',   icon: Tags,            label: 'Categorias'    },
   { to: '/contas-pagar',   icon: ArrowUpCircle,   label: 'Contas a Pagar'   },
   { to: '/contas-receber', icon: ArrowDownCircle, label: 'Contas a Receber' },
   { to: '/comissoes',    icon: Percent,         label: 'Comissões'     },

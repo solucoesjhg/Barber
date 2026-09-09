@@ -21,6 +21,7 @@ import Auditoria from './pages/Auditoria'
 import Configuracoes from './pages/Configuracoes'
 import Usuarios from './pages/Usuarios'
 import Financeiro from './pages/Financeiro'
+import Categorias from './pages/Categorias'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth()
@@ -60,6 +61,7 @@ export default function App() {
           <Route path="/produtos"      element={<Produtos />} />
           <Route path="/fornecedores"  element={<Fornecedores />} />
           <Route path="/financeiro"    element={<Financeiro />} />
+          <Route path="/categorias"    element={<Categorias />} />
           <Route path="/contas-pagar"   element={<ContasPagar />} />
           <Route path="/contas-receber" element={<ContasReceber />} />
           <Route path="/comissoes"     element={<Comissoes />} />
