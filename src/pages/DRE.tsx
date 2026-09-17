@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, Printer } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
 import { type Periodo, toISO, rangeFor, periodoAnterior } from '../lib/periodo'
@@ -94,7 +94,7 @@ export default function DRE() {
           <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>DRE Gerencial</h1>
           <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>{inicio} até {fim}</p>
         </div>
-        <div style={{ display: 'flex', gap: '6px' }}>
+        <div className="no-print" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
           {(['mes', 'trimestre', 'ano', 'personalizado'] as Periodo[]).map(p => (
             <button
               key={p}
@@ -110,11 +110,16 @@ export default function DRE() {
               {p}
             </button>
           ))}
+          <button className="btn btn-secondary btn-sm" onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '6px' }}>
+            <Printer size={13} /> Imprimir / PDF
+          </button>
         </div>
       </div>
 
+      <DreEstilos />
+
       {periodo === 'personalizado' && (
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+        <div className="no-print" style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
           <div className="field">
             <label className="label">De</label>
             <input className="input" type="date" value={custom.inicio} onChange={e => setCustom(c => ({ ...c, inicio: e.target.value }))} />
@@ -126,7 +131,7 @@ export default function DRE() {
         </div>
       )}
       {periodo !== 'personalizado' && (
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+        <div className="no-print" style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
           <button className="btn btn-secondary btn-sm" onClick={() => setRef(d => {
             const n = new Date(d)
             if (periodo === 'mes') n.setMonth(n.getMonth() - 1)
@@ -157,7 +162,7 @@ export default function DRE() {
       ) : !dre ? (
         <div className="card" style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Nenhum dado disponível.</div>
       ) : (
-        <motion.div className="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} style={{ padding: '24px 28px' }}>
+        <motion.div id="area-impressao" className="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} style={{ padding: '24px 28px' }}>
           <div style={{
             display: 'grid', gridTemplateColumns: '1fr 90px 110px 100px',
             padding: '0 0 10px', borderBottom: '1px solid #2A2A2A', marginBottom: '4px',
@@ -202,5 +207,19 @@ export default function DRE() {
         </motion.div>
       )}
     </div>
+  )
+}
+
+function DreEstilos() {
+  return (
+    <style>{`
+      @media print {
+        .no-print { display: none !important; }
+        aside, header { display: none !important; }
+        body * { visibility: hidden; }
+        #area-impressao, #area-impressao * { visibility: visible; }
+        #area-impressao { position: absolute; inset: 0; margin: 0; padding: 12px; }
+      }
+    `}</style>
   )
 }
