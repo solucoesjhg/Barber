@@ -42,3 +42,8 @@ export function initials(name: string): string {
     .join('')
     .toUpperCase()
 }
+
+/** Gera um código curto e único a partir do id do produto (base pro código de barras da etiqueta). */
+export function gerarCodigoProduto(id: string): string {
+  return id.replace(/-/g, '').slice(0, 10).toUpperCase()
+}

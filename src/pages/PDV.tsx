@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, type KeyboardEvent } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ShoppingCart, Plus, Minus, Trash2, X, Check, Search, Scissors, Package } from 'lucide-react'
+import { ShoppingCart, Plus, Minus, Trash2, X, Check, Search, Scissors, Package, ScanLine } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
+import ScannerCamera from '../components/ScannerCamera'
 import type { ItemComanda, PagamentoMetodo, Produto, Profissional, Servico } from '../types'
 
 const PAGAMENTOS: { id: PagamentoMetodo; label: string }[] = [
@@ -31,6 +32,8 @@ export default function PDV() {
   const [done, setDone]         = useState(false)
   const [saving, setSaving]     = useState(false)
   const [error, setError]       = useState('')
+  const [showScanner, setShowScanner] = useState(false)
+  const [scanAviso, setScanAviso] = useState('')
 
   const total = cart.reduce((s, i) => s + i.preco_unitario * i.quantidade, 0)
 
@@ -51,9 +54,38 @@ export default function PDV() {
   )
 
   const produtosFiltrados = useMemo(() =>
-    produtos.filter(p => p.nome.toLowerCase().includes(search.toLowerCase())),
+    produtos.filter(p =>
+      p.nome.toLowerCase().includes(search.toLowerCase()) ||
+      (p.sku ?? '').toLowerCase().includes(search.toLowerCase())
+    ),
     [produtos, search]
   )
+
+  function buscarPorCodigo(codigo: string): Produto | undefined {
+    const alvo = codigo.trim().toLowerCase()
+    if (!alvo) return undefined
+    return produtos.find(p => (p.sku ?? '').toLowerCase() === alvo)
+  }
+
+  function handleCodigoLido(codigo: string) {
+    const produto = buscarPorCodigo(codigo)
+    if (produto) {
+      addProduto(produto)
+      setScanAviso('')
+    } else {
+      setScanAviso(`Nenhum produto com o código "${codigo}".`)
+      setTimeout(() => setScanAviso(''), 3000)
+    }
+  }
+
+  function handleSearchKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key !== 'Enter' || tab !== 'produtos') return
+    const produto = buscarPorCodigo(search)
+    if (produto) {
+      addProduto(produto)
+      setSearch('')
+    }
+  }
 
   function addServico(s: Servico) {
     setCart(prev => {
@@ -159,9 +191,11 @@ export default function PDV() {
             <Search size={13} style={{ color: '#444', flexShrink: 0 }} />
             <input
               style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: '13px', color: '#FFFFFF', fontFamily: 'inherit' }}
-              placeholder={tab === 'servicos' ? 'Buscar serviço...' : 'Buscar produto...'}
+              placeholder={tab === 'servicos' ? 'Buscar serviço...' : 'Buscar produto ou ler código...'}
               value={search}
               onChange={e => setSearch(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              autoFocus={tab === 'produtos'}
             />
             {search && (
               <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', padding: '2px', display: 'flex' }}>
@@ -169,7 +203,26 @@ export default function PDV() {
               </button>
             )}
           </div>
+
+          {tab === 'produtos' && (
+            <button
+              onClick={() => setShowScanner(true)}
+              title="Ler código com a câmera"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: '38px', height: '38px', flexShrink: 0,
+                background: '#1A1A1A', border: '1px solid #252525', borderRadius: '8px',
+                color: '#A3A3A3', cursor: 'pointer',
+              }}
+            >
+              <ScanLine size={15} />
+            </button>
+          )}
         </div>
+
+        {scanAviso && (
+          <p style={{ fontSize: '12px', color: '#666', marginTop: '-8px', marginBottom: '12px', flexShrink: 0 }}>{scanAviso}</p>
+        )}
 
         {/* Content area */}
         <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '16px' }}>
@@ -441,6 +494,16 @@ export default function PDV() {
               <p style={{ fontSize: '11px', color: '#555' }}>Comanda finalizada com sucesso.</p>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Camera scanner */}
+      <AnimatePresence>
+        {showScanner && (
+          <ScannerCamera
+            onScan={codigo => { setShowScanner(false); handleCodigoLido(codigo) }}
+            onClose={() => setShowScanner(false)}
+          />
         )}
       </AnimatePresence>
     </div>

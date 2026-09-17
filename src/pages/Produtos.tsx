@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, X, AlertTriangle, Package, Scissors, Check } from 'lucide-react'
+import { Plus, X, AlertTriangle, Package, Scissors, Check, Tag } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
+import EtiquetaModal from '../components/EtiquetaModal'
 import type { Produto, ProdutoCategoria, Servico, Profissional } from '../types'
 
 type Secao = 'produtos' | 'servicos'
@@ -35,6 +36,7 @@ export default function Produtos() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [produtoEtiqueta, setProdutoEtiqueta] = useState<Produto | null>(null)
 
   const alertas = produtos.filter(p => p.estoque_atual <= p.estoque_minimo)
 
@@ -203,7 +205,7 @@ export default function Produtos() {
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 100px 120px 120px 90px 90px',
+                gridTemplateColumns: '1fr 100px 120px 120px 90px 90px 46px',
                 padding: '10px 24px',
                 borderBottom: '1px solid #222',
                 fontSize: '10px', fontWeight: 600, color: '#444',
@@ -211,7 +213,7 @@ export default function Produtos() {
                 background: 'rgba(0,0,0,0.2)',
               }}>
                 <span>Produto</span><span>Categoria</span><span>Custo</span>
-                <span>Venda</span><span>Estoque</span><span>Mínimo</span>
+                <span>Venda</span><span>Estoque</span><span>Mínimo</span><span></span>
               </div>
 
               {produtos.length === 0 ? (
@@ -227,7 +229,7 @@ export default function Produtos() {
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: '1fr 100px 120px 120px 90px 90px',
+                      gridTemplateColumns: '1fr 100px 120px 120px 90px 90px 46px',
                       padding: '14px 24px',
                       borderBottom: i < produtos.length - 1 ? '1px solid #1F1F1F' : 'none',
                       alignItems: 'center',
@@ -251,6 +253,9 @@ export default function Produtos() {
                       {baixo && <AlertTriangle size={12} style={{ marginLeft: '4px', color: '#777', verticalAlign: 'middle' }} />}
                     </span>
                     <span style={{ fontSize: '13px', color: '#444' }}>{p.estoque_minimo}</span>
+                    <button className="btn btn-icon" title="Gerar/imprimir etiqueta" onClick={() => setProdutoEtiqueta(p)}>
+                      <Tag size={12} />
+                    </button>
                   </motion.div>
                 )
               })}
@@ -505,6 +510,19 @@ export default function Produtos() {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {produtoEtiqueta && (
+          <EtiquetaModal
+            produto={produtoEtiqueta}
+            onClose={() => setProdutoEtiqueta(null)}
+            onSkuGerado={sku => {
+              setProdutos(prev => prev.map(x => x.id === produtoEtiqueta.id ? { ...x, sku } : x))
+              setProdutoEtiqueta(prev => prev ? { ...prev, sku } : prev)
+            }}
+          />
         )}
       </AnimatePresence>
     </div>
