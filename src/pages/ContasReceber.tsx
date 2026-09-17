@@ -51,6 +51,11 @@ export default function ContasReceber() {
       .then(({ data }) => { if (data) setFormasPagamento(data as FormaPagamentoCadastro[]) })
   }, [carregar])
 
+  // Contas sintéticas (que agrupam outras) não recebem lançamento direto — só as analíticas (de detalhe).
+  const idsSinteticas = new Set(categorias.map(c => c.categoria_pai_id).filter(Boolean))
+  const categoriasSelecionaveis = categorias.filter(c => !idsSinteticas.has(c.id))
+  const nomeCategoriaPai = (id: string) => categorias.find(c => c.id === id)?.nome
+
   const filtradas = contas.filter(c => {
     if (filtro === 'todas') return true
     if (filtro === 'vencida') return isVencida(c)
@@ -215,7 +220,11 @@ export default function ContasReceber() {
                     <label className="label">Categoria</label>
                     <select className="input" value={form.categoria_id} onChange={e => setForm(f => ({ ...f, categoria_id: e.target.value }))}>
                       <option value="">Nenhuma</option>
-                      {categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                      {categoriasSelecionaveis.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.categoria_pai_id ? `${nomeCategoriaPai(c.categoria_pai_id)} › ${c.nome}` : c.nome}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>

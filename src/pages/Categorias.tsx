@@ -226,10 +226,22 @@ export default function Categorias() {
                 </div>
                 <div className="field">
                   <label className="label">Tipo</label>
-                  <select className="input" value={catForm.tipo} onChange={e => setCatForm(f => ({ ...f, tipo: e.target.value as CategoriaFinanceiraTipo }))}>
+                  <select className="input" value={catForm.tipo} onChange={e => setCatForm(f => ({ ...f, tipo: e.target.value as CategoriaFinanceiraTipo, categoria_pai_id: '' }))}>
                     <option value="receita">Receita</option>
                     <option value="despesa">Despesa</option>
                   </select>
+                </div>
+                <div className="field">
+                  <label className="label">Conta sintética (agrupadora)</label>
+                  <select className="input" value={catForm.categoria_pai_id} onChange={e => setCatForm(f => ({ ...f, categoria_pai_id: e.target.value }))}>
+                    <option value="">Nenhuma — esta é uma conta de detalhe (analítica)</option>
+                    {categorias
+                      .filter(c => c.tipo === catForm.tipo && !c.categoria_pai_id && c.id !== catEditando?.id)
+                      .map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                  </select>
+                  <p style={{ fontSize: '11px', color: '#555', marginTop: '6px' }}>
+                    Deixe em branco para uma conta sintética (agrupa outras no DRE) ou vincule a uma para criar uma conta analítica (recebe lançamentos).
+                  </p>
                 </div>
                 {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
@@ -279,6 +291,17 @@ export default function Categorias() {
   )
 }
 
+function ordenarHierarquia(itens: CategoriaFinanceira[]): { c: CategoriaFinanceira; nivel: number }[] {
+  const raizes = itens.filter(c => !c.categoria_pai_id)
+  const filhas = (id: string) => itens.filter(c => c.categoria_pai_id === id)
+  const resultado: { c: CategoriaFinanceira; nivel: number }[] = []
+  raizes.forEach(r => {
+    resultado.push({ c: r, nivel: 0 })
+    filhas(r.id).forEach(f => resultado.push({ c: f, nivel: 1 }))
+  })
+  return resultado
+}
+
 function ListaCategorias({ itens, onEditar, onToggle, onExcluir, vazio }: {
   itens: CategoriaFinanceira[]
   onEditar: (c: CategoriaFinanceira) => void
@@ -286,21 +309,24 @@ function ListaCategorias({ itens, onEditar, onToggle, onExcluir, vazio }: {
   onExcluir: (c: CategoriaFinanceira) => void
   vazio: string
 }) {
+  const linhas = ordenarHierarquia(itens)
   return (
     <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: '4px' }}>
-      {itens.length === 0 ? (
+      {linhas.length === 0 ? (
         <div style={{ padding: '32px', textAlign: 'center', color: '#444', fontSize: '13px' }}>{vazio}</div>
-      ) : itens.map((c, i) => (
+      ) : linhas.map(({ c, nivel }, i) => (
         <motion.div
           key={c.id}
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
           style={{
             display: 'grid', gridTemplateColumns: '1fr 90px 130px',
             padding: '12px 24px', alignItems: 'center',
-            borderBottom: i < itens.length - 1 ? '1px solid #1F1F1F' : 'none',
+            borderBottom: i < linhas.length - 1 ? '1px solid #1F1F1F' : 'none',
           }}
         >
-          <span style={{ fontSize: '13px', color: '#FFFFFF' }}>{c.nome}</span>
+          <span style={{ fontSize: '13px', color: nivel > 0 ? '#A3A3A3' : '#FFFFFF', fontWeight: nivel > 0 ? 400 : 600, paddingLeft: nivel > 0 ? '18px' : 0 }}>
+            {nivel > 0 && '↳ '}{c.nome}
+          </span>
           <button
             onClick={() => onToggle(c)}
             style={{
