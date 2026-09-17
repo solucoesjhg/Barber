@@ -38,9 +38,26 @@ export default function Produtos() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [produtoEtiqueta, setProdutoEtiqueta] = useState<Produto | null>(null)
+  const [produtosEtiqueta, setProdutosEtiqueta] = useState<Produto[] | null>(null)
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
 
   const alertas = produtos.filter(p => p.estoque_atual <= p.estoque_minimo)
+
+  function toggleSelecionado(id: string) {
+    setSelecionados(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelecionarTodos() {
+    setSelecionados(prev => prev.size === produtos.length ? new Set() : new Set(produtos.map(p => p.id)))
+  }
+
+  function imprimirSelecionados() {
+    setProdutosEtiqueta(produtos.filter(p => selecionados.has(p.id)))
+  }
 
   useEffect(() => {
     supabase.from('produtos').select('*').order('nome')
@@ -215,9 +232,16 @@ export default function Produtos() {
           </p>
         </div>
         {secao === 'produtos' ? (
-          <button className="btn btn-primary" onClick={abrirNovoProd} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Plus size={14} strokeWidth={2.5} /> Novo Produto
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {selecionados.size > 0 && (
+              <button className="btn btn-secondary" onClick={imprimirSelecionados} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Tag size={14} /> Imprimir etiquetas ({selecionados.size})
+              </button>
+            )}
+            <button className="btn btn-primary" onClick={abrirNovoProd} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Plus size={14} strokeWidth={2.5} /> Novo Produto
+            </button>
+          </div>
         ) : (
           <button className="btn btn-primary" onClick={abrirNovoServ} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Plus size={14} strokeWidth={2.5} /> Novo Serviço
@@ -285,13 +309,15 @@ export default function Produtos() {
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 100px 120px 120px 90px 90px 80px 76px',
+                gridTemplateColumns: '28px 1fr 100px 120px 120px 90px 90px 80px 76px',
                 padding: '10px 24px',
                 borderBottom: '1px solid #222',
                 fontSize: '10px', fontWeight: 600, color: '#444',
                 textTransform: 'uppercase', letterSpacing: '0.1em',
                 background: 'rgba(0,0,0,0.2)',
+                alignItems: 'center',
               }}>
+                <input type="checkbox" checked={produtos.length > 0 && selecionados.size === produtos.length} onChange={toggleSelecionarTodos} />
                 <span>Produto</span><span>Categoria</span><span>Custo</span>
                 <span>Venda</span><span>Estoque</span><span>Mínimo</span><span>Status</span><span></span>
               </div>
@@ -309,13 +335,14 @@ export default function Produtos() {
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: '1fr 100px 120px 120px 90px 90px 80px 76px',
+                      gridTemplateColumns: '28px 1fr 100px 120px 120px 90px 90px 80px 76px',
                       padding: '14px 24px',
                       borderBottom: i < produtos.length - 1 ? '1px solid #1F1F1F' : 'none',
                       alignItems: 'center',
                     }}
                     whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
                   >
+                    <input type="checkbox" checked={selecionados.has(p.id)} onChange={() => toggleSelecionado(p.id)} />
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <Package size={13} style={{ color: '#444', flexShrink: 0 }} />
                       <div>
@@ -349,7 +376,7 @@ export default function Produtos() {
                       <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicaoProd(p)}>
                         <Pencil size={12} />
                       </button>
-                      <button className="btn btn-icon" title="Gerar/imprimir etiqueta" onClick={() => setProdutoEtiqueta(p)}>
+                      <button className="btn btn-icon" title="Gerar/imprimir etiqueta" onClick={() => setProdutosEtiqueta([p])}>
                         <Tag size={12} />
                       </button>
                     </div>
@@ -626,13 +653,13 @@ export default function Produtos() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {produtoEtiqueta && (
+        {produtosEtiqueta && (
           <EtiquetaModal
-            produto={produtoEtiqueta}
-            onClose={() => setProdutoEtiqueta(null)}
-            onSkuGerado={sku => {
-              setProdutos(prev => prev.map(x => x.id === produtoEtiqueta.id ? { ...x, sku } : x))
-              setProdutoEtiqueta(prev => prev ? { ...prev, sku } : prev)
+            produtos={produtosEtiqueta}
+            onClose={() => { setProdutosEtiqueta(null); setSelecionados(new Set()) }}
+            onSkuGerado={(id, sku) => {
+              setProdutos(prev => prev.map(x => x.id === id ? { ...x, sku } : x))
+              setProdutosEtiqueta(prev => prev ? prev.map(x => x.id === id ? { ...x, sku } : x) : prev)
             }}
           />
         )}
