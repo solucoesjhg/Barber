@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, X, Scissors, Percent } from 'lucide-react'
+import { Plus, X, Scissors, Percent, Pencil } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { initials } from '../lib/utils'
 import type { Profissional } from '../types'
@@ -11,6 +11,7 @@ export default function Profissionais() {
   const [profissionais, setProfissionais] = useState<Profissional[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState(FORM_INICIAL)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -25,23 +26,49 @@ export default function Profissionais() {
       setError('Nome e especialidade são obrigatórios.'); return
     }
     setSaving(true); setError('')
-    const { data, error: err } = await supabase
-      .from('profissionais')
-      .insert({
-        nome: form.nome,
-        especialidade: form.especialidade,
-        comissao_percentual: Number(form.comissao_percentual),
-        telefone: form.telefone || null,
-        email: form.email || null,
-        documento: form.documento || null,
-        valor_fixo: form.valor_fixo ? Number(form.valor_fixo) : null,
-        ativo: true,
-      })
-      .select('*').single()
-    if (err) { setError(err.message); setSaving(false); return }
-    if (data) setProfissionais(prev => [...prev, data as Profissional])
+    const payload = {
+      nome: form.nome,
+      especialidade: form.especialidade,
+      comissao_percentual: Number(form.comissao_percentual),
+      telefone: form.telefone || null,
+      email: form.email || null,
+      documento: form.documento || null,
+      valor_fixo: form.valor_fixo ? Number(form.valor_fixo) : null,
+    }
+    if (editId) {
+      const { data, error: err } = await supabase.from('profissionais').update(payload).eq('id', editId).select('*').single()
+      if (err) { setError(err.message); setSaving(false); return }
+      if (data) setProfissionais(prev => prev.map(p => p.id === editId ? (data as Profissional) : p))
+    } else {
+      const { data, error: err } = await supabase.from('profissionais').insert({ ...payload, ativo: true }).select('*').single()
+      if (err) { setError(err.message); setSaving(false); return }
+      if (data) setProfissionais(prev => [...prev, data as Profissional])
+    }
+    fecharModal()
+    setSaving(false)
+  }
+
+  function abrirNovo() {
+    setEditId(null)
     setForm(FORM_INICIAL)
-    setShowModal(false); setSaving(false)
+    setError('')
+    setShowModal(true)
+  }
+
+  function abrirEdicao(p: Profissional) {
+    setEditId(p.id)
+    setForm({
+      nome: p.nome, especialidade: p.especialidade, comissao_percentual: String(p.comissao_percentual),
+      telefone: p.telefone ?? '', email: p.email ?? '', documento: p.documento ?? '', valor_fixo: p.valor_fixo != null ? String(p.valor_fixo) : '',
+    })
+    setError('')
+    setShowModal(true)
+  }
+
+  function fecharModal() {
+    setShowModal(false)
+    setEditId(null)
+    setForm(FORM_INICIAL)
   }
 
   async function toggleAtivo(id: string, ativo: boolean) {
@@ -56,7 +83,7 @@ export default function Profissionais() {
           <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Profissionais</h1>
           <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>{profissionais.length} profissionais</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <button className="btn btn-primary" onClick={abrirNovo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Plus size={14} strokeWidth={2.5} /> Novo Profissional
         </button>
       </div>
@@ -139,12 +166,17 @@ export default function Profissionais() {
                 </div>
               ) : null}
 
-              <button
-                onClick={() => toggleAtivo(p.id, p.ativo)}
-                className="btn btn-secondary btn-sm"
-              >
-                {p.ativo ? 'Desativar' : 'Ativar'}
-              </button>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicao(p)}>
+                  <Pencil size={12} />
+                </button>
+                <button
+                  onClick={() => toggleAtivo(p.id, p.ativo)}
+                  className="btn btn-secondary btn-sm"
+                >
+                  {p.ativo ? 'Desativar' : 'Ativar'}
+                </button>
+              </div>
             </div>
           </motion.div>
         ))}
@@ -157,7 +189,7 @@ export default function Profissionais() {
           <motion.div
             style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={e => e.target === e.currentTarget && setShowModal(false)}
+            onClick={e => e.target === e.currentTarget && fecharModal()}
           >
             <motion.div
               className="card"
@@ -165,8 +197,8 @@ export default function Profissionais() {
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>Novo Profissional</h2>
-                <button className="btn btn-icon" onClick={() => setShowModal(false)}><X size={14} /></button>
+                <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>{editId ? 'Editar Profissional' : 'Novo Profissional'}</h2>
+                <button className="btn btn-icon" onClick={fecharModal}><X size={14} /></button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div className="field">
@@ -203,9 +235,9 @@ export default function Profissionais() {
                 </div>
                 {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancelar</button>
+                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={fecharModal}>Cancelar</button>
                   <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSave} disabled={saving}>
-                    {saving ? 'Salvando...' : 'Cadastrar'}
+                    {saving ? 'Salvando...' : editId ? 'Salvar' : 'Cadastrar'}
                   </button>
                 </div>
               </div>

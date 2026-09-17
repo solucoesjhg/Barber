@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Search, X, Phone } from 'lucide-react'
+import { Plus, Search, X, Phone, Pencil } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatDate, initials } from '../lib/utils'
 import type { Cliente } from '../types'
@@ -13,6 +13,7 @@ export default function Clientes() {
   const [search, setSearch] = useState('')
   const [mostrarInativos, setMostrarInativos] = useState(false)
   const [showModal, setShowModal] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState(FORM_INICIAL)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -35,24 +36,49 @@ export default function Clientes() {
       return
     }
     setSaving(true); setError('')
-    const { data, error: err } = await supabase
-      .from('clientes')
-      .insert({
-        nome: form.nome,
-        telefone: form.telefone,
-        email: form.email || null,
-        cpf: form.cpf || null,
-        data_nascimento: form.data_nascimento || null,
-        endereco: form.endereco || null,
-        observacoes: form.observacoes || null,
-      })
-      .select('*')
-      .single()
-    if (err) { setError(err.message); setSaving(false); return }
-    if (data) setClientes(prev => [...prev, data as Cliente])
-    setForm(FORM_INICIAL)
-    setShowModal(false)
+    const payload = {
+      nome: form.nome,
+      telefone: form.telefone,
+      email: form.email || null,
+      cpf: form.cpf || null,
+      data_nascimento: form.data_nascimento || null,
+      endereco: form.endereco || null,
+      observacoes: form.observacoes || null,
+    }
+    if (editId) {
+      const { data, error: err } = await supabase.from('clientes').update(payload).eq('id', editId).select('*').single()
+      if (err) { setError(err.message); setSaving(false); return }
+      if (data) setClientes(prev => prev.map(c => c.id === editId ? (data as Cliente) : c))
+    } else {
+      const { data, error: err } = await supabase.from('clientes').insert(payload).select('*').single()
+      if (err) { setError(err.message); setSaving(false); return }
+      if (data) setClientes(prev => [...prev, data as Cliente])
+    }
+    fecharModal()
     setSaving(false)
+  }
+
+  function abrirNovo() {
+    setEditId(null)
+    setForm(FORM_INICIAL)
+    setError('')
+    setShowModal(true)
+  }
+
+  function abrirEdicao(c: Cliente) {
+    setEditId(c.id)
+    setForm({
+      nome: c.nome, telefone: c.telefone, email: c.email ?? '', cpf: c.cpf ?? '',
+      data_nascimento: c.data_nascimento ?? '', endereco: c.endereco ?? '', observacoes: c.observacoes ?? '',
+    })
+    setError('')
+    setShowModal(true)
+  }
+
+  function fecharModal() {
+    setShowModal(false)
+    setEditId(null)
+    setForm(FORM_INICIAL)
   }
 
   async function toggleAtivo(id: string, ativo: boolean) {
@@ -70,7 +96,7 @@ export default function Clientes() {
             {clientes.filter(c => c.ativo).length} ativos · {clientes.length} cadastrados
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <button className="btn btn-primary" onClick={abrirNovo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Plus size={14} strokeWidth={2.5} /> Novo Cliente
         </button>
       </div>
@@ -106,7 +132,7 @@ export default function Clientes() {
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 160px 180px 110px 90px',
+          gridTemplateColumns: '1fr 160px 180px 110px 90px 40px',
           padding: '10px 24px',
           borderBottom: '1px solid #222',
           fontSize: '10px', fontWeight: 600, color: '#444',
@@ -118,6 +144,7 @@ export default function Clientes() {
           <span>E-mail</span>
           <span>Cadastro</span>
           <span>Status</span>
+          <span></span>
         </div>
 
         {loading ? (
@@ -136,7 +163,7 @@ export default function Clientes() {
             transition={{ delay: i * 0.03 }}
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 160px 180px 110px 90px',
+              gridTemplateColumns: '1fr 160px 180px 110px 90px 40px',
               padding: '14px 24px',
               borderBottom: i < filtered.length - 1 ? '1px solid #1F1F1F' : 'none',
               alignItems: 'center',
@@ -179,6 +206,9 @@ export default function Clientes() {
                 {c.ativo ? 'Ativo' : 'Inativo'}
               </button>
             </div>
+            <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicao(c)}>
+              <Pencil size={12} />
+            </button>
           </motion.div>
         ))}
       </div>
@@ -189,7 +219,7 @@ export default function Clientes() {
           <motion.div
             style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={e => e.target === e.currentTarget && setShowModal(false)}
+            onClick={e => e.target === e.currentTarget && fecharModal()}
           >
             <motion.div
               className="card"
@@ -197,8 +227,8 @@ export default function Clientes() {
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>Novo Cliente</h2>
-                <button className="btn btn-icon" onClick={() => setShowModal(false)}><X size={14} /></button>
+                <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>{editId ? 'Editar Cliente' : 'Novo Cliente'}</h2>
+                <button className="btn btn-icon" onClick={fecharModal}><X size={14} /></button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div className="field">
@@ -235,9 +265,9 @@ export default function Clientes() {
                 </div>
                 {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancelar</button>
+                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={fecharModal}>Cancelar</button>
                   <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSave} disabled={saving}>
-                    {saving ? 'Salvando...' : 'Cadastrar'}
+                    {saving ? 'Salvando...' : editId ? 'Salvar' : 'Cadastrar'}
                   </button>
                 </div>
               </div>

@@ -48,19 +48,33 @@ export default function DRE() {
   const [dre, setDre] = useState<DreData | null>(null)
   const [dreAnterior, setDreAnterior] = useState<DreData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   const carregar = useCallback(async () => {
-    setLoading(true)
-    const [inicio, fim] = rangeFor(periodo, ref, custom)
-    const [anteriorInicio, anteriorFim] = periodoAnterior(inicio, fim)
+    setLoading(true); setError('')
+    try {
+      const [inicio, fim] = rangeFor(periodo, ref, custom)
+      const [anteriorInicio, anteriorFim] = periodoAnterior(inicio, fim)
 
-    const [{ data: atual }, { data: anterior }] = await Promise.all([
-      supabase.rpc('calcular_dre', { p_inicio: inicio, p_fim: fim }),
-      supabase.rpc('calcular_dre', { p_inicio: anteriorInicio, p_fim: anteriorFim }),
-    ])
-    setDre(atual as DreData)
-    setDreAnterior(anterior as DreData)
-    setLoading(false)
+      const [{ data: atual, error: errAtual }, { data: anterior, error: errAnterior }] = await Promise.all([
+        supabase.rpc('calcular_dre', { p_inicio: inicio, p_fim: fim }),
+        supabase.rpc('calcular_dre', { p_inicio: anteriorInicio, p_fim: anteriorFim }),
+      ])
+      if (errAtual || errAnterior || !atual) {
+        setError((errAtual ?? errAnterior)?.message ?? 'Não foi possível calcular a DRE.')
+        setDre(null)
+        setDreAnterior(null)
+        return
+      }
+      setDre(atual as DreData)
+      setDreAnterior((anterior ?? null) as DreData | null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Não foi possível calcular a DRE.')
+      setDre(null)
+      setDreAnterior(null)
+    } finally {
+      setLoading(false)
+    }
   }, [periodo, ref, custom])
 
   useEffect(() => { carregar() }, [carregar])
@@ -131,8 +145,17 @@ export default function DRE() {
         </div>
       )}
 
-      {loading || !dre ? (
+      {loading ? (
         <div className="card" style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Carregando...</div>
+      ) : error ? (
+        <div className="card" style={{ padding: '56px', textAlign: 'center', color: '#666', fontSize: '13px' }}>
+          {error}
+          <div style={{ marginTop: '16px' }}>
+            <button className="btn btn-secondary btn-sm" onClick={carregar}>Tentar novamente</button>
+          </div>
+        </div>
+      ) : !dre ? (
+        <div className="card" style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Nenhum dado disponível.</div>
       ) : (
         <motion.div className="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} style={{ padding: '24px 28px' }}>
           <div style={{

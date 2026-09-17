@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Search, X, Phone, Truck } from 'lucide-react'
+import { Plus, Search, X, Phone, Truck, Pencil } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { initials } from '../lib/utils'
 import type { Fornecedor } from '../types'
@@ -13,6 +13,7 @@ export default function Fornecedores() {
   const [search, setSearch] = useState('')
   const [mostrarInativos, setMostrarInativos] = useState(false)
   const [showModal, setShowModal] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState(FORM_INICIAL)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -35,24 +36,49 @@ export default function Fornecedores() {
       return
     }
     setSaving(true); setError('')
-    const { data, error: err } = await supabase
-      .from('fornecedores')
-      .insert({
-        nome: form.nome,
-        nome_fantasia: form.nome_fantasia || null,
-        documento: form.documento || null,
-        telefone: form.telefone || null,
-        email: form.email || null,
-        endereco: form.endereco || null,
-        observacoes: form.observacoes || null,
-      })
-      .select('*')
-      .single()
-    if (err) { setError(err.message); setSaving(false); return }
-    if (data) setFornecedores(prev => [...prev, data as Fornecedor])
-    setForm(FORM_INICIAL)
-    setShowModal(false)
+    const payload = {
+      nome: form.nome,
+      nome_fantasia: form.nome_fantasia || null,
+      documento: form.documento || null,
+      telefone: form.telefone || null,
+      email: form.email || null,
+      endereco: form.endereco || null,
+      observacoes: form.observacoes || null,
+    }
+    if (editId) {
+      const { data, error: err } = await supabase.from('fornecedores').update(payload).eq('id', editId).select('*').single()
+      if (err) { setError(err.message); setSaving(false); return }
+      if (data) setFornecedores(prev => prev.map(f => f.id === editId ? (data as Fornecedor) : f))
+    } else {
+      const { data, error: err } = await supabase.from('fornecedores').insert(payload).select('*').single()
+      if (err) { setError(err.message); setSaving(false); return }
+      if (data) setFornecedores(prev => [...prev, data as Fornecedor])
+    }
+    fecharModal()
     setSaving(false)
+  }
+
+  function abrirNovo() {
+    setEditId(null)
+    setForm(FORM_INICIAL)
+    setError('')
+    setShowModal(true)
+  }
+
+  function abrirEdicao(f: Fornecedor) {
+    setEditId(f.id)
+    setForm({
+      nome: f.nome, nome_fantasia: f.nome_fantasia ?? '', documento: f.documento ?? '',
+      telefone: f.telefone ?? '', email: f.email ?? '', endereco: f.endereco ?? '', observacoes: f.observacoes ?? '',
+    })
+    setError('')
+    setShowModal(true)
+  }
+
+  function fecharModal() {
+    setShowModal(false)
+    setEditId(null)
+    setForm(FORM_INICIAL)
   }
 
   async function toggleAtivo(id: string, ativo: boolean) {
@@ -70,7 +96,7 @@ export default function Fornecedores() {
             {fornecedores.filter(f => f.ativo).length} ativos · {fornecedores.length} cadastrados
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => { setError(''); setShowModal(true) }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <button className="btn btn-primary" onClick={abrirNovo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Plus size={14} strokeWidth={2.5} /> Novo Fornecedor
         </button>
       </div>
@@ -106,7 +132,7 @@ export default function Fornecedores() {
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 160px 220px 90px',
+          gridTemplateColumns: '1fr 160px 220px 90px 40px',
           padding: '10px 24px',
           borderBottom: '1px solid #222',
           fontSize: '10px', fontWeight: 600, color: '#444',
@@ -117,6 +143,7 @@ export default function Fornecedores() {
           <span>Telefone</span>
           <span>E-mail</span>
           <span>Status</span>
+          <span></span>
         </div>
 
         {loading ? (
@@ -135,7 +162,7 @@ export default function Fornecedores() {
             transition={{ delay: i * 0.03 }}
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 160px 220px 90px',
+              gridTemplateColumns: '1fr 160px 220px 90px 40px',
               padding: '14px 24px',
               borderBottom: i < filtered.length - 1 ? '1px solid #1F1F1F' : 'none',
               alignItems: 'center',
@@ -179,6 +206,9 @@ export default function Fornecedores() {
                 {f.ativo ? 'Ativo' : 'Inativo'}
               </button>
             </div>
+            <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicao(f)}>
+              <Pencil size={12} />
+            </button>
           </motion.div>
         ))}
       </div>
@@ -189,7 +219,7 @@ export default function Fornecedores() {
           <motion.div
             style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={e => e.target === e.currentTarget && setShowModal(false)}
+            onClick={e => e.target === e.currentTarget && fecharModal()}
           >
             <motion.div
               className="card"
@@ -198,9 +228,9 @@ export default function Fornecedores() {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
                 <h2 style={{ fontSize: '18px', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Truck size={16} /> Novo Fornecedor
+                  <Truck size={16} /> {editId ? 'Editar Fornecedor' : 'Novo Fornecedor'}
                 </h2>
-                <button className="btn btn-icon" onClick={() => setShowModal(false)}><X size={14} /></button>
+                <button className="btn btn-icon" onClick={fecharModal}><X size={14} /></button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -237,9 +267,9 @@ export default function Fornecedores() {
                 </div>
                 {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancelar</button>
+                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={fecharModal}>Cancelar</button>
                   <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSave} disabled={saving}>
-                    {saving ? 'Salvando...' : 'Cadastrar'}
+                    {saving ? 'Salvando...' : editId ? 'Salvar' : 'Cadastrar'}
                   </button>
                 </div>
               </div>

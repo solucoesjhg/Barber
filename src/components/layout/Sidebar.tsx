@@ -1,9 +1,11 @@
-import { NavLink, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { useState } from 'react'
+import { NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Calendar, ShoppingCart, Wallet, Users,
   Scissors, Package, Truck, BarChart2, ArrowDownCircle, ArrowUpCircle,
   Percent, FileBarChart, FileText, ClipboardList, Settings, UserCog, LogOut, Building2, Tags,
+  ChevronDown, FolderOpen, ArrowLeftRight,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { usePerfil } from '../../hooks/usePerfil'
@@ -19,25 +21,51 @@ const NAV_SUPER_ADMIN = [
   { to: '/usuarios',     icon: UserCog,         label: 'Usuários'      },
 ]
 
-const NAV = [
+type NavItemDef = { to: string; icon: typeof LayoutDashboard; label: string }
+
+const NAV_TOPO: NavItemDef[] = [
   { to: '/dashboard',    icon: LayoutDashboard, label: 'Dashboard'     },
-  { to: '/agenda',       icon: Calendar,        label: 'Agenda'        },
-  { to: '/pdv',          icon: ShoppingCart,    label: 'PDV'           },
-  { to: '/caixa',        icon: Wallet,          label: 'Caixa'         },
-  { to: '/clientes',     icon: Users,           label: 'Clientes'      },
-  { to: '/profissionais',icon: Scissors,        label: 'Profissionais' },
-  { to: '/produtos',     icon: Package,         label: 'Produtos'      },
-  { to: '/fornecedores', icon: Truck,           label: 'Fornecedores'  },
-  { to: '/financeiro',   icon: BarChart2,       label: 'Financeiro'    },
-  { to: '/categorias',   icon: Tags,            label: 'Categorias'    },
-  { to: '/contas-pagar',   icon: ArrowUpCircle,   label: 'Contas a Pagar'   },
-  { to: '/contas-receber', icon: ArrowDownCircle, label: 'Contas a Receber' },
-  { to: '/comissoes',    icon: Percent,         label: 'Comissões'     },
-  { to: '/dre',          icon: FileBarChart,    label: 'DRE'           },
-  { to: '/relatorios',   icon: FileText,        label: 'Relatórios'    },
-  { to: '/auditoria',    icon: ClipboardList,   label: 'Auditoria'     },
-  { to: '/usuarios',     icon: UserCog,         label: 'Usuários'      },
-  { to: '/configuracoes',icon: Settings,        label: 'Configurações' },
+]
+
+const NAV_GRUPOS: { label: string; icon: typeof LayoutDashboard; items: NavItemDef[] }[] = [
+  {
+    label: 'Cadastros',
+    icon: FolderOpen,
+    items: [
+      { to: '/clientes',      icon: Users,    label: 'Clientes'      },
+      { to: '/profissionais', icon: Scissors, label: 'Profissionais' },
+      { to: '/produtos',      icon: Package,  label: 'Produtos'      },
+      { to: '/fornecedores',  icon: Truck,    label: 'Fornecedores'  },
+      { to: '/categorias',    icon: Tags,     label: 'Categorias'    },
+      { to: '/usuarios',      icon: UserCog,  label: 'Usuários'      },
+    ],
+  },
+  {
+    label: 'Movimentos',
+    icon: ArrowLeftRight,
+    items: [
+      { to: '/agenda',         icon: Calendar,        label: 'Agenda'           },
+      { to: '/pdv',            icon: ShoppingCart,    label: 'PDV'              },
+      { to: '/caixa',          icon: Wallet,          label: 'Caixa'            },
+      { to: '/financeiro',     icon: BarChart2,       label: 'Financeiro'       },
+      { to: '/contas-pagar',   icon: ArrowUpCircle,   label: 'Contas a Pagar'   },
+      { to: '/contas-receber', icon: ArrowDownCircle, label: 'Contas a Receber' },
+      { to: '/comissoes',      icon: Percent,         label: 'Comissões'       },
+    ],
+  },
+  {
+    label: 'Relatórios',
+    icon: FileBarChart,
+    items: [
+      { to: '/dre',          icon: FileBarChart,  label: 'DRE'         },
+      { to: '/relatorios',   icon: FileText,      label: 'Relatórios'  },
+      { to: '/auditoria',    icon: ClipboardList, label: 'Auditoria'   },
+    ],
+  },
+]
+
+const NAV_RODAPE: NavItemDef[] = [
+  { to: '/configuracoes', icon: Settings, label: 'Configurações' },
 ]
 
 function NavItem({ to, icon: Icon, label }: { to: string; icon: typeof LayoutDashboard; label: string }) {
@@ -82,13 +110,58 @@ function NavItem({ to, icon: Icon, label }: { to: string; icon: typeof LayoutDas
   )
 }
 
+function NavGroup({ label, icon: Icon, items, defaultOpen }: { label: string; icon: typeof LayoutDashboard; items: NavItemDef[]; defaultOpen: boolean }) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div style={{ marginBottom: '2px' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+          padding: '10px 12px',
+          borderRadius: '8px',
+          border: 'none',
+          background: 'transparent',
+          color: '#8A8A8A',
+          fontSize: '11px',
+          fontWeight: 600,
+          letterSpacing: '0.06em',
+          textTransform: 'uppercase',
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+        }}
+      >
+        <Icon size={14} strokeWidth={1.9} style={{ flexShrink: 0 }} />
+        <span style={{ flex: 1, textAlign: 'left' }}>{label}</span>
+        <ChevronDown size={13} style={{ flexShrink: 0, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.15s ease' }} />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.18, ease: [0.25, 0.46, 0.45, 0.94] }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div style={{ padding: '2px 0 4px' }}>
+              {items.map(item => <NavItem key={item.to} {...item} />)}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 export default function Sidebar() {
   const { user, signOut } = useAuth()
   const { papel } = usePerfil()
   const navigate = useNavigate()
+  const location = useLocation()
   const name = user?.email?.split('@')[0] ?? 'Usuário'
   const ini = initials(name)
-  const nav = papel === 'super_admin' ? NAV_SUPER_ADMIN : NAV
+  const isSuperAdmin = papel === 'super_admin'
 
   async function handleSignOut() {
     await signOut()
@@ -149,19 +222,26 @@ export default function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav style={{ flex: 1, padding: '20px 8px 16px', overflowY: 'auto' }}>
-        <p style={{
-          fontSize: '9px',
-          fontWeight: 600,
-          color: '#3D3D3D',
-          letterSpacing: '0.14em',
-          textTransform: 'uppercase',
-          padding: '0 12px',
-          marginBottom: '10px',
-        }}>
-          Menu
-        </p>
-        {nav.map(item => <NavItem key={item.to} {...item} />)}
+      <nav style={{ flex: 1, padding: '16px 8px', overflowY: 'auto' }}>
+        {isSuperAdmin ? (
+          NAV_SUPER_ADMIN.map(item => <NavItem key={item.to} {...item} />)
+        ) : (
+          <>
+            {NAV_TOPO.map(item => <NavItem key={item.to} {...item} />)}
+            <div style={{ height: '10px' }} />
+            {NAV_GRUPOS.map(grupo => (
+              <NavGroup
+                key={grupo.label}
+                label={grupo.label}
+                icon={grupo.icon}
+                items={grupo.items}
+                defaultOpen={grupo.items.some(i => location.pathname.startsWith(i.to))}
+              />
+            ))}
+            <div style={{ height: '10px' }} />
+            {NAV_RODAPE.map(item => <NavItem key={item.to} {...item} />)}
+          </>
+        )}
       </nav>
 
       {/* User */}

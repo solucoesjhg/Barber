@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, X, AlertTriangle, Package, Scissors, Check, Tag } from 'lucide-react'
+import { Plus, X, AlertTriangle, Package, Scissors, Check, Tag, Pencil } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
 import EtiquetaModal from '../components/EtiquetaModal'
@@ -18,6 +18,7 @@ export default function Produtos() {
   // Produtos
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [showProdModal, setShowProdModal] = useState(false)
+  const [editProdId, setEditProdId] = useState<string | null>(null)
   const [prodForm, setProdForm] = useState({
     nome: '', categoria: 'bebidas' as ProdutoCategoria, sku: '', unidade: 'un',
     preco_custo: '', preco_venda: '', estoque_atual: '', estoque_minimo: '5', estoque_maximo: '',
@@ -28,6 +29,7 @@ export default function Produtos() {
   const [servicos, setServicos] = useState<Servico[]>([])
   const [profissionais, setProfissionais] = useState<Profissional[]>([])
   const [showServModal, setShowServModal] = useState(false)
+  const [editServId, setEditServId] = useState<string | null>(null)
   const [servForm, setServForm] = useState({
     nome: '', preco: '', duracao_minutos: '30', descricao: '', categoria: '', comissao_percentual: '',
     profissional_ids: [] as string[],
@@ -66,7 +68,7 @@ export default function Produtos() {
       setError('Nome e preço de venda são obrigatórios.'); return
     }
     setSaving(true); setError('')
-    const { data, error: err } = await supabase.from('produtos').insert({
+    const payload = {
       nome: prodForm.nome, categoria: prodForm.categoria,
       sku: prodForm.sku || null,
       unidade: prodForm.unidade || 'un',
@@ -76,12 +78,47 @@ export default function Produtos() {
       estoque_minimo: Number(prodForm.estoque_minimo) || 5,
       estoque_maximo: prodForm.estoque_maximo ? Number(prodForm.estoque_maximo) : null,
       comissao_percentual: prodForm.comissao_percentual ? Number(prodForm.comissao_percentual) : null,
-      ativo: true,
-    }).select('*').single()
-    if (err) { setError(err.message); setSaving(false); return }
-    if (data) setProdutos(prev => [...prev, data as Produto])
+    }
+    if (editProdId) {
+      const { data, error: err } = await supabase.from('produtos').update(payload).eq('id', editProdId).select('*').single()
+      if (err) { setError(err.message); setSaving(false); return }
+      if (data) setProdutos(prev => prev.map(p => p.id === editProdId ? (data as Produto) : p))
+    } else {
+      const { data, error: err } = await supabase.from('produtos').insert({ ...payload, ativo: true }).select('*').single()
+      if (err) { setError(err.message); setSaving(false); return }
+      if (data) setProdutos(prev => [...prev, data as Produto])
+    }
+    fecharModalProd(); setSaving(false)
+  }
+
+  function abrirNovoProd() {
+    setEditProdId(null)
     setProdForm({ nome: '', categoria: 'bebidas', sku: '', unidade: 'un', preco_custo: '', preco_venda: '', estoque_atual: '', estoque_minimo: '5', estoque_maximo: '', comissao_percentual: '' })
-    setShowProdModal(false); setSaving(false)
+    setError('')
+    setShowProdModal(true)
+  }
+
+  function abrirEdicaoProd(p: Produto) {
+    setEditProdId(p.id)
+    setProdForm({
+      nome: p.nome, categoria: p.categoria, sku: p.sku ?? '', unidade: p.unidade,
+      preco_custo: String(p.preco_custo), preco_venda: String(p.preco_venda),
+      estoque_atual: String(p.estoque_atual), estoque_minimo: String(p.estoque_minimo),
+      estoque_maximo: p.estoque_maximo != null ? String(p.estoque_maximo) : '',
+      comissao_percentual: p.comissao_percentual != null ? String(p.comissao_percentual) : '',
+    })
+    setError('')
+    setShowProdModal(true)
+  }
+
+  function fecharModalProd() {
+    setShowProdModal(false)
+    setEditProdId(null)
+  }
+
+  async function toggleAtivoProd(id: string, ativo: boolean) {
+    setProdutos(prev => prev.map(p => p.id === id ? { ...p, ativo: !ativo } : p))
+    await supabase.from('produtos').update({ ativo: !ativo }).eq('id', id)
   }
 
   async function handleSaveServ() {
@@ -89,30 +126,73 @@ export default function Produtos() {
       setError('Nome e preço são obrigatórios.'); return
     }
     setSaving(true); setError('')
-    const { data, error: err } = await supabase.from('servicos').insert({
+    const payload = {
       nome: servForm.nome,
       preco: Number(servForm.preco),
       duracao_minutos: Number(servForm.duracao_minutos) || 30,
       descricao: servForm.descricao || null,
       categoria: servForm.categoria || null,
       comissao_percentual: servForm.comissao_percentual ? Number(servForm.comissao_percentual) : null,
-      ativo: true,
-    }).select('*').single()
-    if (err) { setError(err.message); setSaving(false); return }
-    if (data && servForm.profissional_ids.length > 0) {
+    }
+    let servicoId: string | null = editServId
+    if (editServId) {
+      const { data, error: err } = await supabase.from('servicos').update(payload).eq('id', editServId).select('*').single()
+      if (err) { setError(err.message); setSaving(false); return }
+      if (data) {
+        await supabase.from('profissional_servicos').delete().eq('servico_id', editServId)
+        const novoServ: Servico = {
+          ...(data as Servico),
+          profissionais: profissionais.filter(p => servForm.profissional_ids.includes(p.id)),
+        }
+        setServicos(prev => prev.map(s => s.id === editServId ? novoServ : s))
+      }
+    } else {
+      const { data, error: err } = await supabase.from('servicos').insert({ ...payload, ativo: true }).select('*').single()
+      if (err) { setError(err.message); setSaving(false); return }
+      if (data) {
+        servicoId = (data as Servico).id
+        const novoServ: Servico = {
+          ...(data as Servico),
+          profissionais: profissionais.filter(p => servForm.profissional_ids.includes(p.id)),
+        }
+        setServicos(prev => [...prev, novoServ])
+      }
+    }
+    if (servicoId && servForm.profissional_ids.length > 0) {
       await supabase.from('profissional_servicos').insert(
-        servForm.profissional_ids.map(pid => ({ profissional_id: pid, servico_id: (data as Servico).id }))
+        servForm.profissional_ids.map(pid => ({ profissional_id: pid, servico_id: servicoId }))
       )
     }
-    if (data) {
-      const novoServ: Servico = {
-        ...(data as Servico),
-        profissionais: profissionais.filter(p => servForm.profissional_ids.includes(p.id)),
-      }
-      setServicos(prev => [...prev, novoServ])
-    }
+    fecharModalServ(); setSaving(false)
+  }
+
+  function abrirNovoServ() {
+    setEditServId(null)
     setServForm({ nome: '', preco: '', duracao_minutos: '30', descricao: '', categoria: '', comissao_percentual: '', profissional_ids: [] })
-    setShowServModal(false); setSaving(false)
+    setError('')
+    setShowServModal(true)
+  }
+
+  function abrirEdicaoServ(s: Servico) {
+    setEditServId(s.id)
+    setServForm({
+      nome: s.nome, preco: String(s.preco), duracao_minutos: String(s.duracao_minutos),
+      descricao: s.descricao ?? '', categoria: s.categoria ?? '',
+      comissao_percentual: s.comissao_percentual != null ? String(s.comissao_percentual) : '',
+      profissional_ids: (s.profissionais ?? []).map(p => p.id),
+    })
+    setError('')
+    setShowServModal(true)
+  }
+
+  function fecharModalServ() {
+    setShowServModal(false)
+    setEditServId(null)
+  }
+
+  async function toggleAtivoServ(id: string, ativo: boolean) {
+    setServicos(prev => prev.map(s => s.id === id ? { ...s, ativo: !ativo } : s))
+    await supabase.from('servicos').update({ ativo: !ativo }).eq('id', id)
   }
 
   function toggleProfissional(id: string) {
@@ -135,11 +215,11 @@ export default function Produtos() {
           </p>
         </div>
         {secao === 'produtos' ? (
-          <button className="btn btn-primary" onClick={() => { setError(''); setShowProdModal(true) }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button className="btn btn-primary" onClick={abrirNovoProd} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Plus size={14} strokeWidth={2.5} /> Novo Produto
           </button>
         ) : (
-          <button className="btn btn-primary" onClick={() => { setError(''); setShowServModal(true) }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button className="btn btn-primary" onClick={abrirNovoServ} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Plus size={14} strokeWidth={2.5} /> Novo Serviço
           </button>
         )}
@@ -205,7 +285,7 @@ export default function Produtos() {
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 100px 120px 120px 90px 90px 46px',
+                gridTemplateColumns: '1fr 100px 120px 120px 90px 90px 80px 76px',
                 padding: '10px 24px',
                 borderBottom: '1px solid #222',
                 fontSize: '10px', fontWeight: 600, color: '#444',
@@ -213,7 +293,7 @@ export default function Produtos() {
                 background: 'rgba(0,0,0,0.2)',
               }}>
                 <span>Produto</span><span>Categoria</span><span>Custo</span>
-                <span>Venda</span><span>Estoque</span><span>Mínimo</span><span></span>
+                <span>Venda</span><span>Estoque</span><span>Mínimo</span><span>Status</span><span></span>
               </div>
 
               {produtos.length === 0 ? (
@@ -229,7 +309,7 @@ export default function Produtos() {
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: '1fr 100px 120px 120px 90px 90px 46px',
+                      gridTemplateColumns: '1fr 100px 120px 120px 90px 90px 80px 76px',
                       padding: '14px 24px',
                       borderBottom: i < produtos.length - 1 ? '1px solid #1F1F1F' : 'none',
                       alignItems: 'center',
@@ -253,9 +333,26 @@ export default function Produtos() {
                       {baixo && <AlertTriangle size={12} style={{ marginLeft: '4px', color: '#777', verticalAlign: 'middle' }} />}
                     </span>
                     <span style={{ fontSize: '13px', color: '#444' }}>{p.estoque_minimo}</span>
-                    <button className="btn btn-icon" title="Gerar/imprimir etiqueta" onClick={() => setProdutoEtiqueta(p)}>
-                      <Tag size={12} />
+                    <button
+                      onClick={() => toggleAtivoProd(p.id, p.ativo)}
+                      style={{
+                        fontSize: '10px', padding: '3px 9px', borderRadius: '99px',
+                        border: p.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
+                        background: 'transparent',
+                        color: p.ativo ? '#A3A3A3' : '#444',
+                        cursor: 'pointer', width: 'fit-content',
+                      }}
+                    >
+                      {p.ativo ? 'Ativo' : 'Inativo'}
                     </button>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicaoProd(p)}>
+                        <Pencil size={12} />
+                      </button>
+                      <button className="btn btn-icon" title="Gerar/imprimir etiqueta" onClick={() => setProdutoEtiqueta(p)}>
+                        <Tag size={12} />
+                      </button>
+                    </div>
                   </motion.div>
                 )
               })}
@@ -266,14 +363,14 @@ export default function Produtos() {
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 100px 120px 90px 1fr',
+                gridTemplateColumns: '1fr 100px 120px 90px 1fr 80px 76px',
                 padding: '10px 24px',
                 borderBottom: '1px solid #222',
                 fontSize: '10px', fontWeight: 600, color: '#444',
                 textTransform: 'uppercase', letterSpacing: '0.1em',
                 background: 'rgba(0,0,0,0.2)',
               }}>
-                <span>Serviço</span><span>Preço</span><span>Duração</span><span>Comissão</span><span>Profissionais</span>
+                <span>Serviço</span><span>Preço</span><span>Duração</span><span>Comissão</span><span>Profissionais</span><span>Status</span><span></span>
               </div>
 
               {loading ? (
@@ -290,7 +387,7 @@ export default function Produtos() {
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '1fr 100px 120px 90px 1fr',
+                    gridTemplateColumns: '1fr 100px 120px 90px 1fr 80px 76px',
                     padding: '14px 24px',
                     borderBottom: i < servicos.length - 1 ? '1px solid #1F1F1F' : 'none',
                     alignItems: 'center',
@@ -321,6 +418,21 @@ export default function Produtos() {
                       : <span style={{ fontSize: '12px', color: '#333' }}>—</span>
                     }
                   </div>
+                  <button
+                    onClick={() => toggleAtivoServ(s.id, s.ativo)}
+                    style={{
+                      fontSize: '10px', padding: '3px 9px', borderRadius: '99px',
+                      border: s.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
+                      background: 'transparent',
+                      color: s.ativo ? '#A3A3A3' : '#444',
+                      cursor: 'pointer', width: 'fit-content',
+                    }}
+                  >
+                    {s.ativo ? 'Ativo' : 'Inativo'}
+                  </button>
+                  <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicaoServ(s)}>
+                    <Pencil size={12} />
+                  </button>
                 </motion.div>
               ))}
             </div>
@@ -334,7 +446,7 @@ export default function Produtos() {
           <motion.div
             style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={e => e.target === e.currentTarget && setShowProdModal(false)}
+            onClick={e => e.target === e.currentTarget && fecharModalProd()}
           >
             <motion.div
               className="card"
@@ -342,8 +454,8 @@ export default function Produtos() {
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>Novo Produto</h2>
-                <button className="btn btn-icon" onClick={() => setShowProdModal(false)}><X size={14} /></button>
+                <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>{editProdId ? 'Editar Produto' : 'Novo Produto'}</h2>
+                <button className="btn btn-icon" onClick={fecharModalProd}><X size={14} /></button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div className="field">
@@ -401,9 +513,9 @@ export default function Produtos() {
                 </div>
                 {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowProdModal(false)}>Cancelar</button>
+                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={fecharModalProd}>Cancelar</button>
                   <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSaveProd} disabled={saving}>
-                    {saving ? 'Salvando...' : 'Cadastrar'}
+                    {saving ? 'Salvando...' : editProdId ? 'Salvar' : 'Cadastrar'}
                   </button>
                 </div>
               </div>
@@ -418,7 +530,7 @@ export default function Produtos() {
           <motion.div
             style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={e => e.target === e.currentTarget && setShowServModal(false)}
+            onClick={e => e.target === e.currentTarget && fecharModalServ()}
           >
             <motion.div
               className="card"
@@ -426,8 +538,8 @@ export default function Produtos() {
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>Novo Serviço</h2>
-                <button className="btn btn-icon" onClick={() => setShowServModal(false)}><X size={14} /></button>
+                <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>{editServId ? 'Editar Serviço' : 'Novo Serviço'}</h2>
+                <button className="btn btn-icon" onClick={fecharModalServ}><X size={14} /></button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div className="field">
@@ -502,9 +614,9 @@ export default function Produtos() {
                 )}
                 {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowServModal(false)}>Cancelar</button>
+                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={fecharModalServ}>Cancelar</button>
                   <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSaveServ} disabled={saving}>
-                    {saving ? 'Salvando...' : 'Cadastrar'}
+                    {saving ? 'Salvando...' : editServId ? 'Salvar' : 'Cadastrar'}
                   </button>
                 </div>
               </div>
