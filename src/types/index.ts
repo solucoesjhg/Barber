@@ -147,6 +147,7 @@ export type PapelUsuario = 'super_admin' | 'administrador' | 'gerente' | 'atende
 export interface Empresa {
   id: string
   nome: string
+  codigo?: string
   cnpj?: string
   telefone?: string
   email?: string

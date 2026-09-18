@@ -18,7 +18,7 @@ const PAPEL_LABEL: Record<PapelUsuario, string> = {
 
 const NAV_SUPER_ADMIN = [
   { to: '/empresas',     icon: Building2,       label: 'Empresas'      },
-  { to: '/usuarios',     icon: UserCog,         label: 'Usuários'      },
+  { to: '/usuarios',     icon: UserCog,         label: 'Pendências'    },
 ]
 
 type NavItemDef = { to: string; icon: typeof LayoutDashboard; label: string }

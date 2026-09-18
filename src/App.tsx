@@ -4,6 +4,7 @@ import AppLayout from './components/layout/AppLayout'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Empresas from './pages/Empresas'
+import EmpresaDetalhe from './pages/EmpresaDetalhe'
 import Dashboard from './pages/Dashboard'
 import Agenda from './pages/Agenda'
 import PDV from './pages/PDV'
@@ -52,6 +53,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
           <Route path="/empresas"      element={<Empresas />} />
+          <Route path="/empresas/:id"  element={<EmpresaDetalhe />} />
           <Route path="/dashboard"     element={<Dashboard />} />
           <Route path="/agenda"        element={<Agenda />} />
           <Route path="/pdv"           element={<PDV />} />

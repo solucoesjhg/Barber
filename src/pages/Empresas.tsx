@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, X, Building2 } from 'lucide-react'
+import { Plus, X, Building2, Copy, Check, ChevronRight } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatDate } from '../lib/utils'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
@@ -9,12 +10,21 @@ import type { Empresa } from '../types'
 const FORM_INICIAL = { nome: '', cnpj: '', telefone: '', email: '' }
 
 export default function Empresas() {
+  const navigate = useNavigate()
   const [empresas, setEmpresas] = useState<Empresa[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState(FORM_INICIAL)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [codigoCopiado, setCodigoCopiado] = useState<string | null>(null)
+
+  function copiarCodigo(codigo: string) {
+    navigator.clipboard?.writeText(codigo).then(() => {
+      setCodigoCopiado(codigo)
+      setTimeout(() => setCodigoCopiado(null), 1500)
+    })
+  }
 
   function carregar() {
     setLoading(true)
@@ -60,12 +70,12 @@ export default function Empresas() {
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 160px 200px 90px',
+          display: 'grid', gridTemplateColumns: '1fr 130px 160px 90px 20px',
           padding: '10px 24px', borderBottom: '1px solid #222',
           fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
           background: 'rgba(0,0,0,0.2)',
         }}>
-          <span>Loja</span><span>Telefone</span><span>E-mail</span><span>Status</span>
+          <span>Loja</span><span>Código</span><span>E-mail</span><span>Status</span><span></span>
         </div>
 
         {loading ? (
@@ -76,11 +86,14 @@ export default function Empresas() {
           <motion.div
             key={e.id}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
+            onClick={() => navigate(`/empresas/${e.id}`)}
             style={{
-              display: 'grid', gridTemplateColumns: '1fr 160px 200px 90px',
+              display: 'grid', gridTemplateColumns: '1fr 130px 160px 90px 20px',
               padding: '14px 24px', alignItems: 'center',
               borderBottom: i < empresas.length - 1 ? '1px solid #1F1F1F' : 'none',
+              cursor: 'pointer',
             }}
+            whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{
@@ -95,18 +108,31 @@ export default function Empresas() {
                 <p style={{ fontSize: '11px', color: '#555' }}>Desde {formatDate(e.created_at)}</p>
               </div>
             </div>
-            <span style={{ fontSize: '13px', color: '#A3A3A3' }}>{e.telefone ?? '—'}</span>
+            <button
+              onClick={ev => { ev.stopPropagation(); e.codigo && copiarCodigo(e.codigo) }}
+              title="Copiar código"
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px', width: 'fit-content',
+                fontSize: '11px', fontFamily: 'monospace', color: '#A3A3A3',
+                background: 'rgba(255,255,255,0.04)', border: '1px solid #2A2A2A', borderRadius: '6px',
+                padding: '4px 8px', cursor: 'pointer',
+              }}
+            >
+              {codigoCopiado === e.codigo ? <Check size={11} /> : <Copy size={11} />}
+              {e.codigo ?? '—'}
+            </button>
             <span style={{ fontSize: '13px', color: '#555' }}>{e.email ?? '—'}</span>
             <button
-              onClick={() => toggleAtivo(e.id, e.ativo)}
+              onClick={ev => { ev.stopPropagation(); toggleAtivo(e.id, e.ativo) }}
               style={{
-                fontSize: '10px', padding: '3px 9px', borderRadius: '99px',
+                fontSize: '10px', padding: '3px 9px', borderRadius: '99px', width: 'fit-content',
                 border: e.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
                 background: 'transparent', color: e.ativo ? '#A3A3A3' : '#444', cursor: 'pointer',
               }}
             >
               {e.ativo ? 'Ativa' : 'Inativa'}
             </button>
+            <ChevronRight size={14} style={{ color: '#333' }} />
           </motion.div>
         ))}
       </div>
@@ -144,7 +170,7 @@ export default function Empresas() {
                 </div>
                 {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
                 <p style={{ fontSize: '11px', color: '#444' }}>
-                  Depois de criar, vá em Usuários pra vincular o primeiro login administrador dessa loja.
+                  Depois de criar, abra a loja pra vincular o primeiro login administrador dela.
                 </p>
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
                   <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancelar (Esc)</button>

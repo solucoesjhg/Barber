@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { ExternalLink } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { usePerfil } from '../hooks/usePerfil'
 import { formatDate } from '../lib/utils'
@@ -54,18 +56,80 @@ export default function Usuarios() {
     carregar()
   }
 
-  const colunas = souSuperAdmin
-    ? '1fr 140px 200px 100px'
-    : '1fr 140px 180px 80px 100px'
+  if (souSuperAdmin) {
+    const pendentes = usuarios.filter(u => !u.empresa_id && u.papel !== 'super_admin')
+
+    return (
+      <div className="page">
+        <div style={{ marginBottom: '24px' }}>
+          <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Pendências</h1>
+          <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
+            Logins ainda sem loja — vincule aqui ou abra a loja certa em Empresas pra fazer isso lá.
+          </p>
+        </div>
+
+        {error && <p style={{ fontSize: '12px', color: '#666', marginBottom: '16px' }}>{error}</p>}
+
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1fr 140px 220px',
+            padding: '10px 24px', borderBottom: '1px solid #222',
+            fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
+            background: 'rgba(0,0,0,0.2)',
+          }}>
+            <span>E-mail</span><span>Desde</span><span>Vincular a</span>
+          </div>
+
+          {loading ? (
+            <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Carregando...</div>
+          ) : pendentes.length === 0 ? (
+            <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+              Nenhum cadastro esperando vínculo com loja.
+            </div>
+          ) : pendentes.map((u, i) => (
+            <motion.div
+              key={u.usuario_id}
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
+              style={{
+                display: 'grid', gridTemplateColumns: '1fr 140px 220px',
+                padding: '12px 24px', alignItems: 'center',
+                borderBottom: i < pendentes.length - 1 ? '1px solid #1A1A1A' : 'none',
+                opacity: savingId === u.usuario_id ? 0.6 : 1,
+              }}
+            >
+              <span style={{ fontSize: '13px', color: '#FFFFFF' }}>{u.email}</span>
+              <span style={{ fontSize: '12px', color: '#444' }}>{formatDate(u.criado_em)}</span>
+              <select
+                className="input"
+                style={{ fontSize: '12px', padding: '6px 8px' }}
+                value=""
+                onChange={e => e.target.value && salvar(u, 'empresa_id', e.target.value)}
+              >
+                <option value="">Selecionar loja...</option>
+                {empresas.map(emp => <option key={emp.id} value={emp.id}>{emp.nome} ({emp.codigo})</option>)}
+              </select>
+            </motion.div>
+          ))}
+        </div>
+
+        <p style={{ fontSize: '12px', color: '#444', marginTop: '20px' }}>
+          Pra ver ou desvincular quem já está numa loja, abra a loja em{' '}
+          <Link to="/empresas" style={{ color: '#A3A3A3', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            Empresas <ExternalLink size={11} />
+          </Link>.
+        </p>
+      </div>
+    )
+  }
+
+  const colunas = '1fr 140px 180px 80px 100px'
 
   return (
     <div className="page">
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Usuários</h1>
         <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
-          {souSuperAdmin
-            ? 'Vincule cada login a uma loja — papel, profissional e ativo/inativo ficam por conta da gerência de cada loja'
-            : 'Papéis, profissional vinculado e ativo/inativo da sua equipe'}
+          Papéis, profissional vinculado e ativo/inativo da sua equipe
         </p>
       </div>
 
@@ -80,8 +144,8 @@ export default function Usuarios() {
         }}>
           <span>E-mail</span>
           <span>Papel</span>
-          {souSuperAdmin ? <span>Loja</span> : <span>Vinculado a</span>}
-          {!souSuperAdmin && <span>Ativo</span>}
+          <span>Vinculado a</span>
+          <span>Ativo</span>
           <span>Desde</span>
         </div>
 
@@ -102,54 +166,31 @@ export default function Usuarios() {
               opacity: savingId === u.usuario_id ? 0.6 : 1,
             }}
           >
-            <div>
-              <span style={{ fontSize: '13px', color: '#FFFFFF' }}>{u.email}</span>
-              {souSuperAdmin && !u.empresa_id && u.papel !== 'super_admin' && (
-                <p style={{ fontSize: '10px', color: '#A3A3A3' }}>aguardando vínculo com uma loja</p>
-              )}
-            </div>
+            <span style={{ fontSize: '13px', color: '#FFFFFF' }}>{u.email}</span>
 
-            {souSuperAdmin ? (
-              <span style={{ fontSize: '12px', color: '#A3A3A3' }}>{PAPEL_LABEL[u.papel]}</span>
-            ) : (
-              <select
-                className="input"
-                style={{ fontSize: '12px', padding: '6px 8px' }}
-                value={u.papel}
-                onChange={e => salvar(u, 'papel', e.target.value)}
-                disabled={u.papel === 'super_admin'}
-              >
-                {Object.entries(PAPEL_LABEL)
-                  .filter(([k]) => k !== 'super_admin')
-                  .map(([k, label]) => <option key={k} value={k}>{label}</option>)}
-              </select>
-            )}
+            <select
+              className="input"
+              style={{ fontSize: '12px', padding: '6px 8px' }}
+              value={u.papel}
+              onChange={e => salvar(u, 'papel', e.target.value)}
+              disabled={u.papel === 'super_admin'}
+            >
+              {Object.entries(PAPEL_LABEL)
+                .filter(([k]) => k !== 'super_admin')
+                .map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+            </select>
 
-            {souSuperAdmin ? (
-              <select
-                className="input"
-                style={{ fontSize: '12px', padding: '6px 8px' }}
-                value={u.empresa_id ?? ''}
-                onChange={e => salvar(u, 'empresa_id', e.target.value)}
-              >
-                <option value="">Sem loja</option>
-                {empresas.map(emp => <option key={emp.id} value={emp.id}>{emp.nome}</option>)}
-              </select>
-            ) : (
-              <select
-                className="input"
-                style={{ fontSize: '12px', padding: '6px 8px' }}
-                value={u.profissional_id ?? ''}
-                onChange={e => salvar(u, 'profissional_id', e.target.value)}
-              >
-                <option value="">Nenhum profissional</option>
-                {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-              </select>
-            )}
+            <select
+              className="input"
+              style={{ fontSize: '12px', padding: '6px 8px' }}
+              value={u.profissional_id ?? ''}
+              onChange={e => salvar(u, 'profissional_id', e.target.value)}
+            >
+              <option value="">Nenhum profissional</option>
+              {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+            </select>
 
-            {!souSuperAdmin && (
-              <input type="checkbox" checked={u.ativo} onChange={e => salvar(u, 'ativo', e.target.checked)} />
-            )}
+            <input type="checkbox" checked={u.ativo} onChange={e => salvar(u, 'ativo', e.target.checked)} />
             <span style={{ fontSize: '12px', color: '#444' }}>{formatDate(u.criado_em)}</span>
           </motion.div>
         ))}
