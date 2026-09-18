@@ -324,7 +324,7 @@ export default function Produtos() {
   return (
     <div className="page">
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
+      <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
         <div>
           <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Produtos & Serviços</h1>
           <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
@@ -446,7 +446,7 @@ export default function Produtos() {
             )}
 
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <div style={{
+              <div className="list-header" style={{
                 display: 'grid',
                 gridTemplateColumns: '28px 1fr 100px 120px 120px 90px 90px 80px 76px',
                 padding: '10px 24px',
@@ -471,6 +471,7 @@ export default function Produtos() {
                 return (
                   <motion.div
                     key={p.id}
+                    className="list-row"
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
                     style={{
                       display: 'grid',
@@ -527,7 +528,7 @@ export default function Produtos() {
         ) : (
           <motion.div key="servicos" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <div style={{
+              <div className="list-header" style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 100px 120px 90px 1fr 80px 76px',
                 padding: '10px 24px',
@@ -550,6 +551,7 @@ export default function Produtos() {
               ) : servicos.map((s, i) => (
                 <motion.div
                   key={s.id}
+                  className="list-row"
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
                   style={{
                     display: 'grid',

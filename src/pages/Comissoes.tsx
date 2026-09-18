@@ -67,7 +67,7 @@ export default function Comissoes() {
         <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>Geradas automaticamente pelas vendas do PDV</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px' }}>
+      <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px' }}>
         {[
           { label: 'Total gerado',   value: totalGerado },
           { label: 'Pendente',      value: totalPendente },
@@ -105,7 +105,7 @@ export default function Comissoes() {
       </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{
+        <div className="list-header" style={{
           display: 'grid', gridTemplateColumns: '1fr 100px 90px 90px 100px 140px',
           padding: '10px 24px', borderBottom: '1px solid #222',
           fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
@@ -121,6 +121,7 @@ export default function Comissoes() {
         ) : filtradas.map((c, i) => (
           <motion.div
             key={c.id}
+            className="list-row"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
             style={{
               display: 'grid', gridTemplateColumns: '1fr 100px 90px 90px 100px 140px',

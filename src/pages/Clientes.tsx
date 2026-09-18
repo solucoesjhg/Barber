@@ -92,7 +92,7 @@ export default function Clientes() {
   return (
     <div className="page">
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
+      <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
         <div>
           <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Clientes</h1>
           <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
@@ -133,7 +133,7 @@ export default function Clientes() {
 
       {/* Table */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{
+        <div className="list-header" style={{
           display: 'grid',
           gridTemplateColumns: '1fr 160px 180px 110px 90px 40px',
           padding: '10px 24px',
@@ -161,6 +161,7 @@ export default function Clientes() {
         ) : filtered.map((c, i) => (
           <motion.div
             key={c.id}
+            className="list-row"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: i * 0.03 }}

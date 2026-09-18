@@ -104,7 +104,7 @@ export default function ContasPagar() {
 
   return (
     <div className="page">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+      <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
         <div>
           <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Contas a Pagar</h1>
           <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
@@ -135,7 +135,7 @@ export default function ContasPagar() {
       </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{
+        <div className="list-header" style={{
           display: 'grid', gridTemplateColumns: '1fr 160px 110px 110px 100px 110px',
           padding: '10px 24px', borderBottom: '1px solid #222',
           fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
@@ -154,6 +154,7 @@ export default function ContasPagar() {
           return (
             <motion.div
               key={c.id}
+              className="list-row"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
               style={{
                 display: 'grid', gridTemplateColumns: '1fr 160px 110px 110px 100px 110px',

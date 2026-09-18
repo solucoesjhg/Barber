@@ -121,7 +121,7 @@ export default function EmpresaDetalhe() {
         <span style={{ fontSize: '11px', color: '#555' }}>({vinculados.length})</span>
       </div>
       <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: '28px' }}>
-        <div style={{
+        <div className="list-header" style={{
           display: 'grid', gridTemplateColumns: '1fr 140px 100px 100px 90px',
           padding: '10px 24px', borderBottom: '1px solid #222',
           fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
@@ -134,6 +134,7 @@ export default function EmpresaDetalhe() {
         ) : vinculados.map((u, i) => (
           <motion.div
             key={u.usuario_id}
+            className="list-row"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
             style={{
               display: 'grid', gridTemplateColumns: '1fr 140px 100px 100px 90px',
@@ -165,7 +166,7 @@ export default function EmpresaDetalhe() {
         <span style={{ fontSize: '11px', color: '#555' }}>({pendentes.length})</span>
       </div>
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{
+        <div className="list-header" style={{
           display: 'grid', gridTemplateColumns: '1fr 140px 100px',
           padding: '10px 24px', borderBottom: '1px solid #222',
           fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
@@ -178,6 +179,7 @@ export default function EmpresaDetalhe() {
         ) : pendentes.map((u, i) => (
           <motion.div
             key={u.usuario_id}
+            className="list-row"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
             style={{
               display: 'grid', gridTemplateColumns: '1fr 140px 100px',

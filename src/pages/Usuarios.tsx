@@ -80,7 +80,7 @@ export default function Usuarios() {
         {error && <p style={{ fontSize: '12px', color: '#666', marginBottom: '16px' }}>{error}</p>}
 
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{
+          <div className="list-header" style={{
             display: 'grid', gridTemplateColumns: '1fr 130px 200px 40px',
             padding: '10px 24px', borderBottom: '1px solid #222',
             fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
@@ -98,6 +98,7 @@ export default function Usuarios() {
           ) : pendentes.map((u, i) => (
             <motion.div
               key={u.usuario_id}
+              className="list-row"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
               style={{
                 display: 'grid', gridTemplateColumns: '1fr 130px 200px 40px',
@@ -135,6 +136,7 @@ export default function Usuarios() {
               {rejeitados.map((u, i) => (
                 <motion.div
                   key={u.usuario_id}
+                  className="list-row"
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
                   style={{
                     display: 'grid', gridTemplateColumns: '1fr 130px 40px',
@@ -182,7 +184,7 @@ export default function Usuarios() {
       {error && <p style={{ fontSize: '12px', color: '#666', marginBottom: '16px' }}>{error}</p>}
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{
+        <div className="list-header" style={{
           display: 'grid', gridTemplateColumns: colunas,
           padding: '10px 24px', borderBottom: '1px solid #222',
           fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
@@ -204,6 +206,7 @@ export default function Usuarios() {
         ) : usuarios.map((u, i) => (
           <motion.div
             key={u.usuario_id}
+            className="list-row"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
             style={{
               display: 'grid', gridTemplateColumns: colunas,

@@ -37,7 +37,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 function Tabela({ colunas, linhas, vazio }: { colunas: string[]; linhas: (string | number)[][]; vazio: string }) {
   return (
     <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-      <div style={{
+      <div className="list-header" style={{
         display: 'grid', gridTemplateColumns: `1fr repeat(${colunas.length - 1}, 120px)`,
         padding: '10px 24px', borderBottom: '1px solid #222',
         fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
@@ -48,13 +48,17 @@ function Tabela({ colunas, linhas, vazio }: { colunas: string[]; linhas: (string
       {linhas.length === 0 ? (
         <div style={{ padding: '40px', textAlign: 'center', color: '#444', fontSize: '13px' }}>{vazio}</div>
       ) : linhas.map((l, i) => (
-        <div key={i} style={{
+        <div key={i} className="list-row" style={{
           display: 'grid', gridTemplateColumns: `1fr repeat(${colunas.length - 1}, 120px)`,
           padding: '11px 24px', alignItems: 'center',
           borderBottom: i < linhas.length - 1 ? '1px solid #1A1A1A' : 'none',
           fontSize: '13px', color: '#A3A3A3',
         }}>
-          {l.map((v, j) => <span key={j} style={{ color: j === 0 ? '#FFFFFF' : '#A3A3A3', fontWeight: j === 0 ? 500 : 400 }}>{v}</span>)}
+          {l.map((v, j) => (
+            <span key={j} style={{ color: j === 0 ? '#FFFFFF' : '#A3A3A3', fontWeight: j === 0 ? 500 : 400 }}>
+              {j > 0 && <b className="mobile-only-label">{colunas[j]}: </b>}{v}
+            </span>
+          ))}
         </div>
       ))}
     </div>
@@ -240,7 +244,7 @@ export default function Relatorios() {
 
   return (
     <div className="page">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+      <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
         <div>
           <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Relatórios</h1>
           <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>{inicio} até {fim}</p>
@@ -369,7 +373,7 @@ export default function Relatorios() {
 
             {aba === 'vendas' && (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px' }}>
+                <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px' }}>
                   <Stat label="Total vendido" value={formatCurrency(totalVendido)} />
                   <Stat label="Nº de vendas" value={String(numVendas)} />
                   <Stat label="Ticket médio" value={formatCurrency(ticketMedio)} />
@@ -389,7 +393,7 @@ export default function Relatorios() {
 
             {aba === 'caixa' && (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px' }}>
+                <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px' }}>
                   <Stat label="Sessões no período" value={String(sessoesCaixa.length)} />
                   <Stat label="Movimentado (entradas líquidas)" value={formatCurrency(totalEntradasCaixa)} />
                   <Stat label="Soma das diferenças" value={formatCurrency(totalDiferencas)} />
@@ -417,7 +421,7 @@ export default function Relatorios() {
 
             {aba === 'comissoes' && (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px' }}>
+                <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px' }}>
                   <Stat label="Total gerado" value={formatCurrency(Object.values(comissaoPorProf).reduce((s, c) => s + c.gerado, 0))} />
                   <Stat label="Pago" value={formatCurrency(Object.values(comissaoPorProf).reduce((s, c) => s + c.paga, 0))} />
                   <Stat label="Pendente + Aprovada" value={formatCurrency(Object.values(comissaoPorProf).reduce((s, c) => s + c.pendente + c.aprovada, 0))} />
@@ -432,7 +436,7 @@ export default function Relatorios() {
 
             {aba === 'clientes' && (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '20px' }}>
+                <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '20px' }}>
                   <Stat label="Novos no período" value={String(novosClientes)} />
                   <Stat label="Ativos" value={String(clientesAtivos)} />
                   <Stat label="Inativos" value={String(clientesInativos)} />
@@ -449,7 +453,7 @@ export default function Relatorios() {
 
             {aba === 'produtos' && (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px' }}>
+                <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px' }}>
                   <Stat label="Estoque baixo" value={String(estoqueBaixo.length)} />
                   <Stat label="Sem venda no período" value={String(produtosSemVenda.length)} />
                   <Stat label="Movimentações no período" value={String(movimentacoes.length)} />
@@ -475,7 +479,7 @@ export default function Relatorios() {
 
             {aba === 'agenda' && (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '20px' }}>
+                <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '20px' }}>
                   <Stat label="Agendamentos" value={String(totalAgend)} />
                   <Stat label="Concluídos" value={String(concluidos)} />
                   <Stat label="Cancelados / Faltas" value={String(cancelados + naoCompareceu)} />

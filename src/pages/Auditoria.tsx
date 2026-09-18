@@ -98,7 +98,7 @@ export default function Auditoria() {
       </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{
+        <div className="list-header" style={{
           display: 'grid', gridTemplateColumns: '24px 120px 90px 1fr 180px 160px',
           padding: '10px 24px', borderBottom: '1px solid #222',
           fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
@@ -118,6 +118,7 @@ export default function Auditoria() {
           return (
           <div key={l.id}>
             <motion.div
+              className="list-row"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.01 }}
               onClick={() => setExpandido(expandido === l.id ? null : l.id)}
               style={{

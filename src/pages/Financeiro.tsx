@@ -102,7 +102,7 @@ export default function Financeiro() {
   return (
     <div className="page">
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
+      <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
         <div>
           <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Financeiro</h1>
           <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>Fluxo de caixa e relatórios</p>
@@ -113,7 +113,7 @@ export default function Financeiro() {
       </div>
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '24px' }}>
+      <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '24px' }}>
         {[
           { label: 'Entradas (total)', value: formatCurrency(entradas), icon: TrendingUp, suffix: `Hoje: ${formatCurrency(entradasHoje)}` },
           { label: 'Saídas (total)',   value: formatCurrency(saidas),   icon: TrendingDown, suffix: '' },
@@ -197,7 +197,7 @@ export default function Financeiro() {
         <div style={{ padding: '16px 24px', borderBottom: '1px solid #222' }}>
           <span style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>Lançamentos</span>
         </div>
-        <div style={{
+        <div className="list-header" style={{
           display: 'grid',
           gridTemplateColumns: '1fr 120px 100px 110px',
           padding: '10px 24px',
@@ -214,6 +214,7 @@ export default function Financeiro() {
         {movimentos.slice(0, 20).map((m, i) => (
           <div
             key={m.id}
+            className="list-row"
             style={{
               display: 'grid',
               gridTemplateColumns: '1fr 120px 100px 110px',

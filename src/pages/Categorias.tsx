@@ -108,7 +108,7 @@ export default function Categorias() {
 
   return (
     <div className="page">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+      <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
         <div>
           <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Categorias & Pagamentos</h1>
           <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
@@ -165,7 +165,7 @@ export default function Categorias() {
         ) : (
           <motion.div key="formas" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <div style={{
+              <div className="list-header" style={{
                 display: 'grid', gridTemplateColumns: '1fr 90px 130px',
                 padding: '10px 24px', borderBottom: '1px solid #222',
                 fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
@@ -180,6 +180,7 @@ export default function Categorias() {
               ) : formas.map((f, i) => (
                 <motion.div
                   key={f.id}
+                  className="list-row"
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
                   style={{
                     display: 'grid', gridTemplateColumns: '1fr 90px 130px',
@@ -319,6 +320,7 @@ function ListaCategorias({ itens, onEditar, onToggle, onExcluir, vazio }: {
       ) : linhas.map(({ c, nivel }, i) => (
         <motion.div
           key={c.id}
+          className="list-row"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
           style={{
             display: 'grid', gridTemplateColumns: '1fr 90px 130px',

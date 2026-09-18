@@ -316,11 +316,24 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
   display: none;
 }
 
+.mobile-only-label {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .page { padding: 16px; }
 
-  /* Tabelas/listas com colunas em px fixo viram scroll horizontal em vez de espremer a tela */
-  .card { overflow-x: auto !important; }
+  /* Tabelas/listas com colunas em px fixo: em vez de arrastar pro lado,
+     empilha os campos de cada linha verticalmente (sem perder informação) */
+  .list-header { display: none !important; }
+  .list-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+    padding: 14px 16px !important;
+  }
+  .list-row > * { width: auto !important; }
 
   /* Sidebar vira uma gaveta sobreposta em vez de empurrar o conteúdo */
   .app-sidebar {
@@ -350,5 +363,26 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
 
   .dashboard-rankings-grid {
     grid-template-columns: 1fr !important;
+  }
+
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .mobile-only-label {
+    display: inline;
+    color: #666;
+    font-weight: 600;
+  }
+
+  /* Cabeçalho da página (título + ação) empilha em vez de espremer/sobrepor */
+  .page-header-row {
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+  }
+
+  .page h1 {
+    font-size: 20px !important;
   }
 }

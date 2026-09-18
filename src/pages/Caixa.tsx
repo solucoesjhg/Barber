@@ -112,7 +112,7 @@ export default function Caixa() {
 
   return (
     <div className="page">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
+      <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
         <div>
           <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Caixa</h1>
           <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
@@ -139,7 +139,7 @@ export default function Caixa() {
         </div>
       ) : (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+          <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
             {[
               { label: 'Valor inicial', value: formatCurrency(sessao.valor_inicial) },
               { label: 'Entradas',      value: formatCurrency(entradas) },
