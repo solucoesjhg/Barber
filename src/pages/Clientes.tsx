@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Search, X, Phone, Pencil } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatDate, initials } from '../lib/utils'
+import { useModalKeyboard } from '../hooks/useModalKeyboard'
 import type { Cliente } from '../types'
 
 const FORM_INICIAL = { nome: '', telefone: '', email: '', cpf: '', data_nascimento: '', endereco: '', observacoes: '' }
@@ -85,6 +86,8 @@ export default function Clientes() {
     setClientes(prev => prev.map(c => c.id === id ? { ...c, ativo: !ativo } : c))
     await supabase.from('clientes').update({ ativo: !ativo }).eq('id', id)
   }
+
+  const modalRef = useModalKeyboard(showModal, fecharModal, handleSave)
 
   return (
     <div className="page">
@@ -221,6 +224,7 @@ export default function Clientes() {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
             <motion.div
+              ref={modalRef}
               className="card"
               style={{ width: '100%', maxWidth: '460px', padding: '28px', maxHeight: '85vh', overflowY: 'auto' }}
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
@@ -264,9 +268,9 @@ export default function Clientes() {
                 </div>
                 {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={fecharModal}>Cancelar</button>
+                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={fecharModal}>Cancelar (Esc)</button>
                   <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSave} disabled={saving}>
-                    {saving ? 'Salvando...' : editId ? 'Salvar' : 'Cadastrar'}
+                    {saving ? 'Salvando...' : `${editId ? 'Salvar' : 'Cadastrar'} (F10)`}
                   </button>
                 </div>
               </div>

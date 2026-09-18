@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronRight, Bell, Search } from 'lucide-react'
+import { ChevronRight, Bell, Search, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import Sidebar from './Sidebar'
 import { usePerfil } from '../../hooks/usePerfil'
+
+const SIDEBAR_KEY = 'barberos-sidebar-hidden'
 
 const PAGE_NAMES: Record<string, string> = {
   '/empresas':      'Empresas',
@@ -30,12 +33,23 @@ export default function AppLayout() {
   const location = useLocation()
   const pageName = PAGE_NAMES[location.pathname] ?? ''
   const { papel, empresaId, loading: perfilLoading } = usePerfil()
+  const [sidebarHidden, setSidebarHidden] = useState(() => {
+    try { return localStorage.getItem(SIDEBAR_KEY) === '1' } catch { return false }
+  })
 
   const semLoja = !perfilLoading && papel !== null && papel !== 'super_admin' && !empresaId && location.pathname !== '/empresas'
 
+  function toggleSidebar() {
+    setSidebarHidden(prev => {
+      const next = !prev
+      try { localStorage.setItem(SIDEBAR_KEY, next ? '1' : '0') } catch { /* ignore */ }
+      return next
+    })
+  }
+
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#0D0D0D' }}>
-      <Sidebar />
+      <Sidebar hidden={sidebarHidden} />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
         {/* Header */}
@@ -51,6 +65,18 @@ export default function AppLayout() {
         }}>
           {/* Breadcrumb */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={toggleSidebar}
+              title={sidebarHidden ? 'Mostrar menu' : 'Esconder menu'}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: '28px', height: '28px',
+                background: 'transparent', border: '1px solid #252525', borderRadius: '6px',
+                color: '#666', cursor: 'pointer', marginRight: '4px',
+              }}
+            >
+              {sidebarHidden ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
+            </button>
             <span style={{ fontSize: '12px', color: '#3D3D3D' }}>BarberOS</span>
             {pageName && (
               <>

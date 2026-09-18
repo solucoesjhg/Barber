@@ -4,6 +4,7 @@ import { Lock, Unlock, ArrowUpRight, ArrowDownRight, X, ArrowDownToLine, ArrowUp
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { formatCurrency, formatDate } from '../lib/utils'
+import { useModalKeyboard } from '../hooks/useModalKeyboard'
 import type { SessaoCaixa, MovimentoCaixa } from '../types'
 
 type ModalTipo = null | 'abrir' | 'sangria' | 'suprimento' | 'fechar'
@@ -95,6 +96,15 @@ export default function Caixa() {
     setModal(null)
     carregar()
   }
+
+  function confirmarModal() {
+    if (modal === 'abrir') confirmarAbrirCaixa()
+    else if (modal === 'fechar') confirmarFecharCaixa()
+    else if (modal) confirmarMovimento(modal)
+  }
+
+  const modalRef = useModalKeyboard(!!modal, () => setModal(null), confirmarModal)
+  const resultadoRef = useModalKeyboard(!!resultadoFechamento, () => setResultadoFechamento(null))
 
   if (loading) {
     return <div className="page"><p style={{ color: '#444', fontSize: '13px' }}>Carregando...</p></div>
@@ -194,6 +204,7 @@ export default function Caixa() {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
             <motion.div
+              ref={modalRef}
               className="card"
               style={{ width: '100%', maxWidth: '400px', padding: '28px' }}
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
@@ -228,18 +239,14 @@ export default function Caixa() {
                 )}
                 {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setModal(null)}>Cancelar</button>
+                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setModal(null)}>Cancelar (Esc)</button>
                   <button
                     className="btn btn-primary"
                     style={{ flex: 1 }}
                     disabled={saving}
-                    onClick={() => {
-                      if (modal === 'abrir') confirmarAbrirCaixa()
-                      else if (modal === 'fechar') confirmarFecharCaixa()
-                      else confirmarMovimento(modal)
-                    }}
+                    onClick={confirmarModal}
                   >
-                    {saving ? 'Salvando...' : 'Confirmar'}
+                    {saving ? 'Salvando...' : 'Confirmar (F10)'}
                   </button>
                 </div>
               </div>
@@ -255,7 +262,7 @@ export default function Caixa() {
             style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
-            <motion.div className="card" style={{ width: '100%', maxWidth: '400px', padding: '28px' }} initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }}>
+            <motion.div ref={resultadoRef} className="card" style={{ width: '100%', maxWidth: '400px', padding: '28px' }} initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }}>
               <h2 style={{ fontSize: '18px', color: '#FFFFFF', marginBottom: '20px' }}>Caixa fechado</h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13px', color: '#A3A3A3' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>

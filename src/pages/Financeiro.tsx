@@ -7,6 +7,7 @@ import {
 import { TrendingUp, TrendingDown, DollarSign, Plus, ArrowUpRight, ArrowDownRight } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency, formatDate } from '../lib/utils'
+import { useModalKeyboard } from '../hooks/useModalKeyboard'
 import type { MovimentoCaixa } from '../types'
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
@@ -95,6 +96,8 @@ export default function Financeiro() {
     setForm({ tipo: 'saida', categoria: '', descricao: '', valor: '' })
     setShowModal(false)
   }
+
+  const modalRef = useModalKeyboard(showModal, () => setShowModal(false), handleSave)
 
   return (
     <div className="page">
@@ -242,7 +245,7 @@ export default function Financeiro() {
         <div
           style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
         >
-          <div className="card" style={{ width: '100%', maxWidth: '400px', padding: '28px' }}>
+          <div ref={modalRef} className="card" style={{ width: '100%', maxWidth: '400px', padding: '28px' }}>
             <h2 style={{ fontSize: '18px', color: '#FFFFFF', marginBottom: '20px' }}>Lançar Movimento</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div className="field">
@@ -266,9 +269,9 @@ export default function Financeiro() {
               </div>
               {formError && <p style={{ fontSize: '12px', color: '#666' }}>{formError}</p>}
               <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancelar</button>
+                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancelar (Esc)</button>
                 <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSave} disabled={saving}>
-                  {saving ? 'Salvando...' : 'Confirmar'}
+                  {saving ? 'Salvando...' : 'Confirmar (F10)'}
                 </button>
               </div>
             </div>

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
+import { useModalKeyboard } from '../hooks/useModalKeyboard'
 import type { Agendamento, AgendamentoStatus, Cliente, Profissional, Servico } from '../types'
 
 /* ── Types ──────────────────────────────────────────────── */
@@ -733,6 +734,8 @@ export default function Agenda() {
     ? servicos.filter(s => (profServMap[form.profissional_id] ?? []).includes(s.id))
     : servicos
 
+  const modalRef = useModalKeyboard(showModal, () => setShowModal(false), handleSave)
+
   return (
     <div className="page">
       {/* Header */}
@@ -870,6 +873,7 @@ export default function Agenda() {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
             <motion.div
+              ref={modalRef}
               className="card"
               style={{ width: '100%', maxWidth: '480px', padding: '28px' }}
               initial={{ scale: 0.95, opacity: 0, y: 16 }}
@@ -921,9 +925,9 @@ export default function Agenda() {
                 </div>
                 {error && <p style={{ fontSize: '13px', color: '#888' }}>{error}</p>}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancelar</button>
+                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancelar (Esc)</button>
                   <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSave} disabled={saving}>
-                    {saving ? 'Salvando...' : 'Confirmar'}
+                    {saving ? 'Salvando...' : 'Confirmar (F10)'}
                   </button>
                 </div>
               </div>

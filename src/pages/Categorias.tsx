@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, X, Tags, Wallet, Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { useModalKeyboard } from '../hooks/useModalKeyboard'
 import type { CategoriaFinanceira, CategoriaFinanceiraTipo, FormaPagamentoCadastro } from '../types'
 
 type Secao = 'categorias' | 'formas'
@@ -101,6 +102,9 @@ export default function Categorias() {
 
   const receitas = categorias.filter(c => c.tipo === 'receita')
   const despesas = categorias.filter(c => c.tipo === 'despesa')
+
+  const modalCatRef = useModalKeyboard(showCatModal, () => setShowCatModal(false), salvarCategoria)
+  const modalFormaRef = useModalKeyboard(showFormaModal, () => setShowFormaModal(false), salvarForma)
 
   return (
     <div className="page">
@@ -212,7 +216,7 @@ export default function Categorias() {
             style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
-            <motion.div className="card" style={{ width: '100%', maxWidth: '400px', padding: '28px' }}
+            <motion.div ref={modalCatRef} className="card" style={{ width: '100%', maxWidth: '400px', padding: '28px' }}
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
                 <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>{catEditando ? 'Editar Categoria' : 'Nova Categoria'}</h2>
@@ -244,9 +248,9 @@ export default function Categorias() {
                 </div>
                 {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowCatModal(false)}>Cancelar</button>
+                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowCatModal(false)}>Cancelar (Esc)</button>
                   <button className="btn btn-primary" style={{ flex: 1 }} onClick={salvarCategoria} disabled={saving}>
-                    {saving ? 'Salvando...' : catEditando ? 'Salvar' : 'Cadastrar'}
+                    {saving ? 'Salvando...' : `${catEditando ? 'Salvar' : 'Cadastrar'} (F10)`}
                   </button>
                 </div>
               </div>
@@ -262,7 +266,7 @@ export default function Categorias() {
             style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
-            <motion.div className="card" style={{ width: '100%', maxWidth: '380px', padding: '28px' }}
+            <motion.div ref={modalFormaRef} className="card" style={{ width: '100%', maxWidth: '380px', padding: '28px' }}
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
                 <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>{formaEditando ? 'Editar Forma de Pagamento' : 'Nova Forma de Pagamento'}</h2>
@@ -275,9 +279,9 @@ export default function Categorias() {
                 </div>
                 {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowFormaModal(false)}>Cancelar</button>
+                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowFormaModal(false)}>Cancelar (Esc)</button>
                   <button className="btn btn-primary" style={{ flex: 1 }} onClick={salvarForma} disabled={saving}>
-                    {saving ? 'Salvando...' : formaEditando ? 'Salvar' : 'Cadastrar'}
+                    {saving ? 'Salvando...' : `${formaEditando ? 'Salvar' : 'Cadastrar'} (F10)`}
                   </button>
                 </div>
               </div>

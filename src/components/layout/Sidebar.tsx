@@ -154,7 +154,7 @@ function NavGroup({ label, icon: Icon, items, defaultOpen }: { label: string; ic
   )
 }
 
-export default function Sidebar() {
+export default function Sidebar({ hidden }: { hidden: boolean }) {
   const { user, signOut } = useAuth()
   const { papel } = usePerfil()
   const navigate = useNavigate()
@@ -171,17 +171,17 @@ export default function Sidebar() {
   return (
     <motion.aside
       style={{
-        width: '220px',
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
         background: '#111111',
-        borderRight: '1px solid #1F1F1F',
+        borderRight: hidden ? 'none' : '1px solid #1F1F1F',
         flexShrink: 0,
+        overflow: 'hidden',
       }}
-      initial={{ x: -220, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+      initial={false}
+      animate={{ width: hidden ? 0 : 220, opacity: hidden ? 0 : 1 }}
+      transition={{ duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
       {/* Logo */}
       <div style={{

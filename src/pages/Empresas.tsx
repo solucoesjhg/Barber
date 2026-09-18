@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, X, Building2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatDate } from '../lib/utils'
+import { useModalKeyboard } from '../hooks/useModalKeyboard'
 import type { Empresa } from '../types'
 
 const FORM_INICIAL = { nome: '', cnpj: '', telefone: '', email: '' }
@@ -40,6 +41,8 @@ export default function Empresas() {
     setEmpresas(prev => prev.map(e => e.id === id ? { ...e, ativo: !ativo } : e))
     await supabase.from('empresas').update({ ativo: !ativo }).eq('id', id)
   }
+
+  const modalRef = useModalKeyboard(showModal, () => setShowModal(false), handleSave)
 
   return (
     <div className="page">
@@ -114,7 +117,7 @@ export default function Empresas() {
             style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
-            <motion.div className="card" style={{ width: '100%', maxWidth: '420px', padding: '28px' }}
+            <motion.div ref={modalRef} className="card" style={{ width: '100%', maxWidth: '420px', padding: '28px' }}
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
                 <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>Nova Loja</h2>
@@ -144,9 +147,9 @@ export default function Empresas() {
                   Depois de criar, vá em Usuários pra vincular o primeiro login administrador dessa loja.
                 </p>
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancelar</button>
+                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancelar (Esc)</button>
                   <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSave} disabled={saving}>
-                    {saving ? 'Salvando...' : 'Cadastrar'}
+                    {saving ? 'Salvando...' : 'Cadastrar (F10)'}
                   </button>
                 </div>
               </div>

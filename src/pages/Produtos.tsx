@@ -4,6 +4,7 @@ import { Plus, X, AlertTriangle, Package, Scissors, Check, Tag, Pencil } from 'l
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
 import EtiquetaModal from '../components/EtiquetaModal'
+import { useModalKeyboard } from '../hooks/useModalKeyboard'
 import type { Produto, ProdutoCategoria, Servico, Profissional } from '../types'
 
 type Secao = 'produtos' | 'servicos'
@@ -220,6 +221,9 @@ export default function Produtos() {
         : [...f.profissional_ids, id],
     }))
   }
+
+  const modalProdRef = useModalKeyboard(showProdModal, fecharModalProd, handleSaveProd)
+  const modalServRef = useModalKeyboard(showServModal, fecharModalServ, handleSaveServ)
 
   return (
     <div className="page">
@@ -475,6 +479,7 @@ export default function Produtos() {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
             <motion.div
+              ref={modalProdRef}
               className="card"
               style={{ width: '100%', maxWidth: '460px', padding: '28px', maxHeight: '85vh', overflowY: 'auto' }}
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
@@ -539,9 +544,9 @@ export default function Produtos() {
                 </div>
                 {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={fecharModalProd}>Cancelar</button>
+                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={fecharModalProd}>Cancelar (Esc)</button>
                   <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSaveProd} disabled={saving}>
-                    {saving ? 'Salvando...' : editProdId ? 'Salvar' : 'Cadastrar'}
+                    {saving ? 'Salvando...' : `${editProdId ? 'Salvar' : 'Cadastrar'} (F10)`}
                   </button>
                 </div>
               </div>
@@ -558,6 +563,7 @@ export default function Produtos() {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
             <motion.div
+              ref={modalServRef}
               className="card"
               style={{ width: '100%', maxWidth: '460px', padding: '28px', maxHeight: '85vh', overflowY: 'auto' }}
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
@@ -639,9 +645,9 @@ export default function Produtos() {
                 )}
                 {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={fecharModalServ}>Cancelar</button>
+                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={fecharModalServ}>Cancelar (Esc)</button>
                   <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSaveServ} disabled={saving}>
-                    {saving ? 'Salvando...' : editServId ? 'Salvar' : 'Cadastrar'}
+                    {saving ? 'Salvando...' : `${editServId ? 'Salvar' : 'Cadastrar'} (F10)`}
                   </button>
                 </div>
               </div>

@@ -4,6 +4,7 @@ import { ShoppingCart, Plus, Minus, Trash2, X, Check, Search, Scissors, Package,
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
 import ScannerCamera from '../components/ScannerCamera'
+import { useModalKeyboard } from '../hooks/useModalKeyboard'
 import type { ItemComanda, PagamentoMetodo, Produto, Profissional, Servico } from '../types'
 
 const PAGAMENTOS: { id: PagamentoMetodo; label: string }[] = [
@@ -140,6 +141,8 @@ export default function PDV() {
     supabase.from('produtos').select('*').eq('ativo', true).order('nome')
       .then(({ data }) => { if (data) setProdutos(data as Produto[]) })
   }
+
+  const modalRef = useModalKeyboard(showPayModal, () => setShowPayModal(false), finalizarVenda)
 
   return (
     <div className="page" style={{ display: 'flex', gap: '24px', height: 'calc(100vh - 64px)', paddingBottom: '0', overflow: 'hidden' }}>
@@ -430,6 +433,7 @@ export default function PDV() {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
             <motion.div
+              ref={modalRef}
               className="card"
               style={{ width: '100%', maxWidth: '400px', padding: '28px' }}
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
@@ -465,7 +469,7 @@ export default function PDV() {
               </div>
               {error && <p style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>{error}</p>}
               <button className="btn btn-primary btn-full" onClick={finalizarVenda} disabled={saving}>
-                {saving ? 'Processando...' : 'Confirmar Pagamento'}
+                {saving ? 'Processando...' : 'Confirmar Pagamento (F10)'}
               </button>
             </motion.div>
           </motion.div>

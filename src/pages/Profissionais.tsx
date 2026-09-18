@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, X, Scissors, Percent, Pencil } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { initials } from '../lib/utils'
+import { useModalKeyboard } from '../hooks/useModalKeyboard'
 import type { Profissional } from '../types'
 
 const FORM_INICIAL = { nome: '', especialidade: '', comissao_percentual: '50', telefone: '', email: '', documento: '', valor_fixo: '' }
@@ -75,6 +76,8 @@ export default function Profissionais() {
     setProfissionais(prev => prev.map(p => p.id === id ? { ...p, ativo: !ativo } : p))
     await supabase.from('profissionais').update({ ativo: !ativo }).eq('id', id)
   }
+
+  const modalRef = useModalKeyboard(showModal, fecharModal, handleSave)
 
   return (
     <div className="page">
@@ -191,6 +194,7 @@ export default function Profissionais() {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
             <motion.div
+              ref={modalRef}
               className="card"
               style={{ width: '100%', maxWidth: '460px', padding: '28px', maxHeight: '85vh', overflowY: 'auto' }}
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
@@ -234,9 +238,9 @@ export default function Profissionais() {
                 </div>
                 {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={fecharModal}>Cancelar</button>
+                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={fecharModal}>Cancelar (Esc)</button>
                   <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSave} disabled={saving}>
-                    {saving ? 'Salvando...' : editId ? 'Salvar' : 'Cadastrar'}
+                    {saving ? 'Salvando...' : `${editId ? 'Salvar' : 'Cadastrar'} (F10)`}
                   </button>
                 </div>
               </div>
