@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, type ChangeEvent } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, X, AlertTriangle, Package, Scissors, Check, Tag, Pencil } from 'lucide-react'
+import { Plus, X, AlertTriangle, Package, Scissors, Check, Tag, Pencil, Download, Upload } from 'lucide-react'
+import * as XLSX from 'xlsx'
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
 import EtiquetaModal from '../components/EtiquetaModal'
@@ -11,6 +12,79 @@ type Secao = 'produtos' | 'servicos'
 
 const CAT_LABEL: Record<ProdutoCategoria, string> = {
   bebidas: 'Bebidas', pomadas: 'Pomadas', petiscos: 'Petiscos', outros: 'Outros',
+}
+
+const CATEGORIAS_VALIDAS: ProdutoCategoria[] = ['bebidas', 'pomadas', 'petiscos', 'outros']
+
+const COLUNAS_IMPORTACAO = [
+  'Nome do Produto', 'Categoria (bebidas/pomadas/petiscos/outros)', 'Unidade (un, kg, ml...)',
+  'Preço de Custo', 'Preço de Venda', 'Estoque Atual', 'Estoque Mínimo', 'Estoque Máximo', 'Comissão (%)', 'SKU / Código',
+] as const
+
+function baixarModeloProdutos() {
+  const exemplo = ['Pomada Modeladora', 'pomadas', 'un', 12, 25, 20, 5, 50, '', '']
+  const ws = XLSX.utils.aoa_to_sheet([COLUNAS_IMPORTACAO as unknown as string[], exemplo])
+  ws['!cols'] = COLUNAS_IMPORTACAO.map(() => ({ wch: 22 }))
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Produtos')
+  XLSX.writeFile(wb, 'modelo-importacao-produtos.xlsx')
+}
+
+interface LinhaImportada {
+  nome: string
+  categoria: ProdutoCategoria
+  unidade: string
+  preco_custo: number
+  preco_venda: number
+  estoque_atual: number
+  estoque_minimo: number
+  estoque_maximo: number | null
+  comissao_percentual: number | null
+  sku: string | null
+  ativo: true
+}
+
+function normalizarCategoria(valor: unknown): ProdutoCategoria {
+  const v = String(valor ?? '').trim().toLowerCase()
+  return (CATEGORIAS_VALIDAS as string[]).includes(v) ? (v as ProdutoCategoria) : 'outros'
+}
+
+function numero(valor: unknown, padrao = 0): number {
+  const n = Number(String(valor ?? '').replace(',', '.'))
+  return Number.isFinite(n) ? n : padrao
+}
+
+async function lerPlanilhaProdutos(arquivo: File): Promise<{ validas: LinhaImportada[]; erros: string[] }> {
+  const buf = await arquivo.arrayBuffer()
+  const wb = XLSX.read(buf, { type: 'array' })
+  const ws = wb.Sheets[wb.SheetNames[0]]
+  const linhas: Record<string, unknown>[] = XLSX.utils.sheet_to_json(ws, { defval: '' })
+
+  const validas: LinhaImportada[] = []
+  const erros: string[] = []
+
+  linhas.forEach((linha, i) => {
+    const nome = String(linha[COLUNAS_IMPORTACAO[0]] ?? '').trim()
+    const precoVenda = numero(linha[COLUNAS_IMPORTACAO[4]], NaN)
+    if (!nome) { erros.push(`Linha ${i + 2}: sem nome do produto, ignorada.`); return }
+    if (!Number.isFinite(precoVenda) || precoVenda <= 0) { erros.push(`Linha ${i + 2} (${nome}): preço de venda inválido, ignorada.`); return }
+
+    validas.push({
+      nome,
+      categoria: normalizarCategoria(linha[COLUNAS_IMPORTACAO[1]]),
+      unidade: String(linha[COLUNAS_IMPORTACAO[2]] ?? '').trim() || 'un',
+      preco_custo: numero(linha[COLUNAS_IMPORTACAO[3]], 0),
+      preco_venda: precoVenda,
+      estoque_atual: numero(linha[COLUNAS_IMPORTACAO[5]], 0),
+      estoque_minimo: numero(linha[COLUNAS_IMPORTACAO[6]], 5),
+      estoque_maximo: linha[COLUNAS_IMPORTACAO[7]] ? numero(linha[COLUNAS_IMPORTACAO[7]], 0) : null,
+      comissao_percentual: linha[COLUNAS_IMPORTACAO[8]] ? numero(linha[COLUNAS_IMPORTACAO[8]], 0) : null,
+      sku: String(linha[COLUNAS_IMPORTACAO[9]] ?? '').trim() || null,
+      ativo: true,
+    })
+  })
+
+  return { validas, erros }
 }
 
 export default function Produtos() {
@@ -41,8 +115,30 @@ export default function Produtos() {
   const [error, setError] = useState('')
   const [produtosEtiqueta, setProdutosEtiqueta] = useState<Produto[] | null>(null)
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
+  const [importando, setImportando] = useState(false)
+  const [resultadoImportacao, setResultadoImportacao] = useState<{ ok: number; erros: string[] } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const alertas = produtos.filter(p => p.estoque_atual <= p.estoque_minimo)
+
+  async function handleImportarArquivo(e: ChangeEvent<HTMLInputElement>) {
+    const arquivo = e.target.files?.[0]
+    e.target.value = ''
+    if (!arquivo) return
+    setImportando(true); setResultadoImportacao(null); setError('')
+    try {
+      const { validas, erros } = await lerPlanilhaProdutos(arquivo)
+      if (validas.length > 0) {
+        const { data, error: err } = await supabase.from('produtos').insert(validas).select('*')
+        if (err) { setError(err.message); setImportando(false); return }
+        if (data) setProdutos(prev => [...prev, ...(data as Produto[])].sort((a, b) => a.nome.localeCompare(b.nome)))
+      }
+      setResultadoImportacao({ ok: validas.length, erros })
+    } catch {
+      setError('Não foi possível ler o arquivo. Confira se é um .xlsx ou .csv válido.')
+    }
+    setImportando(false)
+  }
 
   function toggleSelecionado(id: string) {
     setSelecionados(prev => {
@@ -242,6 +338,13 @@ export default function Produtos() {
                 <Tag size={14} /> Imprimir etiquetas ({selecionados.size})
               </button>
             )}
+            <button className="btn btn-secondary" onClick={baixarModeloProdutos} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Download size={14} /> Baixar modelo
+            </button>
+            <button className="btn btn-secondary" onClick={() => fileInputRef.current?.click()} disabled={importando} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Upload size={14} /> {importando ? 'Importando...' : 'Importar produtos'}
+            </button>
+            <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleImportarArquivo} style={{ display: 'none' }} />
             <button className="btn btn-primary" onClick={abrirNovoProd} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Plus size={14} strokeWidth={2.5} /> Novo Produto
             </button>
@@ -289,6 +392,37 @@ export default function Produtos() {
       <AnimatePresence mode="wait">
         {secao === 'produtos' ? (
           <motion.div key="produtos" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+            {error && <p style={{ fontSize: '12px', color: '#666', marginBottom: '16px' }}>{error}</p>}
+            {resultadoImportacao && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                style={{
+                  display: 'flex', alignItems: 'flex-start', gap: '10px',
+                  padding: '12px 16px',
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid #333',
+                  borderRadius: '8px',
+                  marginBottom: '20px',
+                }}
+              >
+                <Upload size={14} style={{ color: '#A3A3A3', flexShrink: 0, marginTop: '2px' }} />
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: '13px', color: '#A3A3A3' }}>
+                    <strong style={{ color: '#FFFFFF' }}>{resultadoImportacao.ok} produto{resultadoImportacao.ok === 1 ? '' : 's'}</strong> importado{resultadoImportacao.ok === 1 ? '' : 's'} com sucesso.
+                    {resultadoImportacao.erros.length > 0 && ` ${resultadoImportacao.erros.length} linha(s) ignorada(s):`}
+                  </p>
+                  {resultadoImportacao.erros.length > 0 && (
+                    <ul style={{ marginTop: '6px', paddingLeft: '18px' }}>
+                      {resultadoImportacao.erros.map((e, i) => (
+                        <li key={i} style={{ fontSize: '11px', color: '#666' }}>{e}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <button className="btn btn-icon" onClick={() => setResultadoImportacao(null)}><X size={12} /></button>
+              </motion.div>
+            )}
             {alertas.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: -8 }}
