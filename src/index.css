@@ -166,6 +166,32 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
   padding: 24px;
 }
 
+.glow-card {
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.glow-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(220px circle at var(--mx, 50%) var(--my, 0%), rgba(255,255,255,0.10), transparent 65%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+
+.glow-card:hover {
+  border-color: rgba(255,255,255,0.22);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.35);
+}
+
+.glow-card:hover::before {
+  opacity: 1;
+}
+
 .card-sm {
   background: var(--surface);
   border: 1px solid var(--border);

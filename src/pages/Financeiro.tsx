@@ -241,7 +241,6 @@ export default function Financeiro() {
       {showModal && (
         <div
           style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
-          onClick={e => e.target === e.currentTarget && setShowModal(false)}
         >
           <div className="card" style={{ width: '100%', maxWidth: '400px', padding: '28px' }}>
             <h2 style={{ fontSize: '18px', color: '#FFFFFF', marginBottom: '20px' }}>Lançar Movimento</h2>

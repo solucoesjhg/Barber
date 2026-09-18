@@ -113,7 +113,6 @@ export default function Empresas() {
           <motion.div
             style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={e => e.target === e.currentTarget && setShowModal(false)}
           >
             <motion.div className="card" style={{ width: '100%', maxWidth: '420px', padding: '28px' }}
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}>

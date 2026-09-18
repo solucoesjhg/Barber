@@ -219,7 +219,6 @@ export default function Clientes() {
           <motion.div
             style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={e => e.target === e.currentTarget && fecharModal()}
           >
             <motion.div
               className="card"

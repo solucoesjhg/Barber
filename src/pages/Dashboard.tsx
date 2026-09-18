@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type MouseEvent } from 'react'
 import { motion } from 'framer-motion'
 import { Calendar, Users, DollarSign, TrendingUp, TrendingDown, Wallet, Plus, Clock, ChevronRight } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -20,6 +20,12 @@ const STATUS_CLASS: Record<string, string> = {
 }
 
 interface RankItem { nome: string; total: number }
+
+function handleGlowMove(e: MouseEvent<HTMLDivElement>) {
+  const rect = e.currentTarget.getBoundingClientRect()
+  e.currentTarget.style.setProperty('--mx', `${((e.clientX - rect.left) / rect.width) * 100}%`)
+  e.currentTarget.style.setProperty('--my', `${((e.clientY - rect.top) / rect.height) * 100}%`)
+}
 
 export default function Dashboard() {
   const [agenda, setAgenda] = useState<Agendamento[]>([])
@@ -151,7 +157,8 @@ export default function Dashboard() {
           return (
             <motion.div
               key={s.label}
-              className="card"
+              className="card glow-card"
+              onMouseMove={handleGlowMove}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.06, duration: 0.3 }}
@@ -183,7 +190,8 @@ export default function Dashboard() {
           return (
             <motion.div
               key={s.label}
-              className="card"
+              className="card glow-card"
+              onMouseMove={handleGlowMove}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 + i * 0.05, duration: 0.3 }}
