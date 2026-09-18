@@ -359,12 +359,16 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
     box-shadow: 8px 0 32px rgba(0,0,0,0.6);
   }
 
-  /* O botão de esconder/mostrar menu fica por cima da gaveta aberta,
-     senão some atrás dela e não dá pra fechar o menu */
+  /* O botão de esconder/mostrar menu anda junto quando a gaveta abre,
+     ficando ao lado dela (como no desktop) em vez de escondido atrás */
   .sidebar-toggle-btn {
     position: relative;
     z-index: 250;
     background: #111111 !important;
+    transition: transform 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .sidebar-toggle-btn.sidebar-open {
+    transform: translateX(220px);
   }
 
   .mobile-sidebar-backdrop {

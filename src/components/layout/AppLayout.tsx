@@ -74,7 +74,7 @@ export default function AppLayout() {
           {/* Breadcrumb */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button
-              className="sidebar-toggle-btn"
+              className={`sidebar-toggle-btn${sidebarHidden ? '' : ' sidebar-open'}`}
               onClick={toggleSidebar}
               title={sidebarHidden ? 'Mostrar menu' : 'Esconder menu'}
               style={{
