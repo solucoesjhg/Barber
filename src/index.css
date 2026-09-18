@@ -169,7 +169,10 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
 .glow-card {
   position: relative;
   overflow: hidden;
-  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+  cursor: pointer;
+  border-color: var(--border-strong);
+  background: linear-gradient(180deg, rgba(255,255,255,0.035), transparent 60%), var(--surface);
+  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
 }
 
 .glow-card::before {
@@ -183,7 +186,7 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
 }
 
 .glow-card:hover {
-  border-color: rgba(255,255,255,0.22);
+  border-color: rgba(255,255,255,0.3);
   transform: translateY(-2px);
   box-shadow: 0 10px 28px rgba(0,0,0,0.35);
 }

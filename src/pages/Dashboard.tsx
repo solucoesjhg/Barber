@@ -1,4 +1,5 @@
 import { useEffect, useState, type MouseEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Calendar, Users, DollarSign, TrendingUp, TrendingDown, Wallet, Plus, Clock, ChevronRight } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -28,6 +29,7 @@ function handleGlowMove(e: MouseEvent<HTMLDivElement>) {
 }
 
 export default function Dashboard() {
+  const navigate = useNavigate()
   const [agenda, setAgenda] = useState<Agendamento[]>([])
   const [loading, setLoading] = useState(true)
   const [financeiro, setFinanceiro] = useState({ faturamentoMes: 0, despesasMes: 0, aReceber: 0, aPagar: 0, saldoCaixa: 0, caixaAberto: false })
@@ -112,20 +114,20 @@ export default function Dashboard() {
     .reduce((sum, a) => sum + (a.valor ?? a.servico?.preco ?? 0), 0)
 
   const stats = [
-    { label: 'Agendamentos', value: agenda.length, sub: 'hoje', icon: Calendar },
-    { label: 'Confirmados',  value: confirmados,   sub: 'aguardando', icon: Users },
-    { label: 'Concluídos',   value: concluidos,    sub: 'finalizados', icon: TrendingUp },
-    { label: 'Cancelamentos', value: cancelados,   sub: 'hoje', icon: TrendingDown },
-    { label: 'Faturamento',  value: formatCurrency(faturamentoHoje), sub: 'hoje', icon: DollarSign },
+    { label: 'Agendamentos', value: agenda.length, sub: 'hoje', icon: Calendar, to: '/agenda' },
+    { label: 'Confirmados',  value: confirmados,   sub: 'aguardando', icon: Users, to: '/agenda' },
+    { label: 'Concluídos',   value: concluidos,    sub: 'finalizados', icon: TrendingUp, to: '/agenda' },
+    { label: 'Cancelamentos', value: cancelados,   sub: 'hoje', icon: TrendingDown, to: '/agenda' },
+    { label: 'Faturamento',  value: formatCurrency(faturamentoHoje), sub: 'hoje', icon: DollarSign, to: '/relatorios' },
   ]
 
   const statsFinanceiro = [
-    { label: 'Faturamento (mês)', value: formatCurrency(financeiro.faturamentoMes), icon: TrendingUp },
-    { label: 'Despesas (mês)',    value: formatCurrency(financeiro.despesasMes),    icon: TrendingDown },
-    { label: 'Lucro estimado',    value: formatCurrency(financeiro.faturamentoMes - financeiro.despesasMes), icon: DollarSign },
-    { label: 'A Receber',         value: formatCurrency(financeiro.aReceber), icon: TrendingUp },
-    { label: 'A Pagar',           value: formatCurrency(financeiro.aPagar),   icon: TrendingDown },
-    { label: 'Saldo de Caixa',    value: financeiro.caixaAberto ? formatCurrency(financeiro.saldoCaixa) : 'Fechado', icon: Wallet },
+    { label: 'Faturamento (mês)', value: formatCurrency(financeiro.faturamentoMes), icon: TrendingUp, to: '/relatorios' },
+    { label: 'Despesas (mês)',    value: formatCurrency(financeiro.despesasMes),    icon: TrendingDown, to: '/financeiro' },
+    { label: 'Lucro estimado',    value: formatCurrency(financeiro.faturamentoMes - financeiro.despesasMes), icon: DollarSign, to: '/dre' },
+    { label: 'A Receber',         value: formatCurrency(financeiro.aReceber), icon: TrendingUp, to: '/contas-receber' },
+    { label: 'A Pagar',           value: formatCurrency(financeiro.aPagar),   icon: TrendingDown, to: '/contas-pagar' },
+    { label: 'Saldo de Caixa',    value: financeiro.caixaAberto ? formatCurrency(financeiro.saldoCaixa) : 'Fechado', icon: Wallet, to: '/caixa' },
   ]
 
   return (
@@ -159,6 +161,7 @@ export default function Dashboard() {
               key={s.label}
               className="card glow-card"
               onMouseMove={handleGlowMove}
+              onClick={() => navigate(s.to)}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.06, duration: 0.3 }}
@@ -192,6 +195,7 @@ export default function Dashboard() {
               key={s.label}
               className="card glow-card"
               onMouseMove={handleGlowMove}
+              onClick={() => navigate(s.to)}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 + i * 0.05, duration: 0.3 }}
