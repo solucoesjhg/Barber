@@ -445,7 +445,7 @@ export default function Produtos() {
               </motion.div>
             )}
 
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div className="card desktop-row" style={{ padding: 0, overflow: 'hidden' }}>
               <div className="list-header" style={{
                 display: 'grid',
                 gridTemplateColumns: '28px 1fr 100px 120px 120px 90px 90px 80px 76px',
@@ -524,10 +524,95 @@ export default function Produtos() {
                 )
               })}
             </div>
+
+            {/* Cards (mobile) */}
+            {produtos.length > 0 && (
+              <div className="entity-grid mobile-only-grid" style={{ gap: '16px' }}>
+                {produtos.map((p, i) => {
+                  const baixo  = p.estoque_atual <= p.estoque_minimo
+                  const margem = p.preco_custo > 0 ? ((p.preco_venda - p.preco_custo) / p.preco_custo * 100).toFixed(0) : null
+                  const detalhes = [p.sku && `#${p.sku}`, margem && `+${margem}% margem`, p.comissao_percentual != null && `comissão ${p.comissao_percentual}%`].filter(Boolean).join(' · ')
+                  return (
+                    <motion.div
+                      key={p.id}
+                      className="card entity-card"
+                      initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                    >
+                      <div className="entity-header" style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                        <input type="checkbox" checked={selecionados.has(p.id)} onChange={() => toggleSelecionado(p.id)} style={{ marginTop: '4px', flexShrink: 0 }} />
+                        <div className="entity-avatar" style={{
+                          width: '40px', height: '40px', borderRadius: '10px',
+                          background: '#262626', border: '1px solid #333',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                        }}>
+                          <Package size={16} style={{ color: '#A3A3A3' }} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <h3 className="entity-title" style={{
+                              fontSize: '14px', fontWeight: 600, color: '#FFFFFF', fontFamily: 'DM Sans, sans-serif',
+                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
+                            }}>{p.nome}</h3>
+                          </div>
+                          {detalhes && <p className="entity-subtle" style={{ fontSize: '11px', color: '#555', marginTop: '2px' }}>{detalhes}</p>}
+                        </div>
+                        <button
+                          onClick={() => toggleAtivoProd(p.id, p.ativo)}
+                          style={{
+                            fontSize: '10px', padding: '3px 9px', borderRadius: '99px', flexShrink: 0,
+                            border: p.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
+                            background: 'transparent', color: p.ativo ? '#A3A3A3' : '#444', cursor: 'pointer',
+                          }}
+                        >
+                          {p.ativo ? 'Ativo' : 'Inativo'}
+                        </button>
+                      </div>
+
+                      <div className="entity-divider" style={{ height: '1px', background: '#222', margin: '14px 0' }} />
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+                        <div>
+                          <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Categoria</p>
+                          <p style={{ fontSize: '13px', color: '#A3A3A3', textTransform: 'capitalize' }}>{CAT_LABEL[p.categoria]}</p>
+                        </div>
+                        <div>
+                          <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Estoque</p>
+                          <p style={{ fontSize: '13px', color: baixo ? '#FFFFFF' : '#A3A3A3', fontWeight: baixo ? 700 : 400 }}>
+                            {p.estoque_atual} {p.unidade} {baixo && <AlertTriangle size={11} style={{ marginLeft: '2px', color: '#777', verticalAlign: 'middle' }} />}
+                          </p>
+                        </div>
+                        <div>
+                          <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Custo</p>
+                          <p style={{ fontSize: '13px', color: '#555' }}>{formatCurrency(p.preco_custo)}</p>
+                        </div>
+                        <div>
+                          <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Venda</p>
+                          <p style={{ fontSize: '13px', color: '#A3A3A3', fontWeight: 500 }}>{formatCurrency(p.preco_venda)}</p>
+                        </div>
+                      </div>
+
+                      <div className="entity-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
+                        <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicaoProd(p)}>
+                          <Pencil size={12} />
+                        </button>
+                        <button className="btn btn-icon" title="Gerar/imprimir etiqueta" onClick={() => setProdutosEtiqueta([p])}>
+                          <Tag size={12} />
+                        </button>
+                      </div>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            )}
+            {produtos.length === 0 && (
+              <div className="card mobile-only-grid" style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+                Nenhum produto cadastrado.
+              </div>
+            )}
           </motion.div>
         ) : (
           <motion.div key="servicos" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div className="card desktop-row" style={{ padding: 0, overflow: 'hidden' }}>
               <div className="list-header" style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 100px 120px 90px 1fr 80px 76px',
@@ -604,6 +689,88 @@ export default function Produtos() {
                 </motion.div>
               ))}
             </div>
+
+            {/* Cards (mobile) */}
+            {!loading && servicos.length > 0 && (
+              <div className="entity-grid mobile-only-grid" style={{ gap: '16px' }}>
+                {servicos.map((s, i) => (
+                  <motion.div
+                    key={s.id}
+                    className="card entity-card"
+                    initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                  >
+                    <div className="entity-header" style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                      <div className="entity-avatar" style={{
+                        width: '40px', height: '40px', borderRadius: '10px',
+                        background: '#262626', border: '1px solid #333',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      }}>
+                        <Scissors size={16} style={{ color: '#A3A3A3' }} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <h3 className="entity-title" style={{
+                          fontSize: '14px', fontWeight: 600, color: '#FFFFFF', fontFamily: 'DM Sans, sans-serif',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>{s.nome}</h3>
+                        {s.categoria && <p className="entity-subtle" style={{ fontSize: '11px', color: '#555', marginTop: '2px' }}>{s.categoria}</p>}
+                      </div>
+                      <button
+                        onClick={() => toggleAtivoServ(s.id, s.ativo)}
+                        style={{
+                          fontSize: '10px', padding: '3px 9px', borderRadius: '99px', flexShrink: 0,
+                          border: s.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
+                          background: 'transparent', color: s.ativo ? '#A3A3A3' : '#444', cursor: 'pointer',
+                        }}
+                      >
+                        {s.ativo ? 'Ativo' : 'Inativo'}
+                      </button>
+                    </div>
+
+                    <div className="entity-divider" style={{ height: '1px', background: '#222', margin: '14px 0' }} />
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+                      <div>
+                        <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Preço</p>
+                        <p style={{ fontSize: '13px', color: '#A3A3A3', fontWeight: 500 }}>{formatCurrency(s.preco)}</p>
+                      </div>
+                      <div>
+                        <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Duração</p>
+                        <p style={{ fontSize: '13px', color: '#666' }}>{s.duracao_minutos} min</p>
+                      </div>
+                      <div>
+                        <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Comissão</p>
+                        <p style={{ fontSize: '13px', color: '#666' }}>{s.comissao_percentual != null ? `${s.comissao_percentual}%` : '—'}</p>
+                      </div>
+                    </div>
+
+                    {s.profissionais && s.profissionais.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '12px' }}>
+                        {s.profissionais.map(p => (
+                          <span key={p.id} style={{
+                            fontSize: '10px', color: '#A3A3A3',
+                            background: 'rgba(255,255,255,0.06)',
+                            border: '1px solid #2A2A2A',
+                            borderRadius: '99px',
+                            padding: '2px 8px',
+                          }}>{p.nome}</span>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="entity-footer" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicaoServ(s)}>
+                        <Pencil size={12} />
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+            {!loading && servicos.length === 0 && (
+              <div className="card mobile-only-grid" style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+                Nenhum serviço cadastrado.
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

@@ -131,8 +131,8 @@ export default function Fornecedores() {
         </label>
       </div>
 
-      {/* Table */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      {/* Table (desktop) */}
+      <div className="card desktop-row" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="list-header" style={{
           display: 'grid',
           gridTemplateColumns: '1fr 160px 220px 90px 40px',
@@ -216,6 +216,78 @@ export default function Fornecedores() {
           </motion.div>
         ))}
       </div>
+
+      {/* Cards (mobile) */}
+      {!loading && filtered.length > 0 && (
+        <div className="entity-grid mobile-only-grid" style={{ gap: '16px' }}>
+          {filtered.map((f, i) => (
+            <motion.div
+              key={f.id}
+              className="card entity-card"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.04 }}
+            >
+              <div className="entity-header" style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+                <div className="entity-avatar" style={{
+                  width: '44px', height: '44px',
+                  borderRadius: '50%',
+                  background: '#262626',
+                  border: '1px solid #333',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '14px', fontWeight: 700, color: '#A3A3A3',
+                  flexShrink: 0,
+                }}>
+                  {initials(f.nome)}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                    <h3 className="entity-title" style={{
+                      fontSize: '15px', fontWeight: 600, color: '#FFFFFF', fontFamily: 'DM Sans, sans-serif',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
+                    }}>{f.nome}</h3>
+                    <span style={{
+                      fontSize: '10px', padding: '2px 8px', borderRadius: '99px', flexShrink: 0,
+                      border: f.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
+                      color: f.ativo ? '#A3A3A3' : '#444',
+                    }}>
+                      {f.ativo ? 'Ativo' : 'Inativo'}
+                    </span>
+                  </div>
+                  {f.nome_fantasia && <p className="entity-subtle" style={{ fontSize: '11px', color: '#555' }}>{f.nome_fantasia}</p>}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                    <Phone size={11} style={{ color: '#444' }} />
+                    <span style={{ fontSize: '12px', color: '#666' }}>{f.telefone ?? '—'}</span>
+                  </div>
+                  {f.email && (
+                    <p className="entity-subtle" style={{ fontSize: '11px', color: '#444', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {f.email}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="entity-divider" style={{ height: '1px', background: '#222', margin: '16px 0' }} />
+
+              <div className="entity-footer" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicao(f)}>
+                    <Pencil size={12} />
+                  </button>
+                  <button className="btn btn-secondary btn-sm" onClick={() => toggleAtivo(f.id, f.ativo)}>
+                    {f.ativo ? 'Desativar' : 'Ativar'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+      {!loading && filtered.length === 0 && (
+        <div className="card mobile-only-grid" style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+          Nenhum fornecedor encontrado.
+        </div>
+      )}
 
       {/* Modal */}
       <AnimatePresence>

@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { ExternalLink, UserX, UserCheck } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { usePerfil } from '../hooks/usePerfil'
-import { formatDate } from '../lib/utils'
+import { formatDate, initials } from '../lib/utils'
 import type { UsuarioListado, PapelUsuario, Profissional, Empresa } from '../types'
 
 const PAPEL_LABEL: Record<PapelUsuario, string> = {
@@ -79,7 +79,7 @@ export default function Usuarios() {
 
         {error && <p style={{ fontSize: '12px', color: '#666', marginBottom: '16px' }}>{error}</p>}
 
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div className="card desktop-row" style={{ padding: 0, overflow: 'hidden' }}>
           <div className="list-header" style={{
             display: 'grid', gridTemplateColumns: '1fr 130px 200px 40px',
             padding: '10px 24px', borderBottom: '1px solid #222',
@@ -129,10 +129,70 @@ export default function Usuarios() {
           ))}
         </div>
 
+        {/* Cards (mobile) */}
+        {!loading && pendentes.length > 0 && (
+          <div className="entity-grid mobile-only-grid" style={{ gap: '16px' }}>
+            {pendentes.map((u, i) => (
+              <motion.div
+                key={u.usuario_id}
+                className="card entity-card"
+                initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                style={{ opacity: savingId === u.usuario_id ? 0.6 : 1 }}
+              >
+                <div className="entity-header" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div className="entity-avatar" style={{
+                    width: '44px', height: '44px', borderRadius: '50%',
+                    background: '#262626', border: '1px solid #333',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '14px', fontWeight: 700, color: '#A3A3A3', flexShrink: 0,
+                  }}>
+                    {initials(u.email.split('@')[0])}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h3 className="entity-title" style={{
+                      fontSize: '15px', fontWeight: 600, color: '#FFFFFF', fontFamily: 'DM Sans, sans-serif',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>{u.email}</h3>
+                    <p className="entity-subtle" style={{ fontSize: '11px', color: '#444', marginTop: '2px' }}>Desde {formatDate(u.criado_em)}</p>
+                  </div>
+                </div>
+                <div className="entity-divider" style={{ height: '1px', background: '#222', margin: '16px 0' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div>
+                    <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Vincular a</p>
+                    <select
+                      className="input"
+                      style={{ fontSize: '13px' }}
+                      value=""
+                      onChange={e => e.target.value && salvar(u, 'empresa_id', e.target.value)}
+                    >
+                      <option value="">Selecionar loja...</option>
+                      {empresas.map(emp => <option key={emp.id} value={emp.id}>{emp.nome} ({emp.codigo})</option>)}
+                    </select>
+                  </div>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => window.confirm(`Rejeitar o cadastro de ${u.email}? Ele deixa de aparecer aqui e fica inativo até você reativar.`) && definirAtivoPendente(u.usuario_id, false)}
+                    disabled={savingId === u.usuario_id}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                  >
+                    <UserX size={13} /> Rejeitar cadastro
+                  </button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+        {!loading && pendentes.length === 0 && (
+          <div className="card mobile-only-grid" style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+            Nenhum cadastro esperando vínculo com loja.
+          </div>
+        )}
+
         {rejeitados.length > 0 && (
           <>
             <p style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', margin: '28px 0 12px' }}>Rejeitados ({rejeitados.length})</p>
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div className="card desktop-row" style={{ padding: 0, overflow: 'hidden' }}>
               {rejeitados.map((u, i) => (
                 <motion.div
                   key={u.usuario_id}
@@ -154,6 +214,30 @@ export default function Usuarios() {
                   >
                     <UserCheck size={13} />
                   </button>
+                </motion.div>
+              ))}
+            </div>
+            <div className="entity-grid mobile-only-grid" style={{ gap: '16px' }}>
+              {rejeitados.map((u, i) => (
+                <motion.div
+                  key={u.usuario_id}
+                  className="card entity-card"
+                  initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                  style={{ opacity: savingId === u.usuario_id ? 0.6 : 1 }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <p className="entity-title" style={{ fontSize: '13px', color: '#666', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</p>
+                      <p className="entity-subtle" style={{ fontSize: '11px', color: '#444', marginTop: '2px' }}>Desde {formatDate(u.criado_em)}</p>
+                    </div>
+                    <button
+                      className="btn btn-icon" title="Reativar (volta pra fila de pendências)"
+                      onClick={() => definirAtivoPendente(u.usuario_id, true)}
+                      disabled={savingId === u.usuario_id}
+                    >
+                      <UserCheck size={13} />
+                    </button>
+                  </div>
                 </motion.div>
               ))}
             </div>
@@ -183,7 +267,7 @@ export default function Usuarios() {
 
       {error && <p style={{ fontSize: '12px', color: '#666', marginBottom: '16px' }}>{error}</p>}
 
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="card desktop-row" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="list-header" style={{
           display: 'grid', gridTemplateColumns: colunas,
           padding: '10px 24px', borderBottom: '1px solid #222',
@@ -244,6 +328,78 @@ export default function Usuarios() {
           </motion.div>
         ))}
       </div>
+
+      {/* Cards (mobile) */}
+      {!loading && usuarios.length > 0 && (
+        <div className="entity-grid mobile-only-grid" style={{ gap: '16px' }}>
+          {usuarios.map((u, i) => (
+            <motion.div
+              key={u.usuario_id}
+              className="card entity-card"
+              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+              style={{ opacity: savingId === u.usuario_id ? 0.6 : 1 }}
+            >
+              <div className="entity-header" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div className="entity-avatar" style={{
+                  width: '44px', height: '44px', borderRadius: '50%',
+                  background: '#262626', border: '1px solid #333',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '14px', fontWeight: 700, color: '#A3A3A3', flexShrink: 0,
+                }}>
+                  {initials(u.email.split('@')[0])}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h3 className="entity-title" style={{
+                    fontSize: '15px', fontWeight: 600, color: '#FFFFFF', fontFamily: 'DM Sans, sans-serif',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{u.email}</h3>
+                  <p className="entity-subtle" style={{ fontSize: '11px', color: '#444', marginTop: '2px' }}>Desde {formatDate(u.criado_em)}</p>
+                </div>
+              </div>
+
+              <div className="entity-divider" style={{ height: '1px', background: '#222', margin: '16px 0' }} />
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div>
+                  <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Papel</p>
+                  <select
+                    className="input"
+                    style={{ fontSize: '13px' }}
+                    value={u.papel}
+                    onChange={e => salvar(u, 'papel', e.target.value)}
+                    disabled={u.papel === 'super_admin'}
+                  >
+                    {Object.entries(PAPEL_LABEL)
+                      .filter(([k]) => k !== 'super_admin')
+                      .map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Profissional vinculado</p>
+                  <select
+                    className="input"
+                    style={{ fontSize: '13px' }}
+                    value={u.profissional_id ?? ''}
+                    onChange={e => salvar(u, 'profissional_id', e.target.value)}
+                  >
+                    <option value="">Nenhum profissional</option>
+                    {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                  </select>
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#A3A3A3', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={u.ativo} onChange={e => salvar(u, 'ativo', e.target.checked)} />
+                  Ativo
+                </label>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+      {!loading && usuarios.length === 0 && (
+        <div className="card mobile-only-grid" style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+          Nenhum usuário encontrado (ou você não tem permissão pra ver essa tela).
+        </div>
+      )}
     </div>
   )
 }

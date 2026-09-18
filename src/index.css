@@ -320,6 +320,10 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
   display: none;
 }
 
+.mobile-only-grid {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .page { padding: 16px; }
 
@@ -350,6 +354,20 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
     margin: 0 !important;
   }
   .list-row > * { width: auto !important; }
+
+  /* Cards de entidade (Clientes e similares): mais finos no mobile,
+     pra caber uns 3-4 por tela sem perder informação */
+  .entity-grid { gap: 10px !important; }
+  .entity-card { padding: 12px !important; }
+  .entity-avatar { width: 32px !important; height: 32px !important; font-size: 11px !important; }
+  .entity-title { font-size: 13px !important; }
+  .entity-divider { margin: 8px 0 !important; }
+  .entity-footer { margin-top: -2px; }
+
+  /* Telas com layout de card próprio pro mobile (Fornecedores, Produtos,
+     Usuários): mostra os cards e esconde a tabela de desktop */
+  .desktop-row { display: none !important; }
+  .mobile-only-grid { display: grid !important; }
 
   /* Sidebar vira uma gaveta sobreposta em vez de empurrar o conteúdo */
   .app-sidebar {

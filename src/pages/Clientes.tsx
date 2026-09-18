@@ -141,17 +141,17 @@ export default function Clientes() {
           Nenhum cliente encontrado.
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+        <div className="entity-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
           {filtered.map((c, i) => (
             <motion.div
               key={c.id}
-              className="card"
+              className="card entity-card"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.04 }}
             >
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-                <div style={{
+              <div className="entity-header" style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+                <div className="entity-avatar" style={{
                   width: '44px', height: '44px',
                   borderRadius: '50%',
                   background: '#262626',
@@ -164,7 +164,7 @@ export default function Clientes() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-                    <h3 style={{
+                    <h3 className="entity-title" style={{
                       fontSize: '15px', fontWeight: 600, color: '#FFFFFF', fontFamily: 'DM Sans, sans-serif',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
                     }}>{c.nome}</h3>
@@ -181,17 +181,17 @@ export default function Clientes() {
                     <span style={{ fontSize: '12px', color: '#666' }}>{c.telefone}</span>
                   </div>
                   {c.email && (
-                    <p style={{ fontSize: '11px', color: '#444', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <p className="entity-subtle" style={{ fontSize: '11px', color: '#444', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {c.email}
                     </p>
                   )}
                 </div>
               </div>
 
-              <div style={{ height: '1px', background: '#222', margin: '16px 0' }} />
+              <div className="entity-divider" style={{ height: '1px', background: '#222', margin: '16px 0' }} />
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
+              <div className="entity-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="entity-subtle">
                   <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Cadastro</p>
                   <p style={{ fontSize: '13px', color: '#A3A3A3' }}>{formatDate(c.created_at)}</p>
                 </div>
