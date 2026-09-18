@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronRight, Bell, Search, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
@@ -35,10 +35,16 @@ export default function AppLayout() {
   const pageName = PAGE_NAMES[location.pathname] ?? ''
   const { papel, empresaId, loading: perfilLoading } = usePerfil()
   const [sidebarHidden, setSidebarHidden] = useState(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) return true
     try { return localStorage.getItem(SIDEBAR_KEY) === '1' } catch { return false }
   })
 
   const semLoja = !perfilLoading && papel !== null && papel !== 'super_admin' && !empresaId && location.pathname !== '/empresas'
+
+  useEffect(() => {
+    if (window.innerWidth < 768) setSidebarHidden(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname])
 
   function toggleSidebar() {
     setSidebarHidden(prev => {
@@ -51,10 +57,11 @@ export default function AppLayout() {
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#0D0D0D' }}>
       <Sidebar hidden={sidebarHidden} />
+      {!sidebarHidden && <div className="mobile-sidebar-backdrop" onClick={toggleSidebar} />}
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
         {/* Header */}
-        <div style={{
+        <div className="app-header" style={{
           height: '64px',
           display: 'flex',
           alignItems: 'center',
@@ -95,7 +102,7 @@ export default function AppLayout() {
           {/* Actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {/* Search */}
-            <div style={{
+            <div className="app-header-search" style={{
               display: 'flex',
               alignItems: 'center',
               gap: '8px',

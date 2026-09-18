@@ -153,7 +153,7 @@ export default function Dashboard() {
       </motion.div>
 
       {/* Stat cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '28px' }}>
+      <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '28px' }}>
         {stats.map((s, i) => {
           const Icon = s.icon
           return (
@@ -187,7 +187,7 @@ export default function Dashboard() {
       </div>
 
       {/* Financeiro do mês */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px', marginBottom: '28px' }}>
+      <div className="dashboard-fin-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px', marginBottom: '28px' }}>
         {statsFinanceiro.map((s, i) => {
           const Icon = s.icon
           return (
@@ -209,7 +209,7 @@ export default function Dashboard() {
       </div>
 
       {/* Rankings do mês */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '28px' }}>
+      <div className="dashboard-rankings-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '28px' }}>
         <div className="card">
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', marginBottom: '14px' }}>Serviços mais vendidos (mês)</p>
           {topServicos.length === 0 ? (

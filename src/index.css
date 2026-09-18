@@ -312,6 +312,43 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
   max-width: 1400px;
 }
 
+.mobile-sidebar-backdrop {
+  display: none;
+}
+
 @media (max-width: 768px) {
-  .page { padding: 20px; }
+  .page { padding: 16px; }
+
+  /* Tabelas/listas com colunas em px fixo viram scroll horizontal em vez de espremer a tela */
+  .card { overflow-x: auto !important; }
+
+  /* Sidebar vira uma gaveta sobreposta em vez de empurrar o conteúdo */
+  .app-sidebar {
+    position: fixed !important;
+    top: 0; left: 0; bottom: 0;
+    z-index: 200;
+    box-shadow: 8px 0 32px rgba(0,0,0,0.6);
+  }
+
+  .mobile-sidebar-backdrop {
+    display: block !important;
+  }
+
+  .app-header {
+    padding: 0 14px !important;
+  }
+
+  .app-header-search {
+    display: none !important;
+  }
+
+  .dashboard-stats-grid,
+  .dashboard-fin-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .dashboard-rankings-grid {
+    grid-template-columns: 1fr !important;
+  }
 }

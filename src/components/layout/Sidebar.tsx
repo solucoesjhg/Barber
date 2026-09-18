@@ -170,6 +170,7 @@ export default function Sidebar({ hidden }: { hidden: boolean }) {
 
   return (
     <motion.aside
+      className="app-sidebar"
       style={{
         minHeight: '100vh',
         display: 'flex',
