@@ -131,17 +131,95 @@ export default function Clientes() {
         </label>
       </div>
 
-      {/* Cards */}
-      {loading ? (
-        <div className="card" style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
-          Carregando...
+      {/* Table (desktop) */}
+      <div className="card desktop-row" style={{ padding: 0, overflow: 'hidden' }}>
+        <div className="list-header" style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 160px 180px 110px 90px 40px',
+          padding: '10px 24px',
+          borderBottom: '1px solid #222',
+          fontSize: '10px', fontWeight: 600, color: '#444',
+          textTransform: 'uppercase', letterSpacing: '0.1em',
+          background: 'rgba(0,0,0,0.2)',
+        }}>
+          <span>Nome</span>
+          <span>Telefone</span>
+          <span>E-mail</span>
+          <span>Cadastro</span>
+          <span>Status</span>
+          <span></span>
         </div>
-      ) : filtered.length === 0 ? (
-        <div className="card" style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
-          Nenhum cliente encontrado.
-        </div>
-      ) : (
-        <div className="entity-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+
+        {loading ? (
+          <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+            Carregando...
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+            Nenhum cliente encontrado.
+          </div>
+        ) : filtered.map((c, i) => (
+          <motion.div
+            key={c.id}
+            className="list-row"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: i * 0.03 }}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 160px 180px 110px 90px 40px',
+              padding: '14px 24px',
+              borderBottom: i < filtered.length - 1 ? '1px solid #1F1F1F' : 'none',
+              alignItems: 'center',
+              transition: 'background 0.12s',
+            }}
+            whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '32px', height: '32px',
+                borderRadius: '50%',
+                background: '#262626',
+                border: '1px solid #333',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '11px', fontWeight: 700, color: '#A3A3A3',
+                flexShrink: 0,
+              }}>
+                {initials(c.nome)}
+              </div>
+              <span style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{c.nome}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#A3A3A3' }}>
+              <Phone size={11} style={{ color: '#444' }} /> {c.telefone}
+            </div>
+            <div style={{ fontSize: '13px', color: '#555' }}>
+              {c.email ?? <span style={{ color: '#333' }}>—</span>}
+            </div>
+            <div style={{ fontSize: '12px', color: '#444' }}>{formatDate(c.created_at)}</div>
+            <div>
+              <button
+                onClick={() => toggleAtivo(c.id, c.ativo)}
+                style={{
+                  fontSize: '10px', padding: '3px 9px', borderRadius: '99px',
+                  border: c.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
+                  background: 'transparent',
+                  color: c.ativo ? '#A3A3A3' : '#444',
+                  cursor: 'pointer',
+                }}
+              >
+                {c.ativo ? 'Ativo' : 'Inativo'}
+              </button>
+            </div>
+            <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicao(c)}>
+              <Pencil size={12} />
+            </button>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Cards (mobile) */}
+      {!loading && filtered.length > 0 && (
+        <div className="entity-grid mobile-only-grid" style={{ gap: '16px' }}>
           {filtered.map((c, i) => (
             <motion.div
               key={c.id}
@@ -206,6 +284,11 @@ export default function Clientes() {
               </div>
             </motion.div>
           ))}
+        </div>
+      )}
+      {!loading && filtered.length === 0 && (
+        <div className="card mobile-only-grid" style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+          Nenhum cliente encontrado.
         </div>
       )}
 
