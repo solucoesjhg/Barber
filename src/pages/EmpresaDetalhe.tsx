@@ -67,7 +67,7 @@ export default function EmpresaDetalhe() {
   }
 
   const vinculados = usuarios.filter(u => u.empresa_id === id)
-  const pendentes = usuarios.filter(u => !u.empresa_id && u.papel !== 'super_admin')
+  const pendentes = usuarios.filter(u => !u.empresa_id && u.papel !== 'super_admin' && u.ativo)
 
   if (loading) {
     return <div className="page"><p style={{ color: '#444', fontSize: '13px' }}>Carregando...</p></div>

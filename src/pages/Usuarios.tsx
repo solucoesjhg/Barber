@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, UserX, UserCheck } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { usePerfil } from '../hooks/usePerfil'
 import { formatDate } from '../lib/utils'
@@ -56,8 +56,17 @@ export default function Usuarios() {
     carregar()
   }
 
+  async function definirAtivoPendente(usuarioId: string, ativo: boolean) {
+    setSavingId(usuarioId); setError('')
+    const { error: err } = await supabase.rpc('definir_ativo_usuario_pendente', { p_usuario_id: usuarioId, p_ativo: ativo })
+    setSavingId(null)
+    if (err) { setError(err.message); return }
+    carregar()
+  }
+
   if (souSuperAdmin) {
-    const pendentes = usuarios.filter(u => !u.empresa_id && u.papel !== 'super_admin')
+    const pendentes = usuarios.filter(u => !u.empresa_id && u.papel !== 'super_admin' && u.ativo)
+    const rejeitados = usuarios.filter(u => !u.empresa_id && u.papel !== 'super_admin' && !u.ativo)
 
     return (
       <div className="page">
@@ -72,12 +81,12 @@ export default function Usuarios() {
 
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{
-            display: 'grid', gridTemplateColumns: '1fr 140px 220px',
+            display: 'grid', gridTemplateColumns: '1fr 130px 200px 40px',
             padding: '10px 24px', borderBottom: '1px solid #222',
             fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
             background: 'rgba(0,0,0,0.2)',
           }}>
-            <span>E-mail</span><span>Desde</span><span>Vincular a</span>
+            <span>E-mail</span><span>Desde</span><span>Vincular a</span><span></span>
           </div>
 
           {loading ? (
@@ -91,7 +100,7 @@ export default function Usuarios() {
               key={u.usuario_id}
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
               style={{
-                display: 'grid', gridTemplateColumns: '1fr 140px 220px',
+                display: 'grid', gridTemplateColumns: '1fr 130px 200px 40px',
                 padding: '12px 24px', alignItems: 'center',
                 borderBottom: i < pendentes.length - 1 ? '1px solid #1A1A1A' : 'none',
                 opacity: savingId === u.usuario_id ? 0.6 : 1,
@@ -108,9 +117,46 @@ export default function Usuarios() {
                 <option value="">Selecionar loja...</option>
                 {empresas.map(emp => <option key={emp.id} value={emp.id}>{emp.nome} ({emp.codigo})</option>)}
               </select>
+              <button
+                className="btn btn-icon" title="Rejeitar cadastro"
+                onClick={() => window.confirm(`Rejeitar o cadastro de ${u.email}? Ele deixa de aparecer aqui e fica inativo até você reativar.`) && definirAtivoPendente(u.usuario_id, false)}
+                disabled={savingId === u.usuario_id}
+              >
+                <UserX size={13} />
+              </button>
             </motion.div>
           ))}
         </div>
+
+        {rejeitados.length > 0 && (
+          <>
+            <p style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', margin: '28px 0 12px' }}>Rejeitados ({rejeitados.length})</p>
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              {rejeitados.map((u, i) => (
+                <motion.div
+                  key={u.usuario_id}
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
+                  style={{
+                    display: 'grid', gridTemplateColumns: '1fr 130px 40px',
+                    padding: '12px 24px', alignItems: 'center',
+                    borderBottom: i < rejeitados.length - 1 ? '1px solid #1A1A1A' : 'none',
+                    opacity: savingId === u.usuario_id ? 0.6 : 1,
+                  }}
+                >
+                  <span style={{ fontSize: '13px', color: '#666' }}>{u.email}</span>
+                  <span style={{ fontSize: '12px', color: '#444' }}>{formatDate(u.criado_em)}</span>
+                  <button
+                    className="btn btn-icon" title="Reativar (volta pra fila de pendências)"
+                    onClick={() => definirAtivoPendente(u.usuario_id, true)}
+                    disabled={savingId === u.usuario_id}
+                  >
+                    <UserCheck size={13} />
+                  </button>
+                </motion.div>
+              ))}
+            </div>
+          </>
+        )}
 
         <p style={{ fontSize: '12px', color: '#444', marginTop: '20px' }}>
           Pra ver ou desvincular quem já está numa loja, abra a loja em{' '}
