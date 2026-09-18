@@ -365,8 +365,12 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
   .entity-footer { margin-top: -2px; }
 
   /* Telas com layout de card próprio pro mobile (Fornecedores, Produtos,
-     Usuários): mostra os cards e esconde a tabela de desktop */
-  .desktop-row { display: none !important; }
+     Usuários): mostra os cards e esconde a tabela de desktop. Precisa
+     ser .card.desktop-row (2 classes) pra ter especificidade igual ou
+     maior que .card:has(.list-row) e realmente vencer e esconder. */
+  .card.desktop-row {
+    display: none !important;
+  }
   .mobile-only-grid { display: grid !important; }
 
   /* Sidebar vira uma gaveta sobreposta em vez de empurrar o conteúdo */
