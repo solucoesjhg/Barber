@@ -323,15 +323,31 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
 @media (max-width: 768px) {
   .page { padding: 16px; }
 
-  /* Tabelas/listas com colunas em px fixo: em vez de arrastar pro lado,
-     empilha os campos de cada linha verticalmente (sem perder informação) */
+  /* Tabelas/listas com colunas em px fixo: em vez de arrastar pro lado ou
+     espremer, cada linha vira um card próprio (mesmo visual usado em
+     Clientes/Profissionais), empilhado com espaço entre eles */
   .list-header { display: none !important; }
+
+  .card:has(.list-row) {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
   .list-row {
     display: flex !important;
     flex-direction: column !important;
     align-items: flex-start !important;
     gap: 6px !important;
-    padding: 14px 16px !important;
+    padding: 16px !important;
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-lg) !important;
+    margin: 0 !important;
   }
   .list-row > * { width: auto !important; }
 
