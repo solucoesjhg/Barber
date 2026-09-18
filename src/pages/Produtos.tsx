@@ -332,19 +332,20 @@ export default function Produtos() {
           </p>
         </div>
         {secao === 'produtos' ? (
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             {selecionados.size > 0 && (
-              <button className="btn btn-secondary" onClick={imprimirSelecionados} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Tag size={14} /> Imprimir etiquetas ({selecionados.size})
+              <button className="btn btn-secondary btn-sm" onClick={imprimirSelecionados} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Tag size={12} /> Imprimir etiquetas ({selecionados.size})
               </button>
             )}
-            <button className="btn btn-secondary" onClick={baixarModeloProdutos} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Download size={14} /> Baixar modelo
+            <button className="btn btn-icon" title="Baixar modelo de planilha" onClick={baixarModeloProdutos}>
+              <Download size={13} />
             </button>
-            <button className="btn btn-secondary" onClick={() => fileInputRef.current?.click()} disabled={importando} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Upload size={14} /> {importando ? 'Importando...' : 'Importar produtos'}
+            <button className="btn btn-icon" title={importando ? 'Importando...' : 'Importar produtos por planilha'} onClick={() => fileInputRef.current?.click()} disabled={importando}>
+              <Upload size={13} />
             </button>
             <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleImportarArquivo} style={{ display: 'none' }} />
+            <div style={{ width: '1px', height: '20px', background: '#252525', margin: '0 4px' }} />
             <button className="btn btn-primary" onClick={abrirNovoProd} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Plus size={14} strokeWidth={2.5} /> Novo Produto
             </button>
