@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronRight, Bell, Search, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import Sidebar from './Sidebar'
@@ -31,6 +31,7 @@ const PAGE_NAMES: Record<string, string> = {
 
 export default function AppLayout() {
   const location = useLocation()
+  const navigate = useNavigate()
   const pageName = PAGE_NAMES[location.pathname] ?? ''
   const { papel, empresaId, loading: perfilLoading } = usePerfil()
   const [sidebarHidden, setSidebarHidden] = useState(() => {
@@ -77,7 +78,12 @@ export default function AppLayout() {
             >
               {sidebarHidden ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
             </button>
-            <span style={{ fontSize: '12px', color: '#3D3D3D' }}>BarberOS</span>
+            <span
+              onClick={() => navigate('/dashboard')}
+              style={{ fontSize: '12px', color: '#3D3D3D', cursor: 'pointer' }}
+            >
+              BarberOS
+            </span>
             {pageName && (
               <>
                 <ChevronRight size={12} style={{ color: '#2A2A2A' }} />
