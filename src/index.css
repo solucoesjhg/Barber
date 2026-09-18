@@ -435,4 +435,47 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
   .page h1 {
     font-size: 20px !important;
   }
+
+  /* Agenda: faixa de dias rola de lado (setas ficam fixas nas pontas) */
+  .agenda-days-scroll {
+    overflow-x: auto !important;
+  }
+  .agenda-days-scroll > button {
+    flex: 0 0 44px !important;
+  }
+
+  /* Agenda: visão semanal (grade de horários) e mensal (calendário) —
+     7 colunas não cabem espremidas, então rolam de lado com largura mínima */
+  .agenda-week-scroll,
+  .agenda-month-scroll {
+    overflow-x: auto !important;
+  }
+  .agenda-week-inner { min-width: 720px; }
+  .agenda-month-inner { min-width: 560px; }
+
+  /* PDV: catálogo e comanda empilham em vez de ficar lado a lado */
+  .pdv-layout {
+    flex-direction: column !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .pdv-catalog {
+    overflow: visible !important;
+  }
+  .pdv-catalog-content {
+    flex: none !important;
+    overflow: visible !important;
+  }
+  .pdv-toolbar {
+    flex-wrap: wrap !important;
+  }
+  .pdv-cart {
+    width: 100% !important;
+    height: auto !important;
+  }
+  .pdv-cart-items {
+    flex: none !important;
+    max-height: 320px;
+    overflow-y: auto !important;
+  }
 }

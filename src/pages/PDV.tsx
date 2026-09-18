@@ -145,13 +145,13 @@ export default function PDV() {
   const modalRef = useModalKeyboard(showPayModal, () => setShowPayModal(false), finalizarVenda)
 
   return (
-    <div className="page" style={{ display: 'flex', gap: '24px', height: 'calc(100vh - 64px)', paddingBottom: '0', overflow: 'hidden' }}>
+    <div className="page pdv-layout" style={{ display: 'flex', gap: '24px', height: 'calc(100vh - 64px)', paddingBottom: '0', overflow: 'hidden' }}>
 
       {/* Left — catalog */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div className="pdv-catalog" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         {/* Tabs + search */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', flexShrink: 0 }}>
+        <div className="pdv-toolbar" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', flexShrink: 0 }}>
           <div style={{
             display: 'flex', gap: '2px',
             padding: '4px',
@@ -228,7 +228,7 @@ export default function PDV() {
         )}
 
         {/* Content area */}
-        <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '16px' }}>
+        <div className="pdv-catalog-content" style={{ flex: 1, overflowY: 'auto', paddingBottom: '16px' }}>
           <AnimatePresence mode="wait">
             {tab === 'servicos' ? (
               <motion.div
@@ -321,7 +321,7 @@ export default function PDV() {
       </div>
 
       {/* Right — cart */}
-      <div style={{
+      <div className="pdv-cart" style={{
         width: '320px', flexShrink: 0,
         background: '#1A1A1A',
         border: '1px solid #252525',
@@ -364,7 +364,7 @@ export default function PDV() {
           )}
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
+        <div className="pdv-cart-items" style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
           <AnimatePresence>
             {cart.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 20px', color: '#333', fontSize: '13px' }}>

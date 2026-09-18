@@ -142,36 +142,38 @@ function ListaView({
     <>
       {/* Week strip */}
       <div style={{ display: 'flex', gap: '6px', marginBottom: '28px', alignItems: 'center' }}>
-        <button className="btn-icon btn" onClick={() => navDay(-7)}>
+        <button className="btn-icon btn" style={{ flexShrink: 0 }} onClick={() => navDay(-7)}>
           <ChevronLeft size={14} />
         </button>
-        {weekDays.map(d => {
-          const key = toKey(d)
-          const isSel   = key === dateKey
-          const isToday = key === todayKey
-          const count   = agenda.filter(a => a.data_hora.startsWith(key)).length
-          return (
-            <button key={key} onClick={() => setSelectedDate(new Date(d))} style={{
-              flex: 1, padding: '10px 8px', borderRadius: '8px', fontFamily: 'inherit',
-              border: isSel ? '1px solid #FFFFFF' : '1px solid #2A2A2A',
-              background: isSel ? '#FFFFFF' : 'transparent',
-              color: isSel ? '#0D0D0D' : isToday ? '#A3A3A3' : '#555',
-              cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s ease',
-            }}>
-              <div style={{ fontSize: '10px', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                {d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
-              </div>
-              <div style={{ fontSize: '16px', fontWeight: 700, lineHeight: 1 }}>{d.getDate()}</div>
-              {count > 0 && (
-                <div style={{
-                  marginTop: '5px', width: '5px', height: '5px', borderRadius: '50%',
-                  background: isSel ? '#0D0D0D' : '#555', margin: '5px auto 0',
-                }} />
-              )}
-            </button>
-          )
-        })}
-        <button className="btn-icon btn" onClick={() => navDay(7)}>
+        <div className="agenda-days-scroll" style={{ display: 'flex', gap: '6px', flex: 1, minWidth: 0 }}>
+          {weekDays.map(d => {
+            const key = toKey(d)
+            const isSel   = key === dateKey
+            const isToday = key === todayKey
+            const count   = agenda.filter(a => a.data_hora.startsWith(key)).length
+            return (
+              <button key={key} onClick={() => setSelectedDate(new Date(d))} style={{
+                flex: 1, padding: '10px 8px', borderRadius: '8px', fontFamily: 'inherit',
+                border: isSel ? '1px solid #FFFFFF' : '1px solid #2A2A2A',
+                background: isSel ? '#FFFFFF' : 'transparent',
+                color: isSel ? '#0D0D0D' : isToday ? '#A3A3A3' : '#555',
+                cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s ease',
+              }}>
+                <div style={{ fontSize: '10px', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  {d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
+                </div>
+                <div style={{ fontSize: '16px', fontWeight: 700, lineHeight: 1 }}>{d.getDate()}</div>
+                {count > 0 && (
+                  <div style={{
+                    marginTop: '5px', width: '5px', height: '5px', borderRadius: '50%',
+                    background: isSel ? '#0D0D0D' : '#555', margin: '5px auto 0',
+                  }} />
+                )}
+              </button>
+            )
+          })}
+        </div>
+        <button className="btn-icon btn" style={{ flexShrink: 0 }} onClick={() => navDay(7)}>
           <ChevronRight size={14} />
         </button>
       </div>
@@ -324,6 +326,8 @@ function SemanalView({
 
       {/* Grid */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="agenda-week-scroll">
+      <div className="agenda-week-inner">
         {/* Day headers */}
         <div style={{
           display: 'grid',
@@ -469,6 +473,8 @@ function SemanalView({
           </div>
         </div>
       </div>
+      </div>
+      </div>
     </div>
   )
 }
@@ -517,6 +523,8 @@ function MensalView({
       </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="agenda-month-scroll">
+      <div className="agenda-month-inner">
         {/* Day of week headers */}
         <div style={{
           display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
@@ -611,6 +619,8 @@ function MensalView({
             )
           })}
         </div>
+      </div>
+      </div>
       </div>
     </div>
   )
@@ -739,7 +749,7 @@ export default function Agenda() {
   return (
     <div className="page">
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px' }}>
+      <div className="page-header-row" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px' }}>
         <div>
           <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Agenda</h1>
           <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
@@ -752,7 +762,7 @@ export default function Agenda() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           {/* View toggle */}
           <div style={{
             display: 'flex', alignItems: 'center', gap: '2px',
