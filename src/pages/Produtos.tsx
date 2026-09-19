@@ -333,6 +333,11 @@ export default function Produtos() {
         </div>
         {secao === 'produtos' ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {produtos.length > 0 && (
+              <button className="btn btn-secondary btn-sm" onClick={toggleSelecionarTodos} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Check size={12} /> {selecionados.size === produtos.length ? 'Desmarcar todos' : 'Selecionar todos'}
+              </button>
+            )}
             {selecionados.size > 0 && (
               <button className="btn btn-secondary btn-sm" onClick={imprimirSelecionados} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Tag size={12} /> Imprimir etiquetas ({selecionados.size})
