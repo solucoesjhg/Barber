@@ -201,40 +201,55 @@ export default function PDV() {
           <p style={{ fontSize: '12px', color: '#666', marginTop: '-8px', marginBottom: '12px', flexShrink: 0 }}>{scanAviso}</p>
         )}
 
-        {/* Content area — produtos e serviços juntos, sem separação */}
+        {/* Content area — produtos e serviços juntos, em lista (sem cards quadrados) */}
         <div className="pdv-catalog-content" style={{ flex: 1, overflowY: 'auto', paddingBottom: '16px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '12px' }}>
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
             {itensCatalogo.length === 0 ? (
-              <div style={{ gridColumn: '1/-1', padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+              <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
                 Nenhum produto ou serviço encontrado.
               </div>
-            ) : itensCatalogo.map(item => {
+            ) : itensCatalogo.map((item, i) => {
               const baixo = item.tipo === 'produto' && item.dado.estoque_atual <= item.dado.estoque_minimo
               return (
-                <motion.button
+                <motion.div
                   key={`${item.tipo}-${item.dado.id}`}
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i, 20) * 0.015 }}
                   onClick={() => item.tipo === 'servico' ? addServico(item.dado) : addProduto(item.dado)}
-                  className="card-sm"
-                  style={{ cursor: 'pointer', border: '1px solid #2A2A2A', textAlign: 'left', transition: 'all 0.15s', fontFamily: 'inherit', width: '100%' }}
-                  whileHover={{ borderColor: '#444', background: '#242424' }}
-                  whileTap={{ scale: 0.97 }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '12px',
+                    padding: '13px 20px',
+                    borderBottom: i < itensCatalogo.length - 1 ? '1px solid #1F1F1F' : 'none',
+                    cursor: 'pointer', transition: 'background 0.12s',
+                  }}
+                  whileHover={{ backgroundColor: 'rgba(255,255,255,0.03)' }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '6px' }}>
-                    {item.tipo === 'servico' ? <Scissors size={11} style={{ color: '#555' }} /> : <Package size={11} style={{ color: '#555' }} />}
-                    <span style={{ fontSize: '9px', color: '#555', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      {item.tipo === 'servico' ? 'Serviço' : 'Produto'}
-                    </span>
+                  {item.tipo === 'servico'
+                    ? <Scissors size={14} style={{ color: '#555', flexShrink: 0 }} />
+                    : <Package size={14} style={{ color: '#555', flexShrink: 0 }} />}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {item.dado.nome}
+                    </p>
+                    <p style={{ fontSize: '11px', color: baixo ? '#A3A3A3' : '#555', marginTop: '2px' }}>
+                      {item.tipo === 'servico'
+                        ? `${item.dado.duracao_minutos} min`
+                        : `${item.dado.estoque_atual} ${item.dado.unidade} em estoque`}
+                    </p>
                   </div>
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', marginBottom: '4px' }}>{item.dado.nome}</p>
-                  <p style={{ fontSize: '11px', color: baixo ? '#A3A3A3' : '#555' }}>
-                    {item.tipo === 'servico'
-                      ? `${item.dado.duracao_minutos} min`
-                      : `${item.dado.estoque_atual} ${item.dado.unidade} em estoque`}
-                  </p>
-                  <p style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF', marginTop: '10px' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 700, color: '#FFFFFF', flexShrink: 0, minWidth: '64px', textAlign: 'right' }}>
                     {formatCurrency(item.tipo === 'servico' ? item.dado.preco : item.dado.preco_venda)}
-                  </p>
-                </motion.button>
+                  </span>
+                  <button
+                    onClick={e => { e.stopPropagation(); item.tipo === 'servico' ? addServico(item.dado) : addProduto(item.dado) }}
+                    style={{
+                      width: '28px', height: '28px', borderRadius: '6px', flexShrink: 0,
+                      border: '1px solid #333', background: 'transparent', color: '#666',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    <Plus size={13} />
+                  </button>
+                </motion.div>
               )
             })}
           </div>
