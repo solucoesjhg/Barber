@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
 import EtiquetaModal from '../components/EtiquetaModal'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
+import { usePerfil } from '../hooks/usePerfil'
 import type { Produto, ProdutoCategoria, Servico, Profissional } from '../types'
 
 type Secao = 'produtos' | 'servicos'
@@ -88,6 +89,8 @@ async function lerPlanilhaProdutos(arquivo: File): Promise<{ validas: LinhaImpor
 }
 
 export default function Produtos() {
+  const { papel } = usePerfil()
+  const souAtendente = papel === 'atendente'
   const [secao, setSecao] = useState<Secao>('produtos')
 
   // Produtos
@@ -157,8 +160,13 @@ export default function Produtos() {
   }
 
   useEffect(() => {
-    supabase.from('produtos').select('*').order('nome')
-      .then(({ data }) => { setProdutos((data ?? []) as Produto[]) })
+    // Atendente não recebe preco_custo nem na resposta da API — não é
+    // só esconder na tela, o dado nem sai do banco pra essa conta.
+    const colunas: string = souAtendente
+      ? 'id, nome, categoria, sku, unidade, preco_venda, estoque_atual, estoque_minimo, estoque_maximo, comissao_percentual, ativo, empresa_id'
+      : '*'
+    supabase.from('produtos').select(colunas).order('nome')
+      .then(({ data }) => { setProdutos((data ?? []) as unknown as Produto[]) })
 
     supabase
       .from('servicos')
@@ -175,24 +183,27 @@ export default function Produtos() {
 
     supabase.from('profissionais').select('*').order('nome')
       .then(({ data }) => { if (data) setProfissionais(data as Profissional[]) })
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [souAtendente])
 
   async function handleSaveProd() {
     if (!prodForm.nome.trim() || !prodForm.preco_venda) {
       setError('Nome e preço de venda são obrigatórios.'); return
     }
     setSaving(true); setError('')
-    const payload = {
+    const payload: Record<string, unknown> = {
       nome: prodForm.nome, categoria: prodForm.categoria,
       sku: prodForm.sku || null,
       unidade: prodForm.unidade || 'un',
-      preco_custo: Number(prodForm.preco_custo) || 0,
       preco_venda: Number(prodForm.preco_venda),
       estoque_atual: Number(prodForm.estoque_atual) || 0,
       estoque_minimo: Number(prodForm.estoque_minimo) || 5,
       estoque_maximo: prodForm.estoque_maximo ? Number(prodForm.estoque_maximo) : null,
       comissao_percentual: prodForm.comissao_percentual ? Number(prodForm.comissao_percentual) : null,
     }
+    // Atendente nunca define/altera custo — omitido do payload em vez
+    // de mandar 0 (senão zerava o custo real ao editar qualquer outro campo).
+    if (!souAtendente) payload.preco_custo = Number(prodForm.preco_custo) || 0
     if (editProdId) {
       const { data, error: err } = await supabase.from('produtos').update(payload).eq('id', editProdId).select('*').single()
       if (err) { setError(err.message); setSaving(false); return }
@@ -216,7 +227,7 @@ export default function Produtos() {
     setEditProdId(p.id)
     setProdForm({
       nome: p.nome, categoria: p.categoria, sku: p.sku ?? '', unidade: p.unidade,
-      preco_custo: String(p.preco_custo), preco_venda: String(p.preco_venda),
+      preco_custo: p.preco_custo != null ? String(p.preco_custo) : '', preco_venda: String(p.preco_venda),
       estoque_atual: String(p.estoque_atual), estoque_minimo: String(p.estoque_minimo),
       estoque_maximo: p.estoque_maximo != null ? String(p.estoque_maximo) : '',
       comissao_percentual: p.comissao_percentual != null ? String(p.comissao_percentual) : '',
@@ -343,17 +354,23 @@ export default function Produtos() {
                 <Tag size={12} /> Imprimir etiquetas ({selecionados.size})
               </button>
             )}
-            <button className="btn btn-icon" title="Baixar modelo de planilha" onClick={baixarModeloProdutos}>
-              <Download size={13} />
-            </button>
-            <button className="btn btn-icon" title={importando ? 'Importando...' : 'Importar produtos por planilha'} onClick={() => fileInputRef.current?.click()} disabled={importando}>
-              <Upload size={13} />
-            </button>
+            {!souAtendente && (
+              <button className="btn btn-icon" title="Baixar modelo de planilha" onClick={baixarModeloProdutos}>
+                <Download size={13} />
+              </button>
+            )}
+            {!souAtendente && (
+              <button className="btn btn-icon" title={importando ? 'Importando...' : 'Importar produtos por planilha'} onClick={() => fileInputRef.current?.click()} disabled={importando}>
+                <Upload size={13} />
+              </button>
+            )}
             <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleImportarArquivo} style={{ display: 'none' }} />
-            <div style={{ width: '1px', height: '20px', background: '#252525', margin: '0 4px' }} />
-            <button className="btn btn-primary" onClick={abrirNovoProd} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Plus size={14} strokeWidth={2.5} /> Novo Produto
-            </button>
+            {!souAtendente && <div style={{ width: '1px', height: '20px', background: '#252525', margin: '0 4px' }} />}
+            {!souAtendente && (
+              <button className="btn btn-primary" onClick={abrirNovoProd} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Plus size={14} strokeWidth={2.5} /> Novo Produto
+              </button>
+            )}
           </div>
         ) : (
           <button className="btn btn-primary" onClick={abrirNovoServ} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -453,7 +470,7 @@ export default function Produtos() {
             <div className="card desktop-row" style={{ padding: 0, overflow: 'hidden' }}>
               <div className="list-header" style={{
                 display: 'grid',
-                gridTemplateColumns: '28px 1fr 100px 120px 120px 90px 90px 80px 76px',
+                gridTemplateColumns: souAtendente ? '28px 1fr 100px 120px 90px 90px 80px 76px' : '28px 1fr 100px 120px 120px 90px 90px 80px 76px',
                 padding: '10px 24px',
                 borderBottom: '1px solid #222',
                 fontSize: '10px', fontWeight: 600, color: '#444',
@@ -462,7 +479,7 @@ export default function Produtos() {
                 alignItems: 'center',
               }}>
                 <input type="checkbox" checked={produtos.length > 0 && selecionados.size === produtos.length} onChange={toggleSelecionarTodos} />
-                <span>Produto</span><span>Categoria</span><span>Custo</span>
+                <span>Produto</span><span>Categoria</span>{!souAtendente && <span>Custo</span>}
                 <span>Venda</span><span>Estoque</span><span>Mínimo</span><span>Status</span><span></span>
               </div>
 
@@ -472,7 +489,7 @@ export default function Produtos() {
                 </div>
               ) : produtos.map((p, i) => {
                 const baixo  = p.estoque_atual <= p.estoque_minimo
-                const margem = p.preco_custo > 0 ? ((p.preco_venda - p.preco_custo) / p.preco_custo * 100).toFixed(0) : null
+                const margem = !souAtendente && p.preco_custo > 0 ? ((p.preco_venda - p.preco_custo) / p.preco_custo * 100).toFixed(0) : null
                 return (
                   <motion.div
                     key={p.id}
@@ -480,7 +497,7 @@ export default function Produtos() {
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: '28px 1fr 100px 120px 120px 90px 90px 80px 76px',
+                      gridTemplateColumns: souAtendente ? '28px 1fr 100px 120px 90px 90px 80px 76px' : '28px 1fr 100px 120px 120px 90px 90px 80px 76px',
                       padding: '14px 24px',
                       borderBottom: i < produtos.length - 1 ? '1px solid #1F1F1F' : 'none',
                       alignItems: 'center',
@@ -498,7 +515,7 @@ export default function Produtos() {
                       </div>
                     </div>
                     <span style={{ fontSize: '12px', color: '#666', textTransform: 'capitalize' }}>{CAT_LABEL[p.categoria]}</span>
-                    <span style={{ fontSize: '13px', color: '#555' }}>{formatCurrency(p.preco_custo)}</span>
+                    {!souAtendente && <span style={{ fontSize: '13px', color: '#555' }}>{formatCurrency(p.preco_custo)}</span>}
                     <span style={{ fontSize: '13px', color: '#A3A3A3', fontWeight: 500 }}>{formatCurrency(p.preco_venda)}</span>
                     <span style={{ fontSize: '14px', fontWeight: 700, color: baixo ? '#FFFFFF' : '#A3A3A3' }}>
                       {p.estoque_atual} {p.unidade}
@@ -506,21 +523,24 @@ export default function Produtos() {
                     </span>
                     <span style={{ fontSize: '13px', color: '#444' }}>{p.estoque_minimo}</span>
                     <button
-                      onClick={() => toggleAtivoProd(p.id, p.ativo)}
+                      onClick={() => { if (!souAtendente) toggleAtivoProd(p.id, p.ativo) }}
+                      disabled={souAtendente}
                       style={{
                         fontSize: '10px', padding: '3px 9px', borderRadius: '99px',
                         border: p.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
                         background: 'transparent',
                         color: p.ativo ? '#A3A3A3' : '#444',
-                        cursor: 'pointer', width: 'fit-content',
+                        cursor: souAtendente ? 'default' : 'pointer', width: 'fit-content',
                       }}
                     >
                       {p.ativo ? 'Ativo' : 'Inativo'}
                     </button>
                     <div style={{ display: 'flex', gap: '4px' }}>
-                      <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicaoProd(p)}>
-                        <Pencil size={12} />
-                      </button>
+                      {!souAtendente && (
+                        <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicaoProd(p)}>
+                          <Pencil size={12} />
+                        </button>
+                      )}
                       <button className="btn btn-icon" title="Gerar/imprimir etiqueta" onClick={() => setProdutosEtiqueta([p])}>
                         <Tag size={12} />
                       </button>
@@ -535,7 +555,7 @@ export default function Produtos() {
               <div className="entity-grid mobile-only-grid" style={{ gap: '16px' }}>
                 {produtos.map((p, i) => {
                   const baixo  = p.estoque_atual <= p.estoque_minimo
-                  const margem = p.preco_custo > 0 ? ((p.preco_venda - p.preco_custo) / p.preco_custo * 100).toFixed(0) : null
+                  const margem = !souAtendente && p.preco_custo > 0 ? ((p.preco_venda - p.preco_custo) / p.preco_custo * 100).toFixed(0) : null
                   const detalhes = [p.sku && `#${p.sku}`, margem && `+${margem}% margem`, p.comissao_percentual != null && `comissão ${p.comissao_percentual}%`].filter(Boolean).join(' · ')
                   return (
                     <motion.div
@@ -562,11 +582,12 @@ export default function Produtos() {
                           {detalhes && <p className="entity-subtle" style={{ fontSize: '11px', color: '#555', marginTop: '2px' }}>{detalhes}</p>}
                         </div>
                         <button
-                          onClick={() => toggleAtivoProd(p.id, p.ativo)}
+                          onClick={() => { if (!souAtendente) toggleAtivoProd(p.id, p.ativo) }}
+                          disabled={souAtendente}
                           style={{
                             fontSize: '10px', padding: '3px 9px', borderRadius: '99px', flexShrink: 0,
                             border: p.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
-                            background: 'transparent', color: p.ativo ? '#A3A3A3' : '#444', cursor: 'pointer',
+                            background: 'transparent', color: p.ativo ? '#A3A3A3' : '#444', cursor: souAtendente ? 'default' : 'pointer',
                           }}
                         >
                           {p.ativo ? 'Ativo' : 'Inativo'}
@@ -586,10 +607,12 @@ export default function Produtos() {
                             {p.estoque_atual} {p.unidade} {baixo && <AlertTriangle size={11} style={{ marginLeft: '2px', color: '#777', verticalAlign: 'middle' }} />}
                           </p>
                         </div>
-                        <div>
-                          <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Custo</p>
-                          <p style={{ fontSize: '13px', color: '#555' }}>{formatCurrency(p.preco_custo)}</p>
-                        </div>
+                        {!souAtendente && (
+                          <div>
+                            <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Custo</p>
+                            <p style={{ fontSize: '13px', color: '#555' }}>{formatCurrency(p.preco_custo)}</p>
+                          </div>
+                        )}
                         <div>
                           <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Venda</p>
                           <p style={{ fontSize: '13px', color: '#A3A3A3', fontWeight: 500 }}>{formatCurrency(p.preco_venda)}</p>
@@ -597,9 +620,11 @@ export default function Produtos() {
                       </div>
 
                       <div className="entity-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
-                        <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicaoProd(p)}>
-                          <Pencil size={12} />
-                        </button>
+                        {!souAtendente && (
+                          <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicaoProd(p)}>
+                            <Pencil size={12} />
+                          </button>
+                        )}
                         <button className="btn btn-icon" title="Gerar/imprimir etiqueta" onClick={() => setProdutosEtiqueta([p])}>
                           <Tag size={12} />
                         </button>
