@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, type ChangeEvent } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, X, AlertTriangle, Package, Scissors, Check, Tag, Pencil, Download, Upload } from 'lucide-react'
+import { Plus, X, AlertTriangle, Package, Scissors, Check, Tag, Pencil, Download, Upload, ClipboardList } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
 import EtiquetaModal from '../components/EtiquetaModal'
+import EntradaProdutosModal from '../components/EntradaProdutosModal'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
 import { usePerfil } from '../hooks/usePerfil'
 import type { Produto, ProdutoCategoria, Servico, Profissional } from '../types'
@@ -120,9 +121,18 @@ export default function Produtos() {
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
   const [importando, setImportando] = useState(false)
   const [resultadoImportacao, setResultadoImportacao] = useState<{ ok: number; erros: string[] } | null>(null)
+  const [showEntrada, setShowEntrada] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const alertas = produtos.filter(p => p.estoque_atual <= p.estoque_minimo)
+
+  function carregarProdutos() {
+    const colunas: string = souAtendente
+      ? 'id, nome, categoria, sku, unidade, preco_venda, estoque_atual, estoque_minimo, estoque_maximo, comissao_percentual, ativo, empresa_id'
+      : '*'
+    return supabase.from('produtos').select(colunas).order('nome')
+      .then(({ data }) => { setProdutos((data ?? []) as unknown as Produto[]) })
+  }
 
   async function handleImportarArquivo(e: ChangeEvent<HTMLInputElement>) {
     const arquivo = e.target.files?.[0]
@@ -162,11 +172,7 @@ export default function Produtos() {
   useEffect(() => {
     // Atendente não recebe preco_custo nem na resposta da API — não é
     // só esconder na tela, o dado nem sai do banco pra essa conta.
-    const colunas: string = souAtendente
-      ? 'id, nome, categoria, sku, unidade, preco_venda, estoque_atual, estoque_minimo, estoque_maximo, comissao_percentual, ativo, empresa_id'
-      : '*'
-    supabase.from('produtos').select(colunas).order('nome')
-      .then(({ data }) => { setProdutos((data ?? []) as unknown as Produto[]) })
+    carregarProdutos()
 
     supabase
       .from('servicos')
@@ -366,6 +372,11 @@ export default function Produtos() {
             )}
             <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleImportarArquivo} style={{ display: 'none' }} />
             {!souAtendente && <div style={{ width: '1px', height: '20px', background: '#252525', margin: '0 4px' }} />}
+            {!souAtendente && (
+              <button className="btn btn-secondary" onClick={() => setShowEntrada(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ClipboardList size={14} /> Nova Entrada
+              </button>
+            )}
             {!souAtendente && (
               <button className="btn btn-primary" onClick={abrirNovoProd} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Plus size={14} strokeWidth={2.5} /> Novo Produto
@@ -999,6 +1010,16 @@ export default function Produtos() {
               setProdutos(prev => prev.map(x => x.id === id ? { ...x, sku } : x))
               setProdutosEtiqueta(prev => prev ? prev.map(x => x.id === id ? { ...x, sku } : x) : prev)
             }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showEntrada && (
+          <EntradaProdutosModal
+            produtos={produtos}
+            onClose={() => setShowEntrada(false)}
+            onSuccess={carregarProdutos}
           />
         )}
       </AnimatePresence>
