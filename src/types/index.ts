@@ -66,6 +66,7 @@ export interface Produto {
   unidade: string
   comissao_percentual?: number
   ativo: boolean
+  foto_url?: string
 }
 
 export interface Agendamento {

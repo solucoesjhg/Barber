@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
 import EtiquetaModal from '../components/EtiquetaModal'
 import EntradaProdutosModal from '../components/EntradaProdutosModal'
+import ProdutoFotosModal from '../components/ProdutoFotosModal'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
 import { usePerfil } from '../hooks/usePerfil'
 import type { Produto, ProdutoCategoria, Servico, Profissional } from '../types'
@@ -122,13 +123,14 @@ export default function Produtos() {
   const [importando, setImportando] = useState(false)
   const [resultadoImportacao, setResultadoImportacao] = useState<{ ok: number; erros: string[] } | null>(null)
   const [showEntrada, setShowEntrada] = useState(false)
+  const [produtoFotosAlvo, setProdutoFotosAlvo] = useState<Produto | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const alertas = produtos.filter(p => p.estoque_atual <= p.estoque_minimo)
 
   function carregarProdutos() {
     const colunas: string = souAtendente
-      ? 'id, nome, categoria, sku, unidade, preco_venda, estoque_atual, estoque_minimo, estoque_maximo, comissao_percentual, ativo, empresa_id'
+      ? 'id, nome, categoria, sku, unidade, preco_venda, estoque_atual, estoque_minimo, estoque_maximo, comissao_percentual, ativo, foto_url, empresa_id'
       : '*'
     return supabase.from('produtos').select(colunas).order('nome')
       .then(({ data }) => { setProdutos((data ?? []) as unknown as Produto[]) })
@@ -517,7 +519,21 @@ export default function Produtos() {
                   >
                     <input type="checkbox" checked={selecionados.has(p.id)} onChange={() => toggleSelecionado(p.id)} />
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <Package size={13} style={{ color: '#444', flexShrink: 0 }} />
+                      <button
+                        title="Ver fotos"
+                        onClick={e => { e.stopPropagation(); setProdutoFotosAlvo(p) }}
+                        style={{
+                          width: '26px', height: '26px', borderRadius: '6px', padding: 0, cursor: 'pointer', flexShrink: 0,
+                          background: '#1F1F1F', border: '1px solid #2A2A2A',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                        }}
+                      >
+                        {p.foto_url ? (
+                          <img src={p.foto_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          <Package size={13} style={{ color: '#444' }} />
+                        )}
+                      </button>
                       <div>
                         <span style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{p.nome}</span>
                         {p.sku && <span style={{ fontSize: '10px', color: '#444', marginLeft: '8px' }}>#{p.sku}</span>}
@@ -576,13 +592,23 @@ export default function Produtos() {
                     >
                       <div className="entity-header" style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                         <input type="checkbox" checked={selecionados.has(p.id)} onChange={() => toggleSelecionado(p.id)} style={{ marginTop: '4px', flexShrink: 0 }} />
-                        <div className="entity-avatar" style={{
-                          width: '40px', height: '40px', borderRadius: '10px',
-                          background: '#262626', border: '1px solid #333',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                        }}>
-                          <Package size={16} style={{ color: '#A3A3A3' }} />
-                        </div>
+                        <button
+                          title="Ver fotos"
+                          onClick={() => setProdutoFotosAlvo(p)}
+                          className="entity-avatar"
+                          style={{
+                            width: '40px', height: '40px', borderRadius: '10px', padding: 0, cursor: 'pointer',
+                            background: '#262626', border: '1px solid #333',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {p.foto_url ? (
+                            <img src={p.foto_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <Package size={16} style={{ color: '#A3A3A3' }} />
+                          )}
+                        </button>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <h3 className="entity-title" style={{
@@ -1020,6 +1046,16 @@ export default function Produtos() {
             produtos={produtos}
             onClose={() => setShowEntrada(false)}
             onSuccess={carregarProdutos}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {produtoFotosAlvo && (
+          <ProdutoFotosModal
+            produto={produtoFotosAlvo}
+            onClose={() => setProdutoFotosAlvo(null)}
+            onChange={carregarProdutos}
           />
         )}
       </AnimatePresence>
