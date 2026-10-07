@@ -1,0 +1,11 @@
+<!-- @dsCard group="Navigation" height=100 -->
+<!doctype html>
+<html><head><meta charset="utf-8"><style>body{padding:0;min-height:0}</style></head>
+<body>
+<div id="root"></div>
+<script>
+var B = window.BarberOS, h = React.createElement, useState = React.useState;
+function A(){var o=useState(true);return h(B.AppHeader,{pageName:'Clientes',sidebarOpen:o[0],onToggleSidebar:function(){o[1](!o[0])}})}
+ReactDOM.createRoot(document.getElementById('root')).render(h(A));
+</script>
+</body></html>

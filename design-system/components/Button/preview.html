@@ -1,0 +1,11 @@
+<!-- @dsCard group="Actions" height=140 -->
+<!doctype html>
+<html><head><meta charset="utf-8"><style>body{padding:20px;min-height:0}</style></head>
+<body>
+<div id="root"></div>
+<script>
+var B = window.BarberOS, h = React.createElement, useState = React.useState;
+function Row(p){return h('div',{style:{display:'flex',flexWrap:'wrap',gap:'12px',alignItems:'center'}},p.children)}
+ReactDOM.createRoot(document.getElementById('root')).render(h(Row,null,h(B.Button,{icon:'plus'},'Novo Cliente'),h(B.Button,{variant:'secondary'},'Cancelar (Esc)'),h(B.Button,{variant:'ghost'},'Ver todos'),h(B.Button,{variant:'icon',icon:'x',title:'Fechar'}),h(B.Button,{size:'sm'},'Salvar'),h(B.Button,{variant:'secondary',size:'sm'},'Pagar'),h(B.Button,{disabled:true},'Salvando...')));
+</script>
+</body></html>

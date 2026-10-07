@@ -1,0 +1,10 @@
+<!-- @dsCard group="Layout" height=190 -->
+<!doctype html>
+<html><head><meta charset="utf-8"><style>body{padding:20px;min-height:0}</style></head>
+<body>
+<div id="root"></div>
+<script>
+var B = window.BarberOS, h = React.createElement, useState = React.useState;
+ReactDOM.createRoot(document.getElementById('root')).render(h(B.StatGrid,{columns:4},h(B.StatCard,{icon:'trendingUp',value:'R$ 12.450,00',label:'Faturamento (mês)',size:'sm'}),h(B.StatCard,{icon:'trendingDown',value:'R$ 4.310,00',label:'Despesas (mês)',size:'sm'}),h(B.StatCard,{icon:'dollar',value:'R$ 8.140,00',label:'Lucro estimado',size:'sm'}),h(B.StatCard,{icon:'wallet',value:'Fechado',label:'Saldo de Caixa',size:'sm'})));
+</script>
+</body></html>

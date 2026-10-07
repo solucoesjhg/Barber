@@ -420,6 +420,7 @@ export default function Financeiro() {
       {/* Modal saída */}
       {showModal && (
         <div
+          className="modal-overlay"
           style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
         >
           <div ref={modalRef} className="card" style={{ width: '100%', maxWidth: '400px', padding: '28px' }}>

@@ -1,0 +1,11 @@
+<!-- @dsCard group="Display" height=80 -->
+<!doctype html>
+<html><head><meta charset="utf-8"><style>body{padding:20px;min-height:0}</style></head>
+<body>
+<div id="root"></div>
+<script>
+var B = window.BarberOS, h = React.createElement, useState = React.useState;
+function Row(p){return h('div',{style:{display:'flex',flexWrap:'wrap',gap:'12px',alignItems:'center'}},p.children)}
+ReactDOM.createRoot(document.getElementById('root')).render(h(Row,null,h(B.Badge,{status:'pending'},'Pendente'),h(B.Badge,{status:'confirmed'},'Confirmado'),h(B.Badge,{status:'done'},'Concluído'),h(B.Badge,{status:'canceled'},'Cancelado')));
+</script>
+</body></html>

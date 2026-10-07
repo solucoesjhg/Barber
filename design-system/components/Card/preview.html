@@ -1,0 +1,10 @@
+<!-- @dsCard group="Display" height=200 -->
+<!doctype html>
+<html><head><meta charset="utf-8"><style>body{padding:20px;min-height:0}</style></head>
+<body>
+<div id="root"></div>
+<script>
+var B = window.BarberOS, h = React.createElement, useState = React.useState;
+ReactDOM.createRoot(document.getElementById('root')).render(h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:'16px'}},h(B.Card,null,h('p',{style:{fontSize:'13px',fontWeight:600,marginBottom:'8px'}},'Serviços mais vendidos'),h('p',{style:{fontSize:'13px',color:'var(--text-muted)'}},'Corte + barba')),h(B.Card,{variant:'sm'},h('p',{style:{fontSize:'13px',color:'var(--text-muted)'}},'card-sm')),h(B.Card,{variant:'glow',onClick:function(){}},h('p',{style:{fontSize:'13px',color:'var(--text-muted)'}},'Passe o mouse: glow-card'))));
+</script>
+</body></html>

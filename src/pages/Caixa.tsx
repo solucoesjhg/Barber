@@ -200,6 +200,7 @@ export default function Caixa() {
       <AnimatePresence>
         {modal && (
           <motion.div
+            className="modal-overlay"
             style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
@@ -259,6 +260,7 @@ export default function Caixa() {
       <AnimatePresence>
         {resultadoFechamento && (
           <motion.div
+            className="modal-overlay"
             style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >

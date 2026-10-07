@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source not "../design-system";
 
 /* ============================================================
    DESIGN SYSTEM — Minimalista Premium Monocromático
@@ -395,6 +396,28 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
 
   .mobile-sidebar-backdrop {
     display: block !important;
+    position: fixed;
+    inset: 0;
+    z-index: 150;
+    background: rgba(0,0,0,0.8);
+  }
+
+  /* Modais: encostam embaixo da tela e rolam por dentro quando são altos */
+  .modal-overlay {
+    align-items: flex-end !important;
+    padding: 12px !important;
+  }
+  .modal-overlay > .card {
+    padding: 20px !important;
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+  }
+
+  /* Cards de indicadores: menos respiro para caber em 2 colunas */
+  .dashboard-stats-grid .card,
+  .dashboard-fin-grid .card,
+  .stat-grid .card {
+    padding: 16px !important;
   }
 
   .app-header {

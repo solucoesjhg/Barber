@@ -1,0 +1,63 @@
+/* BarberOS — generated from tokens.json */
+:root, [data-theme="dark"] {
+  --bg: #0d0d0d;
+  --sidebar-bg: #111111;
+  --surface-inset: #1a1a1a;
+  --surface: #1e1e1e;
+  --surface-2: #262626;
+  --chrome-border: #1f1f1f;
+  --control-border: #252525;
+  --list-border: #222222;
+  --border: #333333;
+  --border-strong: #444444;
+  --text: #ffffff;
+  --primary-hover: #e5e5e5;
+  --text-muted: #a3a3a3;
+  --text-group: #8a8a8a;
+  --text-dim: #666666;
+  --text-faint: #555555;
+  --text-ghost: #444444;
+  --success: #4ade80;
+  --danger: #f87171;
+  --overlay: rgba(0, 0, 0, 0.8);
+  --hover-tint: rgba(255, 255, 255, 0.04);
+  --active-tint: rgba(255, 255, 255, 0.07);
+  --icon-tile: rgba(255, 255, 255, 0.06);
+  --chip-bg: rgba(255, 255, 255, 0.08);
+  --focus-ring: rgba(255, 255, 255, 0.4);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.6);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.7);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.8);
+  --shadow-glow: 0 4px 16px rgba(255,255,255,0.12);
+  --shadow-card-hover: 0 10px 28px rgba(0,0,0,0.35);
+}
+:root {
+  --space-field: 6px;
+  --space-stack: 14px;
+  --space-card-sm: 16px;
+  --space-card: 24px;
+  --space-modal: 28px;
+  --space-page: 40px;
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 99px;
+  --control-height: 44px;
+  --control-height-sm: 34px;
+  --icon-button: 36px;
+  --header-height: 64px;
+  --sidebar-width: 220px;
+  --font-sans: "DM Sans", -apple-system, system-ui, sans-serif;
+  --font-serif: "Playfair Display", serif;
+}
+.display { font-family: var(--font-serif); font-size: 28px; font-weight: 600; line-height: 1.1; }
+.page-title { font-family: var(--font-serif); font-size: 24px; font-weight: 600; }
+.modal-title { font-family: var(--font-serif); font-size: 18px; font-weight: 600; }
+.stat-value { font-family: var(--font-sans); font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+.stat-value-sm { font-family: var(--font-sans); font-size: 18px; font-weight: 700; }
+.body { font-family: var(--font-sans); font-size: 14px; font-weight: 400; }
+.body-sm { font-family: var(--font-sans); font-size: 13px; font-weight: 400; }
+.caption { font-family: var(--font-sans); font-size: 12px; font-weight: 400; }
+.label { font-family: var(--font-sans); font-size: 12px; font-weight: 500; letter-spacing: 0.06em; }
+.overline { font-family: var(--font-sans); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; }
+.badge { font-family: var(--font-sans); font-size: 11px; font-weight: 600; letter-spacing: 0.02em; }

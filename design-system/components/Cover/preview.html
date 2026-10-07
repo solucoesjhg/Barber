@@ -1,0 +1,31 @@
+<!-- @dsCard height=288 -->
+<!doctype html><html><head><meta charset="utf-8">
+<style>
+  html,body{margin:0;padding:0;background:var(--bg);overflow:hidden}
+  .wrap{position:relative;width:960px;height:288px;background:var(--bg)}
+  svg{position:absolute;inset:0}
+  .ink{fill:var(--text)} .muted{fill:var(--text-muted)} .strong{fill:var(--border-strong)} .s2{fill:var(--surface-2)}
+  .tile{rx:var(--radius-lg);ry:var(--radius-lg)}
+  .rule{stroke:var(--border);stroke-width:1}
+  .name{position:absolute;left:40px;bottom:40px;max-width:440px}
+  .name h1{font-family:var(--font-serif);font-weight:600;font-size:96px;line-height:.95;color:var(--text);margin:0}
+  .name p{font-family:var(--font-sans);font-size:14px;color:var(--text-muted);margin-top:16px}
+</style></head><body>
+<div class="wrap">
+<svg width="960" height="288" viewBox="0 0 960 288">
+  <!-- blocks: text 120×200 slab, text-muted 120×120, border-strong 120×200 bleeding right/bottom, surface-2 240×80 (multiples of space-page 40px)
+       arrangement: one tall white slab bleeding off the top with satellites, staggered, all right of x=480
+       pattern: editorial hairlines — "Sem cores vibrantes, usa opacidade e bordas" + Playfair headings → four rules in border
+       scales: space-page 40px pitch, radius-lg 12px corners, 1px border hairline -->
+  <line class="rule" x1="480" y1="28" x2="960" y2="28"/>
+  <line class="rule" x1="480" y1="168" x2="960" y2="168"/>
+  <line class="rule" x1="480" y1="268" x2="960" y2="268"/>
+  <line class="rule" x1="600" y1="0" x2="600" y2="288"/>
+  <rect class="s2 tile" x="520" y="188" width="240" height="80"/>
+  <rect class="muted tile" x="640" y="48" width="120" height="120"/>
+  <rect class="ink tile" x="780" y="-12" width="120" height="200"/>
+  <rect class="strong tile" x="880" y="208" width="120" height="120"/>
+</svg>
+<div class="name"><h1>BarberOS</h1><p>Minimalista premium monocromático.</p></div>
+</div>
+</body></html>

@@ -1,0 +1,10 @@
+<!-- @dsCard group="Display" height=200 -->
+<!doctype html>
+<html><head><meta charset="utf-8"><style>body{padding:20px;min-height:0}</style></head>
+<body>
+<div id="root"></div>
+<script>
+var B = window.BarberOS, h = React.createElement, useState = React.useState;
+ReactDOM.createRoot(document.getElementById('root')).render(h(B.StatGrid,{columns:3},h(B.StatCard,{icon:'calendar',value:'12',label:'Agendamentos',sub:'hoje',onClick:function(){}}),h(B.StatCard,{icon:'users',value:'8',label:'Confirmados',sub:'aguardando',onClick:function(){}}),h(B.StatCard,{icon:'trendingUp',value:'R$ 12.450,00',label:'Faturamento (mês)',size:'sm',onClick:function(){}})));
+</script>
+</body></html>

@@ -1,0 +1,18 @@
+<!-- @dsCard group="Mobile" height=700 width=390 subtitle="Menu aberto, 390px" page -->
+<!doctype html>
+<html><head><meta charset="utf-8"><style>body{padding:0;min-height:0} .bos-layout{height:680px} .bos-sidebar{min-height:0} .demo-gap{margin-bottom:24px}</style></head>
+<body>
+<div id="root"></div>
+<script>
+var B = window.BarberOS, h = React.createElement, useState = React.useState;
+var NAV={items:[{to:'/dashboard',icon:'dashboard',label:'Dashboard'}],
+groups:[{label:'Cadastros',icon:'folder',items:[{to:'/clientes',icon:'users',label:'Clientes'},{to:'/profissionais',icon:'scissors',label:'Profissionais'},{to:'/produtos',icon:'package',label:'Produtos'},{to:'/fornecedores',icon:'truck',label:'Fornecedores'}]},
+{label:'Movimentos',icon:'arrows',items:[{to:'/agenda',icon:'calendar',label:'Agenda'},{to:'/pdv',icon:'cart',label:'PDV'},{to:'/caixa',icon:'wallet',label:'Caixa'},{to:'/contas-pagar',icon:'trendingDown',label:'Contas a Pagar'}]}],
+footerItems:[{to:'/configuracoes',icon:'settings',label:'Configurações'}],
+user:{name:'João Guilherme',role:'Administrador'},logoSrc:'../../assets/Logos/barberos-logo.png'};
+var COLS=[{key:'descricao',label:'Descrição'},{key:'fornecedor',label:'Fornecedor',width:'160px'},{key:'venc',label:'Vencimento',width:'110px'},{key:'valor',label:'Valor',width:'110px',render:function(r){return h('strong',{style:{color:'var(--text)',fontWeight:600}},r.valor)}},{key:'status',label:'Status',width:'100px',render:function(r){return h(B.Badge,{status:r.st},r.status)}}];
+var ROWS=[{id:1,descricao:'Aluguel do salão',fornecedor:'Imobiliária Centro',venc:'10/10/2026',valor:'R$ 3.200,00',status:'Aberta',st:'pending'},{id:2,descricao:'Lâminas e navalhas',fornecedor:'Distribuidora Barba',venc:'05/10/2026',valor:'R$ 480,00',status:'Vencida',st:'canceled'},{id:3,descricao:'Energia',fornecedor:'—',venc:'28/09/2026',valor:'R$ 610,00',status:'Paga',st:'done'}];
+function App(){var a=useState('/contas-pagar');return h(B.AppLayout,{defaultSidebarOpen:true,sidebar:Object.assign({},NAV,{active:a[0],onNavigate:function(i){a[1](i.to)}}),header:{pageName:'Contas a Pagar'}},h(B.PageHeader,{title:'Contas a Pagar',subtitle:'3 contas · R$ 4.290,00 em aberto',action:h(B.Button,{icon:'plus'},'Nova Conta')}),h(B.StatGrid,{columns:4,className:'demo-gap'},h(B.StatCard,{icon:'trendingDown',value:'R$ 4.290,00',label:'Em aberto',size:'sm'}),h(B.StatCard,{icon:'calendar',value:'1',label:'Vencidas',size:'sm'}),h(B.StatCard,{icon:'wallet',value:'R$ 610,00',label:'Pagas (mês)',size:'sm'}),h(B.StatCard,{icon:'dollar',value:'3',label:'Total',size:'sm'})),h(B.Table,{columns:COLS,rows:ROWS}))}
+ReactDOM.createRoot(document.getElementById('root')).render(h(App));
+</script>
+</body></html>

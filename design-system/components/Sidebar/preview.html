@@ -1,0 +1,16 @@
+<!-- @dsCard group="Navigation" height=520 -->
+<!doctype html>
+<html><head><meta charset="utf-8"><style>body{padding:0;min-height:0} .bos-sidebar{min-height:500px}</style></head>
+<body>
+<div id="root"></div>
+<script>
+var B = window.BarberOS, h = React.createElement, useState = React.useState;
+var NAV={items:[{to:'/dashboard',icon:'dashboard',label:'Dashboard'}],
+groups:[{label:'Cadastros',icon:'folder',items:[{to:'/clientes',icon:'users',label:'Clientes'},{to:'/profissionais',icon:'scissors',label:'Profissionais'},{to:'/produtos',icon:'package',label:'Produtos'},{to:'/fornecedores',icon:'truck',label:'Fornecedores'}]},
+{label:'Movimentos',icon:'arrows',items:[{to:'/agenda',icon:'calendar',label:'Agenda'},{to:'/pdv',icon:'cart',label:'PDV'},{to:'/caixa',icon:'wallet',label:'Caixa'},{to:'/contas-pagar',icon:'trendingDown',label:'Contas a Pagar'}]}],
+footerItems:[{to:'/configuracoes',icon:'settings',label:'Configurações'}],
+user:{name:'João Guilherme',role:'Administrador'},logoSrc:'../../assets/Logos/barberos-logo.png'};
+function S(){var a=useState('/clientes');return h('div',{style:{height:'500px',display:'flex'}},h(B.Sidebar,Object.assign({},NAV,{active:a[0],onNavigate:function(i){a[1](i.to)},onSignOut:function(){}})))}
+ReactDOM.createRoot(document.getElementById('root')).render(h(S));
+</script>
+</body></html>

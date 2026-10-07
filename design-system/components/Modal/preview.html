@@ -1,0 +1,11 @@
+<!-- @dsCard group="Overlays" height=400 -->
+<!doctype html>
+<html><head><meta charset="utf-8"><style>body{padding:0;min-height:0}</style></head>
+<body>
+<div id="root"></div>
+<script>
+var B = window.BarberOS, h = React.createElement, useState = React.useState;
+function M(){var o=useState(true);if(!o[0])return h(B.Button,{onClick:function(){o[1](true)}},'Abrir modal');return h(B.Modal,{inline:true,title:'Nova Conta Financeira',onClose:function(){o[1](false)},onSave:function(){o[1](false)}},h(B.Field,{label:'Nome',placeholder:'Ex: Banco Itaú'}),h(B.Field,{label:'Saldo inicial (opcional)',placeholder:'0,00'}))}
+ReactDOM.createRoot(document.getElementById('root')).render(h(M));
+</script>
+</body></html>
