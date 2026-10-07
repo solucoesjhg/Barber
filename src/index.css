@@ -59,6 +59,27 @@ h1, h2, h3 {
 
 #root { min-height: 100vh; }
 
+/* ── Campos: nunca empurram nem sobrepõem o vizinho ─────── */
+
+/* Por padrão um input/select não encolhe abaixo da largura "natural"
+   (~170px, ou o texto da maior opção no select) e acaba vazando por
+   cima do campo ao lado em linhas e grades apertadas. */
+input, select, textarea { min-width: 0; max-width: 100%; }
+
+/* Grades de formulário: cada coluna pode encolher até caber */
+[style*="grid-template-columns"]:has(> .field) > * { min-width: 0; }
+
+/* Linhas de filtro em "pílula" (Todas / Aberta / Paga…, Mês / Ano…)
+   quebram para a linha de baixo quando não cabem */
+div:has(> button[style*="border-radius: 99px"]) { flex-wrap: wrap; }
+
+/* Cabeçalho da página: o grupo de botões quebra em vez de vazar */
+.page-header-row > * { min-width: 0; max-width: 100%; }
+.page-header-row > div:has(> button) { flex-wrap: wrap; }
+
+/* Agenda (lista): nome + status quebram antes de encostar nos botões */
+.agenda-item-title { flex-wrap: wrap; row-gap: 4px; }
+
 /* ── Scrollbar ───────────────────────────────────────────── */
 
 ::-webkit-scrollbar { width: 5px; }
@@ -325,8 +346,28 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
   display: none;
 }
 
+/* Listas em grade no desktop/tablet: se a tela não comporta as colunas,
+   a lista rola de lado dentro do card em vez de espremer e encavalar */
+@media (min-width: 769px) {
+  .card:has(> .list-header) { overflow-x: auto !important; }
+}
+
 @media (max-width: 768px) {
   .page { padding: 16px; }
+
+  /* Listas: no celular viram cards, então a largura mínima do desktop sai */
+  .list-header, .list-row { min-width: 0 !important; }
+
+  /* Grades de formulário (modais e telas): uma coluna por linha no celular */
+  [style*="grid-template-columns"]:has(> .field) { grid-template-columns: minmax(0, 1fr) !important; }
+
+  /* Cards de entidade (Clientes, Fornecedores, Produtos, Usuários):
+     a coluna nunca passa da largura da tela */
+  .mobile-only-grid { grid-template-columns: minmax(0, 1fr); }
+
+  /* Agenda (lista): os botões de ação descem para baixo do texto */
+  .agenda-item { flex-wrap: wrap !important; gap: 12px 16px !important; padding: 16px !important; }
+  .agenda-item > :last-child { flex-basis: 100%; justify-content: flex-end; }
 
   /* Tabelas/listas com colunas em px fixo: em vez de arrastar pro lado ou
      espremer, cada linha vira um card próprio (mesmo visual usado em

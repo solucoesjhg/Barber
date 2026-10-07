@@ -38,7 +38,7 @@ function Tabela({ colunas, linhas, vazio }: { colunas: string[]; linhas: (string
   return (
     <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
       <div className="list-header" style={{
-        display: 'grid', gridTemplateColumns: `1fr repeat(${colunas.length - 1}, 120px)`,
+        display: 'grid', minWidth: `${230 + (colunas.length - 1) * 120}px`, gridTemplateColumns: `1fr repeat(${colunas.length - 1}, 120px)`,
         padding: '10px 24px', borderBottom: '1px solid #222',
         fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
         background: 'rgba(0,0,0,0.2)',
@@ -49,7 +49,7 @@ function Tabela({ colunas, linhas, vazio }: { colunas: string[]; linhas: (string
         <div style={{ padding: '40px', textAlign: 'center', color: '#444', fontSize: '13px' }}>{vazio}</div>
       ) : linhas.map((l, i) => (
         <div key={i} className="list-row" style={{
-          display: 'grid', gridTemplateColumns: `1fr repeat(${colunas.length - 1}, 120px)`,
+          display: 'grid', minWidth: `${230 + (colunas.length - 1) * 120}px`, gridTemplateColumns: `1fr repeat(${colunas.length - 1}, 120px)`,
           padding: '11px 24px', alignItems: 'center',
           borderBottom: i < linhas.length - 1 ? '1px solid #1A1A1A' : 'none',
           fontSize: '13px', color: '#A3A3A3',

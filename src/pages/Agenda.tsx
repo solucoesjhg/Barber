@@ -211,6 +211,7 @@ function ListaView({
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
+              className="agenda-item"
               style={{
                 display: 'flex', gap: '20px', padding: '18px 24px',
                 borderBottom: i < filtrado.length - 1 ? '1px solid #1F1F1F' : 'none',
@@ -223,7 +224,7 @@ function ListaView({
               </div>
               <div style={{ width: '2px', background: '#2A2A2A', borderRadius: '1px', alignSelf: 'stretch', flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                <div className="agenda-item-title" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
                   <p style={{ fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>{ag.cliente?.nome ?? 'Sem cliente'}</p>
                   <span className={cfg.cls}>{cfg.label}</span>
                 </div>

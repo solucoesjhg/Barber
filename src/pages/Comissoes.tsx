@@ -124,7 +124,7 @@ export default function Comissoes() {
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="list-header" style={{
-          display: 'grid', gridTemplateColumns: '1fr 100px 90px 90px 100px 140px',
+          display: 'grid', minWidth: '750px', gridTemplateColumns: '1fr 100px 90px 90px 100px 140px',
           padding: '10px 24px', borderBottom: '1px solid #222',
           fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
           background: 'rgba(0,0,0,0.2)',
@@ -142,7 +142,7 @@ export default function Comissoes() {
             className="list-row"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
             style={{
-              display: 'grid', gridTemplateColumns: '1fr 100px 90px 90px 100px 140px',
+              display: 'grid', minWidth: '750px', gridTemplateColumns: '1fr 100px 90px 90px 100px 140px',
               padding: '13px 24px', alignItems: 'center',
               borderBottom: i < filtradas.length - 1 ? '1px solid #1A1A1A' : 'none',
             }}

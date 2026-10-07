@@ -166,7 +166,7 @@ export default function Categorias() {
           <motion.div key="formas" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
               <div className="list-header" style={{
-                display: 'grid', gridTemplateColumns: '1fr 90px 130px',
+                display: 'grid', minWidth: '450px', gridTemplateColumns: '1fr 90px 130px',
                 padding: '10px 24px', borderBottom: '1px solid #222',
                 fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
                 background: 'rgba(0,0,0,0.2)',
@@ -183,7 +183,7 @@ export default function Categorias() {
                   className="list-row"
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
                   style={{
-                    display: 'grid', gridTemplateColumns: '1fr 90px 130px',
+                    display: 'grid', minWidth: '450px', gridTemplateColumns: '1fr 90px 130px',
                     padding: '12px 24px', alignItems: 'center',
                     borderBottom: i < formas.length - 1 ? '1px solid #1F1F1F' : 'none',
                   }}
@@ -325,7 +325,7 @@ function ListaCategorias({ itens, onEditar, onToggle, onExcluir, vazio }: {
           className="list-row"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
           style={{
-            display: 'grid', gridTemplateColumns: '1fr 90px 130px',
+            display: 'grid', minWidth: '450px', gridTemplateColumns: '1fr 90px 130px',
             padding: '12px 24px', alignItems: 'center',
             borderBottom: i < linhas.length - 1 ? '1px solid #1F1F1F' : 'none',
           }}

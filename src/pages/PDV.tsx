@@ -203,7 +203,7 @@ export default function PDV() {
 
         <div className="card desktop-row" style={{ padding: 0, overflow: 'hidden' }}>
           <div className="list-header" style={{
-            display: 'grid', gridTemplateColumns: '1fr 130px 130px 110px 120px',
+            display: 'grid', minWidth: '720px', gridTemplateColumns: '1fr 130px 130px 110px 120px',
             padding: '10px 24px', borderBottom: '1px solid #222',
             fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
             background: 'rgba(0,0,0,0.2)',
@@ -222,7 +222,7 @@ export default function PDV() {
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i, 20) * 0.02 }}
               onClick={() => setVendaSelecionadaId(v.id)}
               style={{
-                display: 'grid', gridTemplateColumns: '1fr 130px 130px 110px 120px',
+                display: 'grid', minWidth: '720px', gridTemplateColumns: '1fr 130px 130px 110px 120px',
                 padding: '14px 24px', alignItems: 'center', cursor: 'pointer',
                 borderBottom: i < vendas.length - 1 ? '1px solid #1F1F1F' : 'none',
               }}

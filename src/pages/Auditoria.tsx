@@ -99,7 +99,7 @@ export default function Auditoria() {
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="list-header" style={{
-          display: 'grid', gridTemplateColumns: '24px 120px 90px 1fr 180px 160px',
+          display: 'grid', minWidth: '800px', gridTemplateColumns: '24px 120px 90px 1fr 180px 160px',
           padding: '10px 24px', borderBottom: '1px solid #222',
           fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
           background: 'rgba(0,0,0,0.2)',
@@ -122,7 +122,7 @@ export default function Auditoria() {
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.01 }}
               onClick={() => setExpandido(expandido === l.id ? null : l.id)}
               style={{
-                display: 'grid', gridTemplateColumns: '24px 120px 90px 1fr 180px 160px',
+                display: 'grid', minWidth: '800px', gridTemplateColumns: '24px 120px 90px 1fr 180px 160px',
                 padding: '12px 24px', alignItems: 'center', cursor: 'pointer',
                 borderBottom: expandido === l.id ? 'none' : (i < logs.length - 1 ? '1px solid #1A1A1A' : 'none'),
               }}

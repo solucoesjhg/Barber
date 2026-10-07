@@ -35,14 +35,14 @@ export default function AppLayout() {
   const pageName = PAGE_NAMES[location.pathname] ?? ''
   const { papel, empresaId, loading: perfilLoading } = usePerfil()
   const [sidebarHidden, setSidebarHidden] = useState(() => {
-    if (typeof window !== 'undefined' && window.innerWidth < 768) return true
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) return true
     try { return localStorage.getItem(SIDEBAR_KEY) === '1' } catch { return false }
   })
 
   const semLoja = !perfilLoading && papel !== null && papel !== 'super_admin' && !empresaId && location.pathname !== '/empresas'
 
   useEffect(() => {
-    if (window.innerWidth < 768) setSidebarHidden(true)
+    if (window.innerWidth <= 768) setSidebarHidden(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname])
 

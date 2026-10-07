@@ -483,6 +483,7 @@ export default function Produtos() {
             <div className="card desktop-row" style={{ padding: 0, overflow: 'hidden' }}>
               <div className="list-header" style={{
                 display: 'grid',
+                minWidth: souAtendente ? '860px' : '980px',
                 gridTemplateColumns: souAtendente ? '28px 1fr 100px 120px 90px 90px 80px 76px' : '28px 1fr 100px 120px 120px 90px 90px 80px 76px',
                 padding: '10px 24px',
                 borderBottom: '1px solid #222',
@@ -510,6 +511,7 @@ export default function Produtos() {
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
                     style={{
                       display: 'grid',
+                      minWidth: souAtendente ? '860px' : '980px',
                       gridTemplateColumns: souAtendente ? '28px 1fr 100px 120px 90px 90px 80px 76px' : '28px 1fr 100px 120px 120px 90px 90px 80px 76px',
                       padding: '14px 24px',
                       borderBottom: i < produtos.length - 1 ? '1px solid #1F1F1F' : 'none',
@@ -682,7 +684,7 @@ export default function Produtos() {
             <div className="card desktop-row" style={{ padding: 0, overflow: 'hidden' }}>
               <div className="list-header" style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 100px 120px 90px 1fr 80px 76px',
+                minWidth: '870px', gridTemplateColumns: '1fr 100px 120px 90px 1fr 80px 76px',
                 padding: '10px 24px',
                 borderBottom: '1px solid #222',
                 fontSize: '10px', fontWeight: 600, color: '#444',
@@ -707,7 +709,7 @@ export default function Produtos() {
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '1fr 100px 120px 90px 1fr 80px 76px',
+                    minWidth: '870px', gridTemplateColumns: '1fr 100px 120px 90px 1fr 80px 76px',
                     padding: '14px 24px',
                     borderBottom: i < servicos.length - 1 ? '1px solid #1F1F1F' : 'none',
                     alignItems: 'center',

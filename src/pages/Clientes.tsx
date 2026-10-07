@@ -135,7 +135,7 @@ export default function Clientes() {
       <div className="card desktop-row" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="list-header" style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 160px 180px 110px 90px 40px',
+          minWidth: '810px', gridTemplateColumns: '1fr 160px 180px 110px 90px 40px',
           padding: '10px 24px',
           borderBottom: '1px solid #222',
           fontSize: '10px', fontWeight: 600, color: '#444',
@@ -167,7 +167,7 @@ export default function Clientes() {
             transition={{ delay: i * 0.03 }}
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 160px 180px 110px 90px 40px',
+              minWidth: '810px', gridTemplateColumns: '1fr 160px 180px 110px 90px 40px',
               padding: '14px 24px',
               borderBottom: i < filtered.length - 1 ? '1px solid #1F1F1F' : 'none',
               alignItems: 'center',

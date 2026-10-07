@@ -70,7 +70,7 @@ export default function Empresas() {
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="list-header" style={{
-          display: 'grid', gridTemplateColumns: '1fr 130px 160px 90px 20px',
+          display: 'grid', minWidth: '630px', gridTemplateColumns: '1fr 130px 160px 90px 20px',
           padding: '10px 24px', borderBottom: '1px solid #222',
           fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
           background: 'rgba(0,0,0,0.2)',
@@ -89,7 +89,7 @@ export default function Empresas() {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
             onClick={() => navigate(`/empresas/${e.id}`)}
             style={{
-              display: 'grid', gridTemplateColumns: '1fr 130px 160px 90px 20px',
+              display: 'grid', minWidth: '630px', gridTemplateColumns: '1fr 130px 160px 90px 20px',
               padding: '14px 24px', alignItems: 'center',
               borderBottom: i < empresas.length - 1 ? '1px solid #1F1F1F' : 'none',
               cursor: 'pointer',

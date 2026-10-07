@@ -96,7 +96,7 @@ export default function Usuarios() {
 
         <div className="card desktop-row" style={{ padding: 0, overflow: 'hidden' }}>
           <div className="list-header" style={{
-            display: 'grid', gridTemplateColumns: '1fr 130px 140px 200px 40px',
+            display: 'grid', minWidth: '740px', gridTemplateColumns: '1fr 130px 140px 200px 40px',
             padding: '10px 24px', borderBottom: '1px solid #222',
             fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
             background: 'rgba(0,0,0,0.2)',
@@ -116,7 +116,7 @@ export default function Usuarios() {
               className="list-row"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
               style={{
-                display: 'grid', gridTemplateColumns: '1fr 130px 140px 200px 40px',
+                display: 'grid', minWidth: '740px', gridTemplateColumns: '1fr 130px 140px 200px 40px',
                 padding: '12px 24px', alignItems: 'center',
                 borderBottom: i < pendentes.length - 1 ? '1px solid #1A1A1A' : 'none',
                 opacity: savingId === u.usuario_id ? 0.6 : 1,
@@ -233,7 +233,7 @@ export default function Usuarios() {
                   className="list-row"
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
                   style={{
-                    display: 'grid', gridTemplateColumns: '1fr 130px 40px',
+                    display: 'grid', minWidth: '400px', gridTemplateColumns: '1fr 130px 40px',
                     padding: '12px 24px', alignItems: 'center',
                     borderBottom: i < rejeitados.length - 1 ? '1px solid #1A1A1A' : 'none',
                     opacity: savingId === u.usuario_id ? 0.6 : 1,
@@ -303,7 +303,7 @@ export default function Usuarios() {
 
       <div className="card desktop-row" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="list-header" style={{
-          display: 'grid', gridTemplateColumns: colunas,
+          display: 'grid', minWidth: '830px', gridTemplateColumns: colunas,
           padding: '10px 24px', borderBottom: '1px solid #222',
           fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
           background: 'rgba(0,0,0,0.2)',
@@ -328,7 +328,7 @@ export default function Usuarios() {
             className="list-row"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
             style={{
-              display: 'grid', gridTemplateColumns: colunas,
+              display: 'grid', minWidth: '830px', gridTemplateColumns: colunas,
               padding: '12px 24px', alignItems: 'center',
               borderBottom: i < usuarios.length - 1 ? '1px solid #1A1A1A' : 'none',
               opacity: savingId === u.usuario_id ? 0.6 : 1,

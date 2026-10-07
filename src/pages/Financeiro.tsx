@@ -366,7 +366,7 @@ export default function Financeiro() {
         </div>
         <div className="list-header" style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 120px 100px 110px',
+          minWidth: '560px', gridTemplateColumns: '1fr 120px 100px 110px',
           padding: '10px 24px',
           borderBottom: '1px solid #1A1A1A',
           fontSize: '10px', fontWeight: 600, color: '#444',
@@ -389,7 +389,7 @@ export default function Financeiro() {
             onClick={() => setLancamentoSelecionado(m)}
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 120px 100px 110px',
+              minWidth: '560px', gridTemplateColumns: '1fr 120px 100px 110px',
               padding: '13px 24px',
               borderBottom: i < movimentos.length - 1 ? '1px solid #1A1A1A' : 'none',
               alignItems: 'center',
