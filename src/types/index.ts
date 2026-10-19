@@ -318,3 +318,31 @@ export interface UsuarioPerfil {
   ativo: boolean
   created_at: string
 }
+
+/* ── Permissões por tela ──────────────────────────────────── */
+
+export type TelaId =
+  | 'dashboard' | 'agenda' | 'pdv' | 'caixa' | 'financeiro' | 'contas_pagar'
+  | 'contas_receber' | 'comissoes' | 'clientes' | 'profissionais' | 'produtos'
+  | 'fornecedores' | 'categorias' | 'dre' | 'relatorios' | 'auditoria' | 'configuracoes'
+
+export interface PermissaoTela {
+  ver: boolean
+  editar: boolean
+  tem_edicao: boolean
+  personalizado: boolean
+}
+
+/** Retorno de minhas_permissoes() / permissoes_usuario(). */
+export interface PermissoesUsuario {
+  usuario_id: string
+  papel: PapelUsuario | null
+  acesso_total: boolean
+  gerenciar_equipe: boolean
+  ver_vendas_outros: boolean
+  ver_custo_produtos: boolean
+  especiais_personalizados: boolean
+  telas: Record<TelaId, PermissaoTela>
+  /** Só em permissoes_usuario(): quem está logado pode alterar esse usuário. */
+  pode_configurar?: boolean
+}

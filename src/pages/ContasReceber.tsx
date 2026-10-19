@@ -4,6 +4,7 @@ import { Plus, X, AlertTriangle } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency, formatDate } from '../lib/utils'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
+import { usePermissoes } from '../hooks/usePermissoes'
 import type { ContaReceber, Cliente, CategoriaFinanceira, FormaPagamentoCadastro } from '../types'
 
 type Filtro = 'todas' | 'aberta' | 'vencida' | 'paga'
@@ -20,6 +21,8 @@ function isVencida(c: ContaReceber) {
 const STATUS_LABEL: Record<string, string> = { aberta: 'Aberta', parcial: 'Parcial', paga: 'Paga', cancelada: 'Cancelada' }
 
 export default function ContasReceber() {
+  const { podeEditar: podeEditarTela } = usePermissoes()
+  const podeEditar = podeEditarTela('contas_receber')
   const [contas, setContas] = useState<ContaReceber[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [categorias, setCategorias] = useState<CategoriaFinanceira[]>([])
@@ -111,9 +114,11 @@ export default function ContasReceber() {
             {formatCurrency(totalAberto)} em aberto · {formatCurrency(totalVencido)} vencido
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => { setError(''); setShowModal(true) }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Plus size={14} strokeWidth={2.5} /> Nova Conta
-        </button>
+        {podeEditar && (
+          <button className="btn btn-primary" onClick={() => { setError(''); setShowModal(true) }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Plus size={14} strokeWidth={2.5} /> Nova Conta
+          </button>
+        )}
       </div>
 
       <div style={{ display: 'flex', gap: '6px', marginBottom: '20px' }}>
@@ -181,7 +186,7 @@ export default function ContasReceber() {
               >
                 {vencida ? 'Vencida' : STATUS_LABEL[c.status]}
               </span>
-              {c.status === 'aberta' || c.status === 'parcial' ? (
+              {podeEditar && (c.status === 'aberta' || c.status === 'parcial') ? (
                 <button
                   className="btn btn-secondary btn-sm"
                   onClick={() => { setContaBaixa(c); setValorBaixa(String(saldo)); setFormaBaixa(''); setError('') }}

@@ -4,11 +4,14 @@ import { Plus, X, Scissors, Percent, Pencil } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { initials } from '../lib/utils'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
+import { usePermissoes } from '../hooks/usePermissoes'
 import type { Profissional } from '../types'
 
 const FORM_INICIAL = { nome: '', especialidade: '', comissao_percentual: '50', telefone: '', email: '', documento: '', valor_fixo: '' }
 
 export default function Profissionais() {
+  const { podeEditar: podeEditarTela } = usePermissoes()
+  const podeEditar = podeEditarTela('profissionais')
   const [profissionais, setProfissionais] = useState<Profissional[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -86,9 +89,11 @@ export default function Profissionais() {
           <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Profissionais</h1>
           <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>{profissionais.length} profissionais</p>
         </div>
-        <button className="btn btn-primary" onClick={abrirNovo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Plus size={14} strokeWidth={2.5} /> Novo Profissional
-        </button>
+        {podeEditar && (
+          <button className="btn btn-primary" onClick={abrirNovo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Plus size={14} strokeWidth={2.5} /> Novo Profissional
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -169,17 +174,19 @@ export default function Profissionais() {
                 </div>
               ) : null}
 
-              <div style={{ display: 'flex', gap: '6px' }}>
-                <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicao(p)}>
-                  <Pencil size={12} />
-                </button>
-                <button
-                  onClick={() => toggleAtivo(p.id, p.ativo)}
-                  className="btn btn-secondary btn-sm"
-                >
-                  {p.ativo ? 'Desativar' : 'Ativar'}
-                </button>
-              </div>
+              {podeEditar && (
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicao(p)}>
+                    <Pencil size={12} />
+                  </button>
+                  <button
+                    onClick={() => toggleAtivo(p.id, p.ativo)}
+                    className="btn btn-secondary btn-sm"
+                  >
+                    {p.ativo ? 'Desativar' : 'Ativar'}
+                  </button>
+                </div>
+              )}
             </div>
           </motion.div>
         ))}

@@ -50,7 +50,7 @@ export default function Auditoria() {
     if (filtroModulo) query = query.eq('modulo', filtroModulo)
     query.then(({ data }) => { setLogs((data ?? []) as AuditoriaRow[]); setLoading(false) })
 
-    supabase.rpc('listar_usuarios').then(({ data }) => {
+    supabase.rpc('listar_usuarios_basico').then(({ data }) => {
       if (!data) return
       const map: Record<string, string> = {}
       ;(data as any[]).forEach(u => { map[u.usuario_id] = u.email })

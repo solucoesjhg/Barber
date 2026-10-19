@@ -55,3 +55,22 @@ porque a versão original deu timeout de conexão no SQL Editor. Cada um desses
 Depois de rodar tudo isso: `adm@dev.com` vira super administradora da
 plataforma (sem loja própria) e usa a tela **Empresas** pra cadastrar as
 lojas clientes, e **Usuários** pra vincular o primeiro login de cada uma.
+
+## Permissões por tela (20261019000001)
+
+`20261019000001_permissoes_por_tela.sql` — permissões de **ver / editar por
+tela** para cada usuário, mais duas permissões especiais por usuário: **ver
+vendas de outros usuários** e **ver custo dos produtos**. Configuradas na
+tela **Permissões** (menu Cadastros), por administrador e gerente.
+
+- Sem personalização, cada usuário fica com o padrão do papel (está
+  descrito no topo da migração). Administrador tem sempre acesso total.
+- As regras valem no banco (RLS e RPCs), não só na tela.
+- Usuário desativado deixa de enxergar os dados da loja.
+- ⚠️ O custo é protegido por **privilégio de coluna** em `produtos.preco_custo`
+  e `itens_comanda.custo_unitario`. Toda migração futura que adicionar
+  coluna nessas duas tabelas precisa incluir
+  `GRANT SELECT (nova_coluna) ON public.<tabela> TO authenticated;`,
+  senão a coluna fica ilegível pela API. Pelo mesmo motivo, o app nunca
+  usa `select('*')` nessas tabelas (veja `src/lib/produtos.ts`).
+- Pode rodar de novo sem problema (idempotente).

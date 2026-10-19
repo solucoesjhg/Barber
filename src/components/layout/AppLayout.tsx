@@ -26,6 +26,7 @@ const PAGE_NAMES: Record<string, string> = {
   '/relatorios':    'Relatórios',
   '/auditoria':     'Auditoria',
   '/usuarios':      'Usuários',
+  '/permissoes':    'Permissões',
   '/configuracoes': 'Configurações',
 }
 
@@ -33,13 +34,14 @@ export default function AppLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const pageName = PAGE_NAMES[location.pathname] ?? ''
-  const { papel, empresaId, loading: perfilLoading } = usePerfil()
+  const { papel, empresaId, ativo, loading: perfilLoading } = usePerfil()
   const [sidebarHidden, setSidebarHidden] = useState(() => {
     if (typeof window !== 'undefined' && window.innerWidth <= 768) return true
     try { return localStorage.getItem(SIDEBAR_KEY) === '1' } catch { return false }
   })
 
   const semLoja = !perfilLoading && papel !== null && papel !== 'super_admin' && !empresaId && location.pathname !== '/empresas'
+  const desativado = !perfilLoading && papel !== null && papel !== 'super_admin' && !!empresaId && !ativo
 
   useEffect(() => {
     if (window.innerWidth <= 768) setSidebarHidden(true)
@@ -165,6 +167,13 @@ export default function AppLayout() {
           >
             {perfilLoading ? (
               <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Carregando...</div>
+            ) : desativado ? (
+              <div style={{ padding: '80px 40px', textAlign: 'center', maxWidth: '440px', margin: '0 auto' }}>
+                <h2 style={{ fontSize: '18px', color: '#FFFFFF', marginBottom: '10px' }}>Usuário desativado</h2>
+                <p style={{ fontSize: '13px', color: '#A3A3A3', lineHeight: 1.6 }}>
+                  Seu acesso a esta loja foi desativado. Fale com o gerente ou administrador da loja.
+                </p>
+              </div>
             ) : semLoja ? (
               <div style={{ padding: '80px 40px', textAlign: 'center', maxWidth: '440px', margin: '0 auto' }}>
                 <h2 style={{ fontSize: '18px', color: '#FFFFFF', marginBottom: '10px' }}>Aguardando vínculo com uma loja</h2>

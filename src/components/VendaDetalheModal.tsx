@@ -27,7 +27,8 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete }: {
     setLoading(true)
     Promise.all([
       supabase.from('comandas').select('*').eq('id', comandaId).single(),
-      supabase.from('itens_comanda').select('*').eq('comanda_id', comandaId),
+      // custo_unitario não é legível pela API (privilégio de coluna)
+      supabase.from('itens_comanda').select('id, comanda_id, tipo, referencia_id, nome, quantidade, preco_unitario, profissional_id').eq('comanda_id', comandaId),
     ]).then(async ([{ data: comandaData }, { data: itensData }]) => {
       if (cancelado) return
       const itensCarregados = (itensData ?? []) as ItemComanda[]

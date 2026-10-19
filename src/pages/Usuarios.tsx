@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ExternalLink, UserX, UserCheck } from 'lucide-react'
+import { ExternalLink, UserX, UserCheck, ShieldCheck } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { usePerfil } from '../hooks/usePerfil'
 import { formatDate, initials } from '../lib/utils'
@@ -288,14 +288,14 @@ export default function Usuarios() {
     )
   }
 
-  const colunas = '1fr 140px 100px 180px 80px 100px'
+  const colunas = '1fr 140px 100px 180px 80px 100px 40px'
 
   return (
     <div className="page">
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Usuários</h1>
         <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
-          Papéis, profissional vinculado e ativo/inativo da sua equipe
+          Papéis, profissional vinculado e ativo/inativo da sua equipe · o que cada um vê e edita fica em Permissões
         </p>
       </div>
 
@@ -303,7 +303,7 @@ export default function Usuarios() {
 
       <div className="card desktop-row" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="list-header" style={{
-          display: 'grid', minWidth: '830px', gridTemplateColumns: colunas,
+          display: 'grid', minWidth: '870px', gridTemplateColumns: colunas,
           padding: '10px 24px', borderBottom: '1px solid #222',
           fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
           background: 'rgba(0,0,0,0.2)',
@@ -314,6 +314,7 @@ export default function Usuarios() {
           <span>Vinculado a</span>
           <span>Ativo</span>
           <span>Desde</span>
+          <span></span>
         </div>
 
         {loading ? (
@@ -328,7 +329,7 @@ export default function Usuarios() {
             className="list-row"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
             style={{
-              display: 'grid', minWidth: '830px', gridTemplateColumns: colunas,
+              display: 'grid', minWidth: '870px', gridTemplateColumns: colunas,
               padding: '12px 24px', alignItems: 'center',
               borderBottom: i < usuarios.length - 1 ? '1px solid #1A1A1A' : 'none',
               opacity: savingId === u.usuario_id ? 0.6 : 1,
@@ -368,6 +369,9 @@ export default function Usuarios() {
 
             <input type="checkbox" checked={u.ativo} onChange={e => salvar(u, 'ativo', e.target.checked)} />
             <span style={{ fontSize: '12px', color: '#444' }}>{formatDate(u.criado_em)}</span>
+            <Link to={`/permissoes?usuario=${u.usuario_id}`} className="btn btn-icon" title="Permissões de tela">
+              <ShieldCheck size={13} />
+            </Link>
           </motion.div>
         ))}
       </div>
@@ -443,6 +447,9 @@ export default function Usuarios() {
                   <input type="checkbox" checked={u.ativo} onChange={e => salvar(u, 'ativo', e.target.checked)} />
                   Ativo
                 </label>
+                <Link to={`/permissoes?usuario=${u.usuario_id}`} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                  <ShieldCheck size={13} /> Permissões
+                </Link>
               </div>
             </motion.div>
           ))}

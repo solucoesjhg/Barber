@@ -5,12 +5,15 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { formatCurrency, formatDate } from '../lib/utils'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
+import { usePermissoes } from '../hooks/usePermissoes'
 import type { SessaoCaixa, MovimentoCaixa } from '../types'
 
 type ModalTipo = null | 'abrir' | 'sangria' | 'suprimento' | 'fechar'
 
 export default function Caixa() {
   const { user } = useAuth()
+  const { podeEditar: podeEditarTela } = usePermissoes()
+  const podeEditar = podeEditarTela('caixa')
   const [sessao, setSessao] = useState<SessaoCaixa | null>(null)
   const [movimentos, setMovimentos] = useState<MovimentoCaixa[]>([])
   const [loading, setLoading] = useState(true)
@@ -119,7 +122,7 @@ export default function Caixa() {
             {sessao ? `Aberto desde ${formatDate(sessao.aberto_em)}` : 'Nenhum caixa aberto'}
           </p>
         </div>
-        {sessao ? (
+        {!podeEditar ? null : sessao ? (
           <button className="btn btn-secondary" onClick={() => abrirModal('fechar')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Lock size={14} /> Fechar Caixa
           </button>
@@ -134,7 +137,7 @@ export default function Caixa() {
         <div className="card" style={{ padding: '56px', textAlign: 'center' }}>
           <p style={{ fontSize: '14px', color: '#555' }}>O caixa está fechado.</p>
           <p style={{ fontSize: '12px', color: '#444', marginTop: '6px' }}>
-            Abra o caixa para poder vender no PDV e registrar movimentos.
+            {podeEditar ? 'Abra o caixa para poder vender no PDV e registrar movimentos.' : 'Seu usuário não tem permissão para abrir o caixa.'}
           </p>
         </div>
       ) : (
@@ -153,14 +156,14 @@ export default function Caixa() {
             ))}
           </div>
 
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '24px' }}>
+          {podeEditar && <div style={{ display: 'flex', gap: '10px', marginBottom: '24px' }}>
             <button className="btn btn-secondary" onClick={() => abrirModal('sangria')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <ArrowUpFromLine size={14} /> Sangria
             </button>
             <button className="btn btn-secondary" onClick={() => abrirModal('suprimento')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <ArrowDownToLine size={14} /> Suprimento
             </button>
-          </div>
+          </div>}
 
           <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
             <div style={{ padding: '16px 24px', borderBottom: '1px solid #222' }}>

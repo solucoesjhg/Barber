@@ -7,7 +7,8 @@ import ScannerCamera from '../components/ScannerCamera'
 import VendaDetalheModal from '../components/VendaDetalheModal'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
 import { useAuth } from '../hooks/useAuth'
-import { usePerfil } from '../hooks/usePerfil'
+import { usePermissoes } from '../hooks/usePermissoes'
+import { COLUNAS_PRODUTO } from '../lib/produtos'
 import type { Comanda, ItemComanda, PagamentoMetodo, Produto, Profissional, Servico } from '../types'
 
 const PAGAMENTOS: { id: PagamentoMetodo; label: string }[] = [
@@ -27,8 +28,8 @@ type ItemCatalogo =
 
 export default function PDV() {
   const { user } = useAuth()
-  const { papel } = usePerfil()
-  const souAtendente = papel === 'atendente'
+  const { podeEditar, verVendasOutros } = usePermissoes()
+  const podeVender = podeEditar('pdv')
   const [modo, setModo] = useState<'lista' | 'nova'>('lista')
   const [vendas, setVendas] = useState<Comanda[]>([])
   const [loadingVendas, setLoadingVendas] = useState(true)
@@ -38,9 +39,11 @@ export default function PDV() {
   const carregarVendas = useCallback(() => {
     setLoadingVendas(true)
     let query = supabase.from('comandas').select('*').order('created_at', { ascending: false }).limit(100)
-    if (souAtendente && user) query = query.eq('usuario_id', user.id)
+    // O banco já só devolve as vendas que o usuário pode ver; o filtro
+    // aqui deixa a lista coerente com o subtítulo.
+    if (!verVendasOutros && user) query = query.eq('usuario_id', user.id)
     query.then(({ data }) => { setVendas((data ?? []) as Comanda[]); setLoadingVendas(false) })
-  }, [souAtendente, user])
+  }, [verVendasOutros, user])
 
   useEffect(() => {
     carregarVendas()
@@ -79,8 +82,8 @@ export default function PDV() {
     supabase.from('servicos').select('*').eq('ativo', true).order('nome')
       .then(({ data }) => { if (data) setServicos(data as Servico[]) })
 
-    supabase.from('produtos').select('*').eq('ativo', true).order('nome')
-      .then(({ data }) => { if (data) setProdutos(data as Produto[]) })
+    supabase.from('produtos').select(COLUNAS_PRODUTO).eq('ativo', true).order('nome')
+      .then(({ data }) => { if (data) setProdutos(data as unknown as Produto[]) })
 
     supabase.from('profissionais').select('*').eq('ativo', true).order('nome')
       .then(({ data }) => { if (data) setProfissionais(data as Profissional[]) })
@@ -181,8 +184,8 @@ export default function PDV() {
     setClienteNome('')
     setShowPayModal(false)
     setTimeout(() => setDone(false), 2500)
-    supabase.from('produtos').select('*').eq('ativo', true).order('nome')
-      .then(({ data }) => { if (data) setProdutos(data as Produto[]) })
+    supabase.from('produtos').select(COLUNAS_PRODUTO).eq('ativo', true).order('nome')
+      .then(({ data }) => { if (data) setProdutos(data as unknown as Produto[]) })
     carregarVendas()
   }
 
@@ -194,11 +197,13 @@ export default function PDV() {
         <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
           <div>
             <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Vendas</h1>
-            <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>Histórico de vendas da loja</p>
+            <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>{verVendasOutros ? 'Histórico de vendas da loja' : 'Suas vendas'}</p>
           </div>
-          <button className="btn btn-primary" onClick={() => setModo('nova')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Plus size={14} strokeWidth={2.5} /> Incluir Venda
-          </button>
+          {podeVender && (
+            <button className="btn btn-primary" onClick={() => setModo('nova')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Plus size={14} strokeWidth={2.5} /> Incluir Venda
+            </button>
+          )}
         </div>
 
         <div className="card desktop-row" style={{ padding: 0, overflow: 'hidden' }}>
