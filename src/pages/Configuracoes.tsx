@@ -3,10 +3,13 @@ import { motion } from 'framer-motion'
 import { Save } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { usePerfil } from '../hooks/usePerfil'
+import { usePermissoes } from '../hooks/usePermissoes'
 import type { Configuracoes as ConfigRow } from '../types'
 
 export default function Configuracoes() {
   const { empresaId, loading: perfilLoading } = usePerfil()
+  const { podeEditar: podeEditarTela } = usePermissoes()
+  const podeEditar = podeEditarTela('configuracoes')
   const [form, setForm] = useState<Partial<ConfigRow>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -56,8 +59,12 @@ export default function Configuracoes() {
     <div className="page" style={{ maxWidth: '640px' }}>
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Configurações</h1>
-        <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>Dados da empresa e regras de operação</p>
+        <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
+          {podeEditar ? 'Dados da empresa e regras de operação' : 'Dados da empresa e regras de operação · somente leitura'}
+        </p>
       </div>
+
+      <fieldset disabled={!podeEditar} style={{ border: 'none', padding: 0, margin: 0, minWidth: 0 }}>
 
       <motion.div className="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: '20px' }}>
         <p style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', marginBottom: '16px' }}>Empresa</p>
@@ -113,10 +120,14 @@ export default function Configuracoes() {
         </div>
       </motion.div>
 
+      </fieldset>
+
       {error && <p style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>{error}</p>}
-      <button className="btn btn-primary" onClick={handleSave} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <Save size={14} /> {saving ? 'Salvando...' : saved ? 'Salvo!' : 'Salvar'}
-      </button>
+      {podeEditar && (
+        <button className="btn btn-primary" onClick={handleSave} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Save size={14} /> {saving ? 'Salvando...' : saved ? 'Salvo!' : 'Salvar'}
+        </button>
+      )}
     </div>
   )
 }

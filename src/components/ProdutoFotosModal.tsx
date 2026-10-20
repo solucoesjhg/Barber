@@ -4,6 +4,7 @@ import { X, Plus, Trash2, Star, Package } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
 import { usePerfil } from '../hooks/usePerfil'
+import { usePermissoes } from '../hooks/usePermissoes'
 import type { Produto } from '../types'
 
 interface Foto { id: string; url: string }
@@ -23,8 +24,9 @@ export default function ProdutoFotosModal({ produto, onClose, onChange }: {
   onClose: () => void
   onChange: () => void
 }) {
-  const { papel, empresaId } = usePerfil()
-  const souAtendente = papel === 'atendente'
+  const { empresaId } = usePerfil()
+  const { podeEditar } = usePermissoes()
+  const somenteLeitura = !podeEditar('produtos')
   const [fotos, setFotos] = useState<Foto[]>([])
   const [capaUrl, setCapaUrl] = useState<string | null>(produto.foto_url ?? null)
   const [loading, setLoading] = useState(true)
@@ -136,7 +138,7 @@ export default function ProdutoFotosModal({ produto, onClose, onChange }: {
                     <Star size={9} fill="#FFFFFF" /> Capa
                   </span>
                 )}
-                {!souAtendente && (
+                {!somenteLeitura && (
                   <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
                     {foto.url !== capaUrl && (
                       <button
@@ -159,7 +161,7 @@ export default function ProdutoFotosModal({ produto, onClose, onChange }: {
               </div>
             ))}
 
-            {!souAtendente && (
+            {!somenteLeitura && (
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
@@ -177,11 +179,11 @@ export default function ProdutoFotosModal({ produto, onClose, onChange }: {
 
         {!loading && fotos.length === 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#444', fontSize: '12px', marginBottom: '14px' }}>
-            <Package size={13} /> {souAtendente ? 'Nenhuma foto ainda.' : 'Nenhuma foto ainda — adicione a primeira.'}
+            <Package size={13} /> {somenteLeitura ? 'Nenhuma foto ainda.' : 'Nenhuma foto ainda — adicione a primeira.'}
           </div>
         )}
 
-        {!souAtendente && (
+        {!somenteLeitura && (
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleUpload} style={{ display: 'none' }} />
         )}
 

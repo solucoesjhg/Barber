@@ -4,11 +4,14 @@ import { Plus, Search, X, Phone, Pencil } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatDate, initials } from '../lib/utils'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
+import { usePermissoes } from '../hooks/usePermissoes'
 import type { Cliente } from '../types'
 
 const FORM_INICIAL = { nome: '', telefone: '', email: '', cpf: '', data_nascimento: '', endereco: '', observacoes: '' }
 
 export default function Clientes() {
+  const { podeEditar: podeEditarTela } = usePermissoes()
+  const podeEditar = podeEditarTela('clientes')
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -99,9 +102,11 @@ export default function Clientes() {
             {clientes.filter(c => c.ativo).length} ativos · {clientes.length} cadastrados
           </p>
         </div>
-        <button className="btn btn-primary" onClick={abrirNovo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Plus size={14} strokeWidth={2.5} /> Novo Cliente
-        </button>
+        {podeEditar && (
+          <button className="btn btn-primary" onClick={abrirNovo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Plus size={14} strokeWidth={2.5} /> Novo Cliente
+          </button>
+        )}
       </div>
 
       {/* Search */}
@@ -198,21 +203,24 @@ export default function Clientes() {
             <div style={{ fontSize: '12px', color: '#444' }}>{formatDate(c.created_at)}</div>
             <div>
               <button
-                onClick={() => toggleAtivo(c.id, c.ativo)}
+                onClick={() => { if (podeEditar) toggleAtivo(c.id, c.ativo) }}
+                disabled={!podeEditar}
                 style={{
                   fontSize: '10px', padding: '3px 9px', borderRadius: '99px',
                   border: c.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
                   background: 'transparent',
                   color: c.ativo ? '#A3A3A3' : '#444',
-                  cursor: 'pointer',
+                  cursor: podeEditar ? 'pointer' : 'default',
                 }}
               >
                 {c.ativo ? 'Ativo' : 'Inativo'}
               </button>
             </div>
-            <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicao(c)}>
-              <Pencil size={12} />
-            </button>
+            {podeEditar ? (
+              <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicao(c)}>
+                <Pencil size={12} />
+              </button>
+            ) : <span />}
           </motion.div>
         ))}
       </div>
@@ -273,14 +281,16 @@ export default function Clientes() {
                   <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Cadastro</p>
                   <p style={{ fontSize: '13px', color: '#A3A3A3' }}>{formatDate(c.created_at)}</p>
                 </div>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicao(c)}>
-                    <Pencil size={12} />
-                  </button>
-                  <button className="btn btn-secondary btn-sm" onClick={() => toggleAtivo(c.id, c.ativo)}>
-                    {c.ativo ? 'Desativar' : 'Ativar'}
-                  </button>
-                </div>
+                {podeEditar && (
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicao(c)}>
+                      <Pencil size={12} />
+                    </button>
+                    <button className="btn btn-secondary btn-sm" onClick={() => toggleAtivo(c.id, c.ativo)}>
+                      {c.ativo ? 'Desativar' : 'Ativar'}
+                    </button>
+                  </div>
+                )}
               </div>
             </motion.div>
           ))}

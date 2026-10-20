@@ -8,6 +8,7 @@ import { TrendingUp, TrendingDown, DollarSign, Plus, ArrowUpRight, ArrowDownRigh
 import { supabase } from '../lib/supabase'
 import { formatCurrency, formatDate } from '../lib/utils'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
+import { usePermissoes } from '../hooks/usePermissoes'
 import { rangeFor } from '../lib/periodo'
 import VendaDetalheModal from '../components/VendaDetalheModal'
 import LancamentoDetalheModal from '../components/LancamentoDetalheModal'
@@ -35,6 +36,8 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 }
 
 export default function Financeiro() {
+  const { podeEditar: podeEditarTela } = usePermissoes()
+  const podeEditar = podeEditarTela('financeiro')
   const [movimentos, setMovimentos] = useState<MovimentoCaixa[]>([])
   const [chartData, setChartData] = useState<{ dia: string; entrada: number; saida: number }[]>([])
   const [aPagar, setAPagar] = useState({ aberto: 0, vencido: 0 })
@@ -171,9 +174,11 @@ export default function Financeiro() {
           <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Financeiro</h1>
           <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>{inicio} até {fim}</p>
         </div>
-        <button className="btn btn-secondary" onClick={() => { setFormError(''); setShowModal(true) }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Plus size={14} /> Lançar Saída
-        </button>
+        {podeEditar && (
+          <button className="btn btn-secondary" onClick={() => { setFormError(''); setShowModal(true) }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Plus size={14} /> Lançar Saída
+          </button>
+        )}
       </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', marginBottom: '20px' }}>
@@ -187,17 +192,20 @@ export default function Financeiro() {
       <div style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
           <span style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>Contas</span>
-          <button className="btn btn-ghost btn-sm" onClick={() => { setContaEditando(null); setShowContaModal(true) }} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Plus size={11} /> Nova conta
-          </button>
+          {podeEditar && (
+            <button className="btn btn-ghost btn-sm" onClick={() => { setContaEditando(null); setShowContaModal(true) }} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Plus size={11} /> Nova conta
+            </button>
+          )}
         </div>
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           {contas.map(c => (
             <button
               key={c.conta_id}
-              onClick={() => { setContaEditando({ id: c.conta_id, nome: c.nome, tipo: c.tipo as 'caixa' | 'banco', padrao: c.padrao, ativo: true, created_at: '' }); setShowContaModal(true) }}
+              onClick={() => { if (!podeEditar) return; setContaEditando({ id: c.conta_id, nome: c.nome, tipo: c.tipo as 'caixa' | 'banco', padrao: c.padrao, ativo: true, created_at: '' }); setShowContaModal(true) }}
+              disabled={!podeEditar}
               className="card"
-              style={{ flex: '1 1 180px', minWidth: '160px', textAlign: 'left', cursor: 'pointer', border: '1px solid #252525' }}
+              style={{ flex: '1 1 180px', minWidth: '160px', textAlign: 'left', cursor: podeEditar ? 'pointer' : 'default', border: '1px solid #252525', opacity: 1 }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -205,7 +213,7 @@ export default function Financeiro() {
                   <span style={{ fontSize: '12px', color: '#A3A3A3' }}>{c.nome}</span>
                   {c.padrao && <span style={{ fontSize: '9px', padding: '1px 6px', borderRadius: '99px', border: '1px solid #2A2A2A', color: '#666' }}>padrão</span>}
                 </div>
-                <Pencil size={11} style={{ color: '#444' }} />
+                {podeEditar && <Pencil size={11} style={{ color: '#444' }} />}
               </div>
               <p style={{ fontSize: '18px', fontWeight: 700, color: '#FFFFFF', fontFamily: 'DM Sans, sans-serif' }}>{formatCurrency(c.saldo)}</p>
             </button>
@@ -471,13 +479,13 @@ export default function Financeiro() {
             <VendaDetalheModal
               comandaId={lancamentoSelecionado.comanda_id}
               onClose={() => setLancamentoSelecionado(null)}
-              onDelete={handleExcluirLancamento}
+              onDelete={podeEditar ? handleExcluirLancamento : undefined}
             />
           ) : (
             <LancamentoDetalheModal
               movimento={lancamentoSelecionado}
               onClose={() => setLancamentoSelecionado(null)}
-              onDelete={handleExcluirLancamento}
+              onDelete={podeEditar ? handleExcluirLancamento : undefined}
             />
           )
         )}

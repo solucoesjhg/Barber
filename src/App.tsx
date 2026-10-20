@@ -23,6 +23,9 @@ import Configuracoes from './pages/Configuracoes'
 import Usuarios from './pages/Usuarios'
 import Financeiro from './pages/Financeiro'
 import Categorias from './pages/Categorias'
+import Permissoes from './pages/Permissoes'
+import RotaPermitida from './components/RotaPermitida'
+import { PermissoesProvider } from './hooks/usePermissoes'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth()
@@ -51,27 +54,29 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/cadastro" element={<Signup />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
-          <Route path="/empresas"      element={<Empresas />} />
-          <Route path="/empresas/:id"  element={<EmpresaDetalhe />} />
-          <Route path="/dashboard"     element={<Dashboard />} />
-          <Route path="/agenda"        element={<Agenda />} />
-          <Route path="/pdv"           element={<PDV />} />
-          <Route path="/caixa"         element={<Caixa />} />
-          <Route path="/clientes"      element={<Clientes />} />
-          <Route path="/profissionais" element={<Profissionais />} />
-          <Route path="/produtos"      element={<Produtos />} />
-          <Route path="/fornecedores"  element={<Fornecedores />} />
-          <Route path="/financeiro"    element={<Financeiro />} />
-          <Route path="/categorias"    element={<Categorias />} />
-          <Route path="/contas-pagar"   element={<ContasPagar />} />
-          <Route path="/contas-receber" element={<ContasReceber />} />
-          <Route path="/comissoes"     element={<Comissoes />} />
-          <Route path="/dre"           element={<DRE />} />
-          <Route path="/relatorios"    element={<Relatorios />} />
-          <Route path="/auditoria"     element={<Auditoria />} />
-          <Route path="/configuracoes" element={<Configuracoes />} />
-          <Route path="/usuarios"      element={<Usuarios />} />
+        <Route element={<PrivateRoute><PermissoesProvider><AppLayout /></PermissoesProvider></PrivateRoute>}>
+          <Route path="/empresas"       element={<RotaPermitida superAdmin><Empresas /></RotaPermitida>} />
+          <Route path="/empresas/:id"   element={<RotaPermitida superAdmin><EmpresaDetalhe /></RotaPermitida>} />
+          <Route path="/dashboard"      element={<RotaPermitida tela="dashboard"><Dashboard /></RotaPermitida>} />
+          <Route path="/agenda"         element={<RotaPermitida tela="agenda"><Agenda /></RotaPermitida>} />
+          <Route path="/pdv"            element={<RotaPermitida tela="pdv"><PDV /></RotaPermitida>} />
+          <Route path="/caixa"          element={<RotaPermitida tela="caixa"><Caixa /></RotaPermitida>} />
+          <Route path="/clientes"       element={<RotaPermitida tela="clientes"><Clientes /></RotaPermitida>} />
+          <Route path="/profissionais"  element={<RotaPermitida tela="profissionais"><Profissionais /></RotaPermitida>} />
+          <Route path="/produtos"       element={<RotaPermitida tela="produtos"><Produtos /></RotaPermitida>} />
+          <Route path="/fornecedores"   element={<RotaPermitida tela="fornecedores"><Fornecedores /></RotaPermitida>} />
+          <Route path="/financeiro"     element={<RotaPermitida tela="financeiro"><Financeiro /></RotaPermitida>} />
+          <Route path="/categorias"     element={<RotaPermitida tela="categorias"><Categorias /></RotaPermitida>} />
+          <Route path="/contas-pagar"   element={<RotaPermitida tela="contas_pagar"><ContasPagar /></RotaPermitida>} />
+          <Route path="/contas-receber" element={<RotaPermitida tela="contas_receber"><ContasReceber /></RotaPermitida>} />
+          <Route path="/comissoes"      element={<RotaPermitida tela="comissoes"><Comissoes /></RotaPermitida>} />
+          <Route path="/dre"            element={<RotaPermitida tela="dre"><DRE /></RotaPermitida>} />
+          <Route path="/relatorios"     element={<RotaPermitida tela="relatorios"><Relatorios /></RotaPermitida>} />
+          <Route path="/auditoria"      element={<RotaPermitida tela="auditoria"><Auditoria /></RotaPermitida>} />
+          <Route path="/configuracoes"  element={<RotaPermitida tela="configuracoes"><Configuracoes /></RotaPermitida>} />
+          <Route path="/usuarios"       element={<RotaPermitida gestao superAdmin><Usuarios /></RotaPermitida>} />
+          <Route path="/permissoes"     element={<RotaPermitida gestao><Permissoes /></RotaPermitida>} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>

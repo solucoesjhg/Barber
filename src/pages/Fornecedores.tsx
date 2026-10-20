@@ -4,11 +4,14 @@ import { Plus, Search, X, Phone, Truck, Pencil } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { initials } from '../lib/utils'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
+import { usePermissoes } from '../hooks/usePermissoes'
 import type { Fornecedor } from '../types'
 
 const FORM_INICIAL = { nome: '', nome_fantasia: '', documento: '', telefone: '', email: '', endereco: '', observacoes: '' }
 
 export default function Fornecedores() {
+  const { podeEditar: podeEditarTela } = usePermissoes()
+  const podeEditar = podeEditarTela('fornecedores')
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -99,9 +102,11 @@ export default function Fornecedores() {
             {fornecedores.filter(f => f.ativo).length} ativos · {fornecedores.length} cadastrados
           </p>
         </div>
-        <button className="btn btn-primary" onClick={abrirNovo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Plus size={14} strokeWidth={2.5} /> Novo Fornecedor
-        </button>
+        {podeEditar && (
+          <button className="btn btn-primary" onClick={abrirNovo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Plus size={14} strokeWidth={2.5} /> Novo Fornecedor
+          </button>
+        )}
       </div>
 
       {/* Search */}
@@ -198,21 +203,24 @@ export default function Fornecedores() {
             </div>
             <div>
               <button
-                onClick={() => toggleAtivo(f.id, f.ativo)}
+                onClick={() => { if (podeEditar) toggleAtivo(f.id, f.ativo) }}
+                disabled={!podeEditar}
                 style={{
                   fontSize: '10px', padding: '3px 9px', borderRadius: '99px',
                   border: f.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
                   background: 'transparent',
                   color: f.ativo ? '#A3A3A3' : '#444',
-                  cursor: 'pointer',
+                  cursor: podeEditar ? 'pointer' : 'default',
                 }}
               >
                 {f.ativo ? 'Ativo' : 'Inativo'}
               </button>
             </div>
-            <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicao(f)}>
-              <Pencil size={12} />
-            </button>
+            {podeEditar ? (
+              <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicao(f)}>
+                <Pencil size={12} />
+              </button>
+            ) : <span />}
           </motion.div>
         ))}
       </div>
@@ -270,14 +278,16 @@ export default function Fornecedores() {
               <div className="entity-divider" style={{ height: '1px', background: '#222', margin: '16px 0' }} />
 
               <div className="entity-footer" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicao(f)}>
-                    <Pencil size={12} />
-                  </button>
-                  <button className="btn btn-secondary btn-sm" onClick={() => toggleAtivo(f.id, f.ativo)}>
-                    {f.ativo ? 'Desativar' : 'Ativar'}
-                  </button>
-                </div>
+                {podeEditar && (
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicao(f)}>
+                      <Pencil size={12} />
+                    </button>
+                    <button className="btn btn-secondary btn-sm" onClick={() => toggleAtivo(f.id, f.ativo)}>
+                      {f.ativo ? 'Desativar' : 'Ativar'}
+                    </button>
+                  </div>
+                )}
               </div>
             </motion.div>
           ))}

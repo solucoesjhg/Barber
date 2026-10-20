@@ -543,3 +543,23 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
     overflow-y: auto !important;
   }
 }
+
+/* ── Tela de Permissões ───────────────────────────────────── */
+.permissoes-layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.permissoes-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 80px 80px;
+  align-items: center;
+  gap: 12px;
+}
+@media (max-width: 900px) {
+  .permissoes-layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 768px) {
+  .permissoes-row { padding-left: 16px !important; padding-right: 16px !important; grid-template-columns: minmax(0, 1fr) 70px 70px; gap: 8px; }
+}

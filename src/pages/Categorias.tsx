@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, X, Tags, Wallet, Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
+import { usePermissoes } from '../hooks/usePermissoes'
 import type { CategoriaFinanceira, CategoriaFinanceiraTipo, FormaPagamentoCadastro } from '../types'
 
 type Secao = 'categorias' | 'formas'
@@ -11,6 +12,8 @@ const CAT_FORM_INICIAL = { nome: '', tipo: 'despesa' as CategoriaFinanceiraTipo,
 const FORMA_FORM_INICIAL = { nome: '' }
 
 export default function Categorias() {
+  const { podeEditar: podeEditarTela } = usePermissoes()
+  const podeEditar = podeEditarTela('categorias')
   const [secao, setSecao] = useState<Secao>('categorias')
 
   const [categorias, setCategorias] = useState<CategoriaFinanceira[]>([])
@@ -115,7 +118,7 @@ export default function Categorias() {
             {secao === 'categorias' ? 'Categorias financeiras da sua loja' : 'Formas de pagamento aceitas'}
           </p>
         </div>
-        {secao === 'categorias' ? (
+        {!podeEditar ? null : secao === 'categorias' ? (
           <button className="btn btn-primary" onClick={abrirNovaCategoria} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Plus size={14} strokeWidth={2.5} /> Nova Categoria
           </button>
@@ -156,9 +159,9 @@ export default function Categorias() {
             ) : (
               <>
                 <p style={{ fontSize: '12px', color: '#555', margin: '0 0 8px' }}>Receitas</p>
-                <ListaCategorias itens={receitas} onEditar={abrirEditarCategoria} onToggle={toggleAtivoCategoria} onExcluir={excluirCategoria} vazio="Nenhuma categoria de receita." />
+                <ListaCategorias itens={receitas} onEditar={abrirEditarCategoria} podeEditar={podeEditar} onToggle={toggleAtivoCategoria} onExcluir={excluirCategoria} vazio="Nenhuma categoria de receita." />
                 <p style={{ fontSize: '12px', color: '#555', margin: '20px 0 8px' }}>Despesas</p>
-                <ListaCategorias itens={despesas} onEditar={abrirEditarCategoria} onToggle={toggleAtivoCategoria} onExcluir={excluirCategoria} vazio="Nenhuma categoria de despesa." />
+                <ListaCategorias itens={despesas} onEditar={abrirEditarCategoria} podeEditar={podeEditar} onToggle={toggleAtivoCategoria} onExcluir={excluirCategoria} vazio="Nenhuma categoria de despesa." />
               </>
             )}
           </motion.div>
@@ -190,18 +193,19 @@ export default function Categorias() {
                 >
                   <span style={{ fontSize: '13px', color: '#FFFFFF' }}>{f.nome}</span>
                   <button
-                    onClick={() => toggleAtivoForma(f)}
+                    onClick={() => { if (podeEditar) toggleAtivoForma(f) }}
+                    disabled={!podeEditar}
                     style={{
                       fontSize: '10px', padding: '3px 9px', borderRadius: '99px', width: 'fit-content',
                       border: f.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
-                      background: 'transparent', color: f.ativo ? '#A3A3A3' : '#444', cursor: 'pointer',
+                      background: 'transparent', color: f.ativo ? '#A3A3A3' : '#444', cursor: podeEditar ? 'pointer' : 'default',
                     }}
                   >
                     {f.ativo ? 'Ativa' : 'Inativa'}
                   </button>
                   <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                    <button className="btn btn-icon" title="Editar" onClick={() => abrirEditarForma(f)}><Pencil size={12} /></button>
-                    <button className="btn btn-icon" title="Excluir" onClick={() => excluirForma(f)}><Trash2 size={12} /></button>
+                    {podeEditar && <button className="btn btn-icon" title="Editar" onClick={() => abrirEditarForma(f)}><Pencil size={12} /></button>}
+                    {podeEditar && <button className="btn btn-icon" title="Excluir" onClick={() => excluirForma(f)}><Trash2 size={12} /></button>}
                   </div>
                 </motion.div>
               ))}
@@ -307,8 +311,9 @@ function ordenarHierarquia(itens: CategoriaFinanceira[]): { c: CategoriaFinancei
   return resultado
 }
 
-function ListaCategorias({ itens, onEditar, onToggle, onExcluir, vazio }: {
+function ListaCategorias({ itens, podeEditar, onEditar, onToggle, onExcluir, vazio }: {
   itens: CategoriaFinanceira[]
+  podeEditar: boolean
   onEditar: (c: CategoriaFinanceira) => void
   onToggle: (c: CategoriaFinanceira) => void
   onExcluir: (c: CategoriaFinanceira) => void
@@ -334,18 +339,19 @@ function ListaCategorias({ itens, onEditar, onToggle, onExcluir, vazio }: {
             {nivel > 0 && '↳ '}{c.nome}
           </span>
           <button
-            onClick={() => onToggle(c)}
+            onClick={() => { if (podeEditar) onToggle(c) }}
+            disabled={!podeEditar}
             style={{
               fontSize: '10px', padding: '3px 9px', borderRadius: '99px', width: 'fit-content',
               border: c.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
-              background: 'transparent', color: c.ativo ? '#A3A3A3' : '#444', cursor: 'pointer',
+              background: 'transparent', color: c.ativo ? '#A3A3A3' : '#444', cursor: podeEditar ? 'pointer' : 'default',
             }}
           >
             {c.ativo ? 'Ativa' : 'Inativa'}
           </button>
           <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-            <button className="btn btn-icon" title="Editar" onClick={() => onEditar(c)}><Pencil size={12} /></button>
-            <button className="btn btn-icon" title="Excluir" onClick={() => onExcluir(c)}><Trash2 size={12} /></button>
+            {podeEditar && <button className="btn btn-icon" title="Editar" onClick={() => onEditar(c)}><Pencil size={12} /></button>}
+            {podeEditar && <button className="btn btn-icon" title="Excluir" onClick={() => onExcluir(c)}><Trash2 size={12} /></button>}
           </div>
         </motion.div>
       ))}

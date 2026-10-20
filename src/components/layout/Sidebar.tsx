@@ -5,26 +5,25 @@ import {
   LayoutDashboard, Calendar, ShoppingCart, Wallet, Users,
   Scissors, Package, Truck, BarChart2, ArrowDownCircle, ArrowUpCircle,
   Percent, FileBarChart, FileText, ClipboardList, Settings, UserCog, LogOut, Building2, Tags,
-  ChevronDown, FolderOpen, ArrowLeftRight,
+  ChevronDown, FolderOpen, ArrowLeftRight, ShieldCheck,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { usePerfil } from '../../hooks/usePerfil'
+import { usePermissoes } from '../../hooks/usePermissoes'
 import { initials } from '../../lib/utils'
-import type { PapelUsuario } from '../../types'
-
-const PAPEL_LABEL: Record<PapelUsuario, string> = {
-  super_admin: 'Super Admin', administrador: 'Administrador', gerente: 'Gerente', atendente: 'Atendente', profissional: 'Profissional',
-}
+import { PAPEL_LABEL } from '../../lib/permissoes'
+import type { TelaId } from '../../types'
 
 const NAV_SUPER_ADMIN = [
   { to: '/empresas',     icon: Building2,       label: 'Empresas'      },
   { to: '/usuarios',     icon: UserCog,         label: 'Pendências'    },
 ]
 
-type NavItemDef = { to: string; icon: typeof LayoutDashboard; label: string }
+// tela: permissão de "ver" que libera o item; gestao: só administrador/gerente.
+type NavItemDef = { to: string; icon: typeof LayoutDashboard; label: string; tela?: TelaId; gestao?: boolean }
 
 const NAV_TOPO: NavItemDef[] = [
-  { to: '/dashboard',    icon: LayoutDashboard, label: 'Dashboard'     },
+  { to: '/dashboard',    icon: LayoutDashboard, label: 'Dashboard', tela: 'dashboard' },
 ]
 
 const NAV_GRUPOS: { label: string; icon: typeof LayoutDashboard; items: NavItemDef[] }[] = [
@@ -32,40 +31,41 @@ const NAV_GRUPOS: { label: string; icon: typeof LayoutDashboard; items: NavItemD
     label: 'Cadastros',
     icon: FolderOpen,
     items: [
-      { to: '/clientes',      icon: Users,    label: 'Clientes'      },
-      { to: '/profissionais', icon: Scissors, label: 'Profissionais' },
-      { to: '/produtos',      icon: Package,  label: 'Produtos'      },
-      { to: '/fornecedores',  icon: Truck,    label: 'Fornecedores'  },
-      { to: '/categorias',    icon: Tags,     label: 'Categorias'    },
-      { to: '/usuarios',      icon: UserCog,  label: 'Usuários'      },
+      { to: '/clientes',      icon: Users,    label: 'Clientes',      tela: 'clientes'      },
+      { to: '/profissionais', icon: Scissors, label: 'Profissionais', tela: 'profissionais' },
+      { to: '/produtos',      icon: Package,  label: 'Produtos',      tela: 'produtos'      },
+      { to: '/fornecedores',  icon: Truck,    label: 'Fornecedores',  tela: 'fornecedores'  },
+      { to: '/categorias',    icon: Tags,     label: 'Categorias',    tela: 'categorias'    },
+      { to: '/usuarios',      icon: UserCog,     label: 'Usuários',   gestao: true },
+      { to: '/permissoes',    icon: ShieldCheck, label: 'Permissões', gestao: true },
     ],
   },
   {
     label: 'Movimentos',
     icon: ArrowLeftRight,
     items: [
-      { to: '/agenda',         icon: Calendar,        label: 'Agenda'           },
-      { to: '/pdv',            icon: ShoppingCart,    label: 'PDV'              },
-      { to: '/caixa',          icon: Wallet,          label: 'Caixa'            },
-      { to: '/financeiro',     icon: BarChart2,       label: 'Financeiro'       },
-      { to: '/contas-pagar',   icon: ArrowUpCircle,   label: 'Contas a Pagar'   },
-      { to: '/contas-receber', icon: ArrowDownCircle, label: 'Contas a Receber' },
-      { to: '/comissoes',      icon: Percent,         label: 'Comissões'       },
+      { to: '/agenda',         icon: Calendar,        label: 'Agenda',           tela: 'agenda'         },
+      { to: '/pdv',            icon: ShoppingCart,    label: 'PDV',              tela: 'pdv'            },
+      { to: '/caixa',          icon: Wallet,          label: 'Caixa',            tela: 'caixa'          },
+      { to: '/financeiro',     icon: BarChart2,       label: 'Financeiro',       tela: 'financeiro'     },
+      { to: '/contas-pagar',   icon: ArrowUpCircle,   label: 'Contas a Pagar',   tela: 'contas_pagar'   },
+      { to: '/contas-receber', icon: ArrowDownCircle, label: 'Contas a Receber', tela: 'contas_receber' },
+      { to: '/comissoes',      icon: Percent,         label: 'Comissões',        tela: 'comissoes'      },
     ],
   },
   {
     label: 'Relatórios',
     icon: FileBarChart,
     items: [
-      { to: '/dre',          icon: FileBarChart,  label: 'DRE'         },
-      { to: '/relatorios',   icon: FileText,      label: 'Relatórios'  },
-      { to: '/auditoria',    icon: ClipboardList, label: 'Auditoria'   },
+      { to: '/dre',          icon: FileBarChart,  label: 'DRE',        tela: 'dre'        },
+      { to: '/relatorios',   icon: FileText,      label: 'Relatórios', tela: 'relatorios' },
+      { to: '/auditoria',    icon: ClipboardList, label: 'Auditoria',  tela: 'auditoria'  },
     ],
   },
 ]
 
 const NAV_RODAPE: NavItemDef[] = [
-  { to: '/configuracoes', icon: Settings, label: 'Configurações' },
+  { to: '/configuracoes', icon: Settings, label: 'Configurações', tela: 'configuracoes' },
 ]
 
 function NavItem({ to, icon: Icon, label }: { to: string; icon: typeof LayoutDashboard; label: string }) {
@@ -157,6 +157,11 @@ function NavGroup({ label, icon: Icon, items, defaultOpen }: { label: string; ic
 export default function Sidebar({ hidden }: { hidden: boolean }) {
   const { user, signOut } = useAuth()
   const { papel } = usePerfil()
+  const { podeVer, gerenciaEquipe } = usePermissoes()
+  const visivel = (item: NavItemDef) => item.gestao ? gerenciaEquipe : !item.tela || podeVer(item.tela)
+  const grupos = NAV_GRUPOS
+    .map(g => ({ ...g, items: g.items.filter(visivel) }))
+    .filter(g => g.items.length > 0)
   const navigate = useNavigate()
   const location = useLocation()
   const name = user?.email?.split('@')[0] ?? 'Usuário'
@@ -228,9 +233,9 @@ export default function Sidebar({ hidden }: { hidden: boolean }) {
           NAV_SUPER_ADMIN.map(item => <NavItem key={item.to} {...item} />)
         ) : (
           <>
-            {NAV_TOPO.map(item => <NavItem key={item.to} {...item} />)}
+            {NAV_TOPO.filter(visivel).map(item => <NavItem key={item.to} {...item} />)}
             <div style={{ height: '10px' }} />
-            {NAV_GRUPOS.map(grupo => (
+            {grupos.map(grupo => (
               <NavGroup
                 key={grupo.label}
                 label={grupo.label}
@@ -240,7 +245,7 @@ export default function Sidebar({ hidden }: { hidden: boolean }) {
               />
             ))}
             <div style={{ height: '10px' }} />
-            {NAV_RODAPE.map(item => <NavItem key={item.to} {...item} />)}
+            {NAV_RODAPE.filter(visivel).map(item => <NavItem key={item.to} {...item} />)}
           </>
         )}
       </nav>

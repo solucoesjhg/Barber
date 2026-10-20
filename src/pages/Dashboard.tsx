@@ -4,7 +4,8 @@ import { motion } from 'framer-motion'
 import { Calendar, Users, DollarSign, TrendingUp, TrendingDown, Wallet, Plus, Clock, ChevronRight } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
-import type { Agendamento } from '../types'
+import { usePermissoes } from '../hooks/usePermissoes'
+import type { Agendamento, TelaId } from '../types'
 
 const STATUS_LABEL: Record<string, string> = {
   pendente:   'Pendente',
@@ -30,6 +31,7 @@ function handleGlowMove(e: MouseEvent<HTMLDivElement>) {
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const { podeVer, podeEditar } = usePermissoes()
   const [agenda, setAgenda] = useState<Agendamento[]>([])
   const [loading, setLoading] = useState(true)
   const [financeiro, setFinanceiro] = useState({ faturamentoMes: 0, despesasMes: 0, aReceber: 0, aPagar: 0, saldoCaixa: 0, caixaAberto: false })
@@ -121,14 +123,16 @@ export default function Dashboard() {
     { label: 'Faturamento',  value: formatCurrency(faturamentoHoje), sub: 'hoje', icon: DollarSign, to: '/relatorios' },
   ]
 
-  const statsFinanceiro = [
-    { label: 'Faturamento (mês)', value: formatCurrency(financeiro.faturamentoMes), icon: TrendingUp, to: '/relatorios' },
-    { label: 'Despesas (mês)',    value: formatCurrency(financeiro.despesasMes),    icon: TrendingDown, to: '/financeiro' },
-    { label: 'Lucro estimado',    value: formatCurrency(financeiro.faturamentoMes - financeiro.despesasMes), icon: DollarSign, to: '/dre' },
-    { label: 'A Receber',         value: formatCurrency(financeiro.aReceber), icon: TrendingUp, to: '/contas-receber' },
-    { label: 'A Pagar',           value: formatCurrency(financeiro.aPagar),   icon: TrendingDown, to: '/contas-pagar' },
-    { label: 'Saldo de Caixa',    value: financeiro.caixaAberto ? formatCurrency(financeiro.saldoCaixa) : 'Fechado', icon: Wallet, to: '/caixa' },
-  ]
+  // Cada card só aparece pra quem pode ver a tela de onde vem o número
+  // (o banco também não devolve o dado sem essa permissão).
+  const statsFinanceiro = ([
+    { label: 'Faturamento (mês)', value: formatCurrency(financeiro.faturamentoMes), icon: TrendingUp, to: '/relatorios', tela: 'financeiro' },
+    { label: 'Despesas (mês)',    value: formatCurrency(financeiro.despesasMes),    icon: TrendingDown, to: '/financeiro', tela: 'financeiro' },
+    { label: 'Lucro estimado',    value: formatCurrency(financeiro.faturamentoMes - financeiro.despesasMes), icon: DollarSign, to: '/dre', tela: 'financeiro' },
+    { label: 'A Receber',         value: formatCurrency(financeiro.aReceber), icon: TrendingUp, to: '/contas-receber', tela: 'contas_receber' },
+    { label: 'A Pagar',           value: formatCurrency(financeiro.aPagar),   icon: TrendingDown, to: '/contas-pagar', tela: 'contas_pagar' },
+    { label: 'Saldo de Caixa',    value: financeiro.caixaAberto ? formatCurrency(financeiro.saldoCaixa) : 'Fechado', icon: Wallet, to: '/caixa', tela: 'caixa' },
+  ] satisfies { tela: TelaId; [k: string]: unknown }[]).filter(s => podeVer(s.tela))
 
   return (
     <div className="page">
@@ -147,9 +151,11 @@ export default function Dashboard() {
           <p style={{ fontSize: '14px', color: '#A3A3A3', marginTop: '4px' }}>Resumo do dia.</p>
         </div>
 
-        <button className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Plus size={14} strokeWidth={2.5} /> Novo Agendamento
-        </button>
+        {podeEditar('agenda') && (
+          <button className="btn btn-primary" onClick={() => navigate('/agenda')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Plus size={14} strokeWidth={2.5} /> Novo Agendamento
+          </button>
+        )}
       </motion.div>
 
       {/* Stat cards */}
@@ -187,7 +193,7 @@ export default function Dashboard() {
       </div>
 
       {/* Financeiro do mês */}
-      <div className="dashboard-fin-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px', marginBottom: '28px' }}>
+      {statsFinanceiro.length > 0 && <div className="dashboard-fin-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${statsFinanceiro.length}, 1fr)`, gap: '16px', marginBottom: '28px' }}>
         {statsFinanceiro.map((s, i) => {
           const Icon = s.icon
           return (
@@ -206,7 +212,7 @@ export default function Dashboard() {
             </motion.div>
           )
         })}
-      </div>
+      </div>}
 
       {/* Rankings do mês */}
       <div className="dashboard-rankings-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '28px' }}>

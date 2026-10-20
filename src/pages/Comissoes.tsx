@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { Percent } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency, formatDate } from '../lib/utils'
-import { usePerfil } from '../hooks/usePerfil'
+import { usePermissoes } from '../hooks/usePermissoes'
 import type { Comissao, ComissaoStatus, Profissional } from '../types'
 
 const STATUS_LABEL: Record<ComissaoStatus, string> = {
@@ -23,8 +23,10 @@ const PROXIMO_LABEL: Partial<Record<ComissaoStatus, string>> = {
 type FiltroStatus = 'todas' | ComissaoStatus
 
 export default function Comissoes() {
-  const { papel } = usePerfil()
-  const podeGerenciar = papel === 'administrador' || papel === 'gerente' || papel === 'super_admin'
+  // Editar Comissões = vê as de todos e muda o status; sem isso o banco
+  // só devolve as comissões do próprio usuário.
+  const { podeEditar } = usePermissoes()
+  const podeGerenciar = podeEditar('comissoes')
   const [comissoes, setComissoes] = useState<(Comissao & { created_at: string })[]>([])
   const [profissionais, setProfissionais] = useState<Profissional[]>([])
   const [emailPorUsuario, setEmailPorUsuario] = useState<Record<string, string>>({})

@@ -4,6 +4,7 @@ import {
   ShoppingCart, Wallet, Percent, Users, Package, Scissors, Calendar, AlertTriangle, Printer,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { COLUNAS_PRODUTO } from '../lib/produtos'
 import { formatCurrency, formatDate, formatDateTime } from '../lib/utils'
 import { type Periodo, rangeFor } from '../lib/periodo'
 
@@ -111,7 +112,7 @@ export default function Relatorios() {
       supabase.from('sessoes_caixa').select('*').order('aberto_em', { ascending: false }),
       supabase.from('comissoes').select('*, profissional:profissionais(nome)').gte('created_at', inicioTS).lte('created_at', fimTS),
       supabase.from('clientes').select('*'),
-      supabase.from('produtos').select('*'),
+      supabase.from('produtos').select(COLUNAS_PRODUTO),
       supabase.from('movimentacoes_estoque').select('*, produto:produtos(nome)').gte('created_at', inicioTS).lte('created_at', fimTS).order('created_at', { ascending: false }).limit(100),
       supabase.from('agendamentos').select('status, profissional_id, profissional:profissionais(nome), servico:servicos(nome)').gte('data_hora', inicioTS).lte('data_hora', fimTS),
       supabase.from('profissionais').select('id, nome').order('nome'),
@@ -126,7 +127,8 @@ export default function Relatorios() {
     setAgendamentos((agend ?? []) as any[])
     setProfissionais((profs ?? []) as { id: string; nome: string }[])
 
-    const usuarios = await supabase.rpc('listar_usuarios')
+    // listar_usuarios é só da gestão; aqui basta id → e-mail
+    const usuarios = await supabase.rpc('listar_usuarios_basico')
     if (usuarios.data) {
       const map: Record<string, string> = {}
       ;(usuarios.data as any[]).forEach(u => { map[u.usuario_id] = u.email })

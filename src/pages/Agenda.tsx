@@ -7,6 +7,7 @@ import {
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
+import { usePermissoes } from '../hooks/usePermissoes'
 import type { Agendamento, AgendamentoStatus, Cliente, Profissional, Servico } from '../types'
 
 /* ── Types ──────────────────────────────────────────────── */
@@ -109,8 +110,9 @@ function ViewBtn({
 ══════════════════════════════════════════════════════════ */
 function ListaView({
   selectedDate, setSelectedDate, agenda, updateStatus,
-  onOpenModal, setFormDate,
+  onOpenModal, setFormDate, podeEditar,
 }: {
+  podeEditar: boolean
   selectedDate: Date
   setSelectedDate: (d: Date) => void
   agenda: Agendamento[]
@@ -190,13 +192,15 @@ function ListaView({
         {filtrado.length === 0 ? (
           <div style={{ padding: '56px', textAlign: 'center' }}>
             <p style={{ fontSize: '14px', color: '#555' }}>Nenhum agendamento neste dia.</p>
-            <button
-              className="btn btn-secondary btn-sm"
-              style={{ marginTop: '16px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-              onClick={() => { setFormDate(dateKey); onOpenModal() }}
-            >
-              <Plus size={13} /> Agendar
-            </button>
+            {podeEditar && (
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{ marginTop: '16px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                onClick={() => { setFormDate(dateKey); onOpenModal() }}
+              >
+                <Plus size={13} /> Agendar
+              </button>
+            )}
           </div>
         ) : filtrado.map((ag, i) => {
           const hora = new Date(ag.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
@@ -236,7 +240,7 @@ function ListaView({
                   <p style={{ fontSize: '12px', color: '#444', marginTop: '4px', fontStyle: 'italic' }}>"{ag.observacoes}"</p>
                 )}
               </div>
-              <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+              {podeEditar && <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
                 {ag.status === 'pendente' && (
                   <button className="btn btn-icon" title="Confirmar" onClick={() => updateStatus(ag.id, 'confirmado')}>
                     <Check size={13} />
@@ -262,7 +266,7 @@ function ListaView({
                     <Trash2 size={13} />
                   </button>
                 )}
-              </div>
+              </div>}
             </motion.div>
           )
         })}
@@ -631,6 +635,8 @@ function MensalView({
    MAIN COMPONENT
 ══════════════════════════════════════════════════════════ */
 export default function Agenda() {
+  const { podeEditar: podeEditarTela } = usePermissoes()
+  const podeEditar = podeEditarTela('agenda')
   const [viewMode, setViewMode]     = useState<ViewMode>('lista')
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [calBase, setCalBase]       = useState(new Date()) // week/month navigation base
@@ -729,8 +735,13 @@ export default function Agenda() {
   }
 
   async function updateStatus(id: string, status: AgendamentoStatus) {
+    const anterior = agenda.find(a => a.id === id)?.status
     setAgenda(prev => prev.map(a => a.id === id ? { ...a, status } : a))
-    await supabase.from('agendamentos').update({ status }).eq('id', id)
+    const { error: err } = await supabase.from('agendamentos').update({ status }).eq('id', id)
+    if (err && anterior) {
+      setAgenda(prev => prev.map(a => a.id === id ? { ...a, status: anterior } : a))
+      window.alert(`Não foi possível mudar o status: ${err.message}`)
+    }
   }
 
   // When clicking a day in semanal/mensal views
@@ -777,13 +788,15 @@ export default function Agenda() {
             <ViewBtn active={viewMode === 'mensal'}  onClick={() => { setViewMode('mensal');  setCalBase(selectedDate) }} icon={CalendarRange} label="Mensal"  />
           </div>
 
-          <button
-            className="btn btn-primary"
-            onClick={() => setShowModal(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-          >
-            <Plus size={14} strokeWidth={2.5} /> Agendar
-          </button>
+          {podeEditar && (
+            <button
+              className="btn btn-primary"
+              onClick={() => setShowModal(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <Plus size={14} strokeWidth={2.5} /> Agendar
+            </button>
+          )}
         </div>
       </div>
 
@@ -847,6 +860,7 @@ export default function Agenda() {
               setSelectedDate={setSelectedDate}
               agenda={agenda}
               updateStatus={updateStatus}
+              podeEditar={podeEditar}
               onOpenModal={() => setShowModal(true)}
               setFormDate={k => setForm(f => ({ ...f, data: k }))}
             />
