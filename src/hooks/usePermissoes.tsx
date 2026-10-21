@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
-import type { PermissoesUsuario, TelaId } from '../types'
+import type { CardDashboardId, PermissoesUsuario, TelaId } from '../types'
 
 interface PermissoesCtx {
   permissoes: PermissoesUsuario | null
@@ -9,6 +9,8 @@ interface PermissoesCtx {
   erro: string
   podeVer: (tela: TelaId) => boolean
   podeEditar: (tela: TelaId) => boolean
+  /** O card aparece no Dashboard desse usuário? */
+  podeVerCard: (card: CardDashboardId) => boolean
   /** Administrador/gerente: telas Usuários e Permissões. */
   gerenciaEquipe: boolean
   verVendasOutros: boolean
@@ -41,10 +43,11 @@ export function PermissoesProvider({ children }: { children: ReactNode }) {
 
   const podeVer = useCallback((tela: TelaId) => !!permissoes?.telas?.[tela]?.ver, [permissoes])
   const podeEditar = useCallback((tela: TelaId) => !!permissoes?.telas?.[tela]?.editar, [permissoes])
+  const podeVerCard = useCallback((card: CardDashboardId) => !!permissoes?.dashboard_cards?.includes(card), [permissoes])
 
   return (
     <Ctx.Provider value={{
-      permissoes, loading, erro, podeVer, podeEditar, recarregar,
+      permissoes, loading, erro, podeVer, podeEditar, podeVerCard, recarregar,
       gerenciaEquipe: !!permissoes?.gerenciar_equipe,
       verVendasOutros: !!permissoes?.ver_vendas_outros,
       verCustoProdutos: !!permissoes?.ver_custo_produtos,

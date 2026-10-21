@@ -308,6 +308,7 @@ export interface UsuarioListado {
   empresa_id?: string
   empresa_nome?: string
   comissao_percentual?: number | null
+  nome?: string | null
 }
 
 export interface UsuarioPerfil {
@@ -326,6 +327,11 @@ export type TelaId =
   | 'contas_receber' | 'comissoes' | 'clientes' | 'profissionais' | 'produtos'
   | 'fornecedores' | 'categorias' | 'dre' | 'relatorios' | 'auditoria' | 'configuracoes'
 
+export type CardDashboardId =
+  | 'agendamentos_hoje' | 'confirmados' | 'concluidos' | 'cancelamentos' | 'faturamento_hoje'
+  | 'faturamento_mes' | 'despesas_mes' | 'lucro_estimado' | 'a_receber' | 'a_pagar' | 'saldo_caixa'
+  | 'top_servicos' | 'top_profissionais' | 'agenda_hoje'
+
 export interface PermissaoTela {
   ver: boolean
   editar: boolean
@@ -342,6 +348,9 @@ export interface PermissoesUsuario {
   ver_vendas_outros: boolean
   ver_custo_produtos: boolean
   especiais_personalizados: boolean
+  /** Cards que aparecem no Dashboard (ids de CARDS_DASHBOARD). */
+  dashboard_cards: CardDashboardId[]
+  dashboard_personalizado: boolean
   telas: Record<TelaId, PermissaoTela>
   /** Só em permissoes_usuario(): quem está logado pode alterar esse usuário. */
   pode_configurar?: boolean

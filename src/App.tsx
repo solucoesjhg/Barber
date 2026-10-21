@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import AppLayout from './components/layout/AppLayout'
 import Login from './pages/Login'
@@ -23,9 +23,14 @@ import Configuracoes from './pages/Configuracoes'
 import Usuarios from './pages/Usuarios'
 import Financeiro from './pages/Financeiro'
 import Categorias from './pages/Categorias'
-import Permissoes from './pages/Permissoes'
 import RotaPermitida from './components/RotaPermitida'
 import { PermissoesProvider } from './hooks/usePermissoes'
+
+// Permissões agora ficam no cartão de cada usuário, em Usuários.
+function IrParaUsuarios() {
+  const { search } = useLocation()
+  return <Navigate to={'/usuarios' + search} replace />
+}
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth()
@@ -75,7 +80,7 @@ export default function App() {
           <Route path="/auditoria"      element={<RotaPermitida tela="auditoria"><Auditoria /></RotaPermitida>} />
           <Route path="/configuracoes"  element={<RotaPermitida tela="configuracoes"><Configuracoes /></RotaPermitida>} />
           <Route path="/usuarios"       element={<RotaPermitida gestao superAdmin><Usuarios /></RotaPermitida>} />
-          <Route path="/permissoes"     element={<RotaPermitida gestao><Permissoes /></RotaPermitida>} />
+          <Route path="/permissoes"     element={<IrParaUsuarios />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Routes>

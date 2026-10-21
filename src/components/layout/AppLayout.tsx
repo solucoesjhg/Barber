@@ -26,14 +26,16 @@ const PAGE_NAMES: Record<string, string> = {
   '/relatorios':    'Relatórios',
   '/auditoria':     'Auditoria',
   '/usuarios':      'Usuários',
-  '/permissoes':    'Permissões',
   '/configuracoes': 'Configurações',
 }
 
 export default function AppLayout() {
   const location = useLocation()
   const navigate = useNavigate()
-  const pageName = PAGE_NAMES[location.pathname] ?? ''
+  // /empresas/:id e outras rotas filhas herdam o nome da rota pai.
+  const pageName = PAGE_NAMES[location.pathname]
+    ?? Object.entries(PAGE_NAMES).find(([rota]) => location.pathname.startsWith(rota + '/'))?.[1]
+    ?? ''
   const { papel, empresaId, ativo, loading: perfilLoading } = usePerfil()
   const [sidebarHidden, setSidebarHidden] = useState(() => {
     if (typeof window !== 'undefined' && window.innerWidth <= 768) return true

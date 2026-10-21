@@ -5,7 +5,7 @@ import { Calendar, Users, DollarSign, TrendingUp, TrendingDown, Wallet, Plus, Cl
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
 import { usePermissoes } from '../hooks/usePermissoes'
-import type { Agendamento, TelaId } from '../types'
+import type { Agendamento, CardDashboardId, TelaId } from '../types'
 
 const STATUS_LABEL: Record<string, string> = {
   pendente:   'Pendente',
@@ -31,7 +31,7 @@ function handleGlowMove(e: MouseEvent<HTMLDivElement>) {
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const { podeVer, podeEditar } = usePermissoes()
+  const { podeVer, podeEditar, podeVerCard } = usePermissoes()
   const [agenda, setAgenda] = useState<Agendamento[]>([])
   const [loading, setLoading] = useState(true)
   const [financeiro, setFinanceiro] = useState({ faturamentoMes: 0, despesasMes: 0, aReceber: 0, aPagar: 0, saldoCaixa: 0, caixaAberto: false })
@@ -115,24 +115,25 @@ export default function Dashboard() {
     .filter(a => a.status === 'concluido')
     .reduce((sum, a) => sum + (a.valor ?? a.servico?.preco ?? 0), 0)
 
-  const stats = [
-    { label: 'Agendamentos', value: agenda.length, sub: 'hoje', icon: Calendar, to: '/agenda' },
-    { label: 'Confirmados',  value: confirmados,   sub: 'aguardando', icon: Users, to: '/agenda' },
-    { label: 'Concluídos',   value: concluidos,    sub: 'finalizados', icon: TrendingUp, to: '/agenda' },
-    { label: 'Cancelamentos', value: cancelados,   sub: 'hoje', icon: TrendingDown, to: '/agenda' },
-    { label: 'Faturamento',  value: formatCurrency(faturamentoHoje), sub: 'hoje', icon: DollarSign, to: '/relatorios' },
-  ]
+  // Cada usuário vê só os cards liberados em Usuários → Permissões → Dashboard.
+  const stats = ([
+    { card: 'agendamentos_hoje', label: 'Agendamentos', value: agenda.length, sub: 'hoje', icon: Calendar, to: '/agenda' },
+    { card: 'confirmados',       label: 'Confirmados',  value: confirmados,   sub: 'aguardando', icon: Users, to: '/agenda' },
+    { card: 'concluidos',        label: 'Concluídos',   value: concluidos,    sub: 'finalizados', icon: TrendingUp, to: '/agenda' },
+    { card: 'cancelamentos',     label: 'Cancelamentos', value: cancelados,   sub: 'hoje', icon: TrendingDown, to: '/agenda' },
+    { card: 'faturamento_hoje',  label: 'Faturamento',  value: formatCurrency(faturamentoHoje), sub: 'hoje', icon: DollarSign, to: '/relatorios' },
+  ] satisfies { card: CardDashboardId; [k: string]: unknown }[]).filter(s => podeVerCard(s.card))
 
   // Cada card só aparece pra quem pode ver a tela de onde vem o número
   // (o banco também não devolve o dado sem essa permissão).
   const statsFinanceiro = ([
-    { label: 'Faturamento (mês)', value: formatCurrency(financeiro.faturamentoMes), icon: TrendingUp, to: '/relatorios', tela: 'financeiro' },
-    { label: 'Despesas (mês)',    value: formatCurrency(financeiro.despesasMes),    icon: TrendingDown, to: '/financeiro', tela: 'financeiro' },
-    { label: 'Lucro estimado',    value: formatCurrency(financeiro.faturamentoMes - financeiro.despesasMes), icon: DollarSign, to: '/dre', tela: 'financeiro' },
-    { label: 'A Receber',         value: formatCurrency(financeiro.aReceber), icon: TrendingUp, to: '/contas-receber', tela: 'contas_receber' },
-    { label: 'A Pagar',           value: formatCurrency(financeiro.aPagar),   icon: TrendingDown, to: '/contas-pagar', tela: 'contas_pagar' },
-    { label: 'Saldo de Caixa',    value: financeiro.caixaAberto ? formatCurrency(financeiro.saldoCaixa) : 'Fechado', icon: Wallet, to: '/caixa', tela: 'caixa' },
-  ] satisfies { tela: TelaId; [k: string]: unknown }[]).filter(s => podeVer(s.tela))
+    { card: 'faturamento_mes', label: 'Faturamento (mês)', value: formatCurrency(financeiro.faturamentoMes), icon: TrendingUp, to: '/relatorios', tela: 'financeiro' },
+    { card: 'despesas_mes', label: 'Despesas (mês)', value: formatCurrency(financeiro.despesasMes),    icon: TrendingDown, to: '/financeiro', tela: 'financeiro' },
+    { card: 'lucro_estimado', label: 'Lucro estimado', value: formatCurrency(financeiro.faturamentoMes - financeiro.despesasMes), icon: DollarSign, to: '/dre', tela: 'financeiro' },
+    { card: 'a_receber', label: 'A Receber', value: formatCurrency(financeiro.aReceber), icon: TrendingUp, to: '/contas-receber', tela: 'contas_receber' },
+    { card: 'a_pagar', label: 'A Pagar', value: formatCurrency(financeiro.aPagar),   icon: TrendingDown, to: '/contas-pagar', tela: 'contas_pagar' },
+    { card: 'saldo_caixa', label: 'Saldo de Caixa', value: financeiro.caixaAberto ? formatCurrency(financeiro.saldoCaixa) : 'Fechado', icon: Wallet, to: '/caixa', tela: 'caixa' },
+  ] satisfies { card: CardDashboardId; tela: TelaId; [k: string]: unknown }[]).filter(s => podeVerCard(s.card) && podeVer(s.tela))
 
   return (
     <div className="page">
@@ -159,7 +160,7 @@ export default function Dashboard() {
       </motion.div>
 
       {/* Stat cards */}
-      <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '28px' }}>
+      {stats.length > 0 && <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${stats.length}, minmax(0, 1fr))`, gap: '16px', marginBottom: '28px' }}>
         {stats.map((s, i) => {
           const Icon = s.icon
           return (
@@ -190,10 +191,10 @@ export default function Dashboard() {
             </motion.div>
           )
         })}
-      </div>
+      </div>}
 
       {/* Financeiro do mês */}
-      {statsFinanceiro.length > 0 && <div className="dashboard-fin-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${statsFinanceiro.length}, 1fr)`, gap: '16px', marginBottom: '28px' }}>
+      {statsFinanceiro.length > 0 && <div className="dashboard-fin-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${statsFinanceiro.length}, minmax(0, 1fr))`, gap: '16px', marginBottom: '28px' }}>
         {statsFinanceiro.map((s, i) => {
           const Icon = s.icon
           return (
@@ -215,8 +216,8 @@ export default function Dashboard() {
       </div>}
 
       {/* Rankings do mês */}
-      <div className="dashboard-rankings-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '28px' }}>
-        <div className="card">
+      {(podeVerCard('top_servicos') || podeVerCard('top_profissionais')) && <div className="dashboard-rankings-grid" style={{ display: 'grid', gridTemplateColumns: podeVerCard('top_servicos') && podeVerCard('top_profissionais') ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)', gap: '16px', marginBottom: '28px' }}>
+        {podeVerCard('top_servicos') && <div className="card">
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', marginBottom: '14px' }}>Serviços mais vendidos (mês)</p>
           {topServicos.length === 0 ? (
             <p style={{ fontSize: '12px', color: '#444' }}>Sem vendas no mês.</p>
@@ -226,8 +227,8 @@ export default function Dashboard() {
               <span style={{ fontSize: '13px', color: '#FFFFFF', fontWeight: 600 }}>{formatCurrency(s.total)}</span>
             </div>
           ))}
-        </div>
-        <div className="card">
+        </div>}
+        {podeVerCard('top_profissionais') && <div className="card">
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', marginBottom: '14px' }}>Profissionais — faturamento (mês)</p>
           {topProfissionais.length === 0 ? (
             <p style={{ fontSize: '12px', color: '#444' }}>Sem vendas no mês.</p>
@@ -237,11 +238,11 @@ export default function Dashboard() {
               <span style={{ fontSize: '13px', color: '#FFFFFF', fontWeight: 600 }}>{formatCurrency(p.total)}</span>
             </div>
           ))}
-        </div>
-      </div>
+        </div>}
+      </div>}
 
       {/* Agenda do dia */}
-      <motion.div
+      {podeVerCard('agenda_hoje') && <motion.div
         className="card"
         style={{ padding: 0, overflow: 'hidden' }}
         initial={{ opacity: 0, y: 20 }}
@@ -334,7 +335,7 @@ export default function Dashboard() {
             </motion.div>
           )
         })}
-      </motion.div>
+      </motion.div>}
     </div>
   )
 }

@@ -74,3 +74,22 @@ tela **Permissões** (menu Cadastros), por administrador e gerente.
   senão a coluna fica ilegível pela API. Pelo mesmo motivo, o app nunca
   usa `select('*')` nessas tabelas (veja `src/lib/produtos.ts`).
 - Pode rodar de novo sem problema (idempotente).
+
+## Administrador cadastra os usuários (20261020000001)
+
+`20261020000001_admin_cadastra_usuarios.sql` — depende da migração de
+permissões por tela (`20261019000001`).
+
+- O super admin cria a loja já com o login do administrador (tela
+  Empresas → Nova Loja, ou na tela da loja → Cadastrar Administrador).
+- O administrador cadastra a equipe em **Usuários → Novo Usuário** (e-mail,
+  senha inicial, nome, papel, comissão) e, no cartão de cada usuário,
+  edita os dados, troca a senha e define as permissões de tela e os
+  cards do Dashboard.
+- Administrador cadastra gerente, atendente e profissional; gerente
+  cadastra atendente e profissional. Ninguém altera a si mesmo.
+- O login é criado direto no Supabase Auth, já confirmado (usa
+  `extensions.crypt`, do pgcrypto, que todo projeto Supabase já tem).
+- `salvar_permissoes_usuario` ganhou o parâmetro `p_dashboard_cards`
+  (a versão de 4 parâmetros é removida).
+- Pode rodar de novo sem problema (idempotente).

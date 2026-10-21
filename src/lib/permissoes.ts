@@ -1,4 +1,4 @@
-import type { PapelUsuario, TelaId } from '../types'
+import type { CardDashboardId, PapelUsuario, TelaId } from '../types'
 
 export interface TelaDef {
   id: TelaId
@@ -36,4 +36,35 @@ export const GRUPOS_TELAS: TelaDef['grupo'][] = ['Geral', 'Cadastros', 'Moviment
 
 export const PAPEL_LABEL: Record<PapelUsuario, string> = {
   super_admin: 'Super Admin', administrador: 'Administrador', gerente: 'Gerente', atendente: 'Atendente', profissional: 'Profissional',
+}
+
+// Mesma lista de public.cards_dashboard() no banco.
+export const CARDS_DASHBOARD: { id: CardDashboardId; label: string; grupo: 'Agenda' | 'Financeiro' | 'Rankings'; ajuda: string }[] = [
+  { id: 'agendamentos_hoje', label: 'Agendamentos',          grupo: 'Agenda',     ajuda: 'Quantos agendamentos há hoje' },
+  { id: 'confirmados',       label: 'Confirmados',           grupo: 'Agenda',     ajuda: 'Agendamentos confirmados de hoje' },
+  { id: 'concluidos',        label: 'Concluídos',            grupo: 'Agenda',     ajuda: 'Atendimentos finalizados hoje' },
+  { id: 'cancelamentos',     label: 'Cancelamentos',         grupo: 'Agenda',     ajuda: 'Cancelados hoje' },
+  { id: 'agenda_hoje',       label: 'Agenda de Hoje',        grupo: 'Agenda',     ajuda: 'Lista com os horários do dia' },
+  { id: 'faturamento_hoje',  label: 'Faturamento de hoje',   grupo: 'Financeiro', ajuda: 'Valor dos agendamentos de hoje' },
+  { id: 'faturamento_mes',   label: 'Faturamento do mês',    grupo: 'Financeiro', ajuda: 'Precisa ver Financeiro' },
+  { id: 'despesas_mes',      label: 'Despesas do mês',       grupo: 'Financeiro', ajuda: 'Precisa ver Financeiro' },
+  { id: 'lucro_estimado',    label: 'Lucro estimado',        grupo: 'Financeiro', ajuda: 'Precisa ver Financeiro' },
+  { id: 'a_receber',         label: 'A Receber',             grupo: 'Financeiro', ajuda: 'Precisa ver Contas a Receber' },
+  { id: 'a_pagar',           label: 'A Pagar',               grupo: 'Financeiro', ajuda: 'Precisa ver Contas a Pagar' },
+  { id: 'saldo_caixa',       label: 'Saldo de Caixa',        grupo: 'Financeiro', ajuda: 'Saldo do caixa aberto do próprio usuário' },
+  { id: 'top_servicos',      label: 'Serviços mais vendidos', grupo: 'Rankings',  ajuda: 'Ranking do mês' },
+  { id: 'top_profissionais', label: 'Profissionais — faturamento', grupo: 'Rankings', ajuda: 'Ranking do mês' },
+]
+
+/** Papéis que cada papel pode atribuir (mesma regra de papeis_que_posso_atribuir() no banco). */
+export function papeisQuePossoAtribuir(papel: PapelUsuario | null): PapelUsuario[] {
+  if (papel === 'super_admin') return ['administrador', 'gerente', 'atendente', 'profissional']
+  if (papel === 'administrador') return ['gerente', 'atendente', 'profissional']
+  if (papel === 'gerente') return ['atendente', 'profissional']
+  return []
+}
+
+/** Nome para exibir: o nome cadastrado ou, sem ele, a parte do e-mail antes do @. */
+export function nomeExibicao(u: { nome?: string | null; email: string }): string {
+  return u.nome?.trim() || u.email.split('@')[0]
 }

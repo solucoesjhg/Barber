@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { ExternalLink, UserX, UserCheck, ShieldCheck } from 'lucide-react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ExternalLink, UserX, UserCheck, Plus } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { usePerfil } from '../hooks/usePerfil'
 import { formatDate, initials } from '../lib/utils'
+import { useAuth } from '../hooks/useAuth'
+import { PAPEL_LABEL as PAPEL_LABEL_LOJA, nomeExibicao, papeisQuePossoAtribuir } from '../lib/permissoes'
+import UsuarioCard from '../components/usuarios/UsuarioCard'
+import NovoUsuarioModal from '../components/usuarios/NovoUsuarioModal'
 import type { UsuarioListado, PapelUsuario, Profissional, Empresa } from '../types'
 
 const PAPEL_LABEL: Record<PapelUsuario, string> = {
@@ -21,6 +25,11 @@ export default function Usuarios() {
   const [loading, setLoading] = useState(true)
   const [savingId, setSavingId] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const abertoId = searchParams.get('usuario')
+  const [showNovo, setShowNovo] = useState(false)
+  const [busca, setBusca] = useState('')
 
   function carregar() {
     setLoading(true)
@@ -39,23 +48,6 @@ export default function Usuarios() {
   }
 
   useEffect(() => { carregar() }, [souSuperAdmin])
-
-  async function salvar(u: UsuarioListado, campo: 'papel' | 'profissional_id' | 'ativo' | 'empresa_id' | 'comissao_percentual', valor: string | boolean | number) {
-    const atualizado = { ...u, [campo]: valor === '' ? null : valor }
-    setUsuarios(prev => prev.map(x => x.usuario_id === u.usuario_id ? atualizado : x))
-    setSavingId(u.usuario_id)
-    const { error: err } = await supabase.rpc('atualizar_papel_usuario', {
-      p_usuario_id: u.usuario_id,
-      p_papel: atualizado.papel,
-      p_profissional_id: atualizado.profissional_id || null,
-      p_ativo: atualizado.ativo,
-      p_empresa_id: atualizado.empresa_id || null,
-      p_comissao_percentual: atualizado.comissao_percentual != null ? Number(atualizado.comissao_percentual) : null,
-    })
-    setSavingId(null)
-    if (err) { setError(err.message); carregar(); return }
-    carregar()
-  }
 
   const [papelPendente, setPapelPendente] = useState<Record<string, PapelUsuario>>({})
 
@@ -288,178 +280,89 @@ export default function Usuarios() {
     )
   }
 
-  const colunas = '1fr 140px 100px 180px 80px 100px 40px'
+  // ── Visão da loja (administrador / gerente) ──────────────────
+  const papeisAtribuiveis = papeisQuePossoAtribuir(meuPapel)
+  // Mesma regra do banco: só gerencia quem está abaixo dele, nunca a si mesmo.
+  const podeEditarUsuario = (u: UsuarioListado) => u.usuario_id !== user?.id && papeisAtribuiveis.includes(u.papel)
+  const motivoSomenteLeitura = (u: UsuarioListado) =>
+    u.usuario_id === user?.id ? 'Você não pode alterar o seu próprio usuário. Peça a quem está acima de você.'
+      : u.papel === 'administrador' ? 'Administrador só é alterado pelo suporte da plataforma.'
+        : `Só o administrador pode alterar um ${PAPEL_LABEL_LOJA[u.papel].toLowerCase()}.`
+
+  function alternar(id: string) {
+    setSearchParams(abertoId === id ? {} : { usuario: id }, { replace: true })
+  }
+
+  const termo = busca.trim().toLowerCase()
+  const visiveis = usuarios
+    .filter(u => !termo || nomeExibicao(u).toLowerCase().includes(termo) || u.email.toLowerCase().includes(termo))
+    .sort((a, b) => Number(b.ativo) - Number(a.ativo) || nomeExibicao(a).localeCompare(nomeExibicao(b)))
 
   return (
     <div className="page">
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Usuários</h1>
-        <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
-          Papéis, profissional vinculado e ativo/inativo da sua equipe · o que cada um vê e edita fica em Permissões
-        </p>
-      </div>
-
-      {error && <p style={{ fontSize: '12px', color: '#666', marginBottom: '16px' }}>{error}</p>}
-
-      <div className="card desktop-row" style={{ padding: 0, overflow: 'hidden' }}>
-        <div className="list-header" style={{
-          display: 'grid', minWidth: '870px', gridTemplateColumns: colunas,
-          padding: '10px 24px', borderBottom: '1px solid #222',
-          fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
-          background: 'rgba(0,0,0,0.2)',
-        }}>
-          <span>E-mail</span>
-          <span>Papel</span>
-          <span>Comissão</span>
-          <span>Vinculado a</span>
-          <span>Ativo</span>
-          <span>Desde</span>
-          <span></span>
+      <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '24px' }}>
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Usuários</h1>
+          <p style={{ fontSize: '13px', color: '#A3A3A3', marginTop: '3px' }}>
+            {usuarios.filter(u => u.ativo).length} ativos · {usuarios.length} cadastrados · toque num usuário para editar dados e permissões
+          </p>
         </div>
-
-        {loading ? (
-          <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Carregando...</div>
-        ) : usuarios.length === 0 ? (
-          <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
-            Nenhum usuário encontrado (ou você não tem permissão pra ver essa tela).
-          </div>
-        ) : usuarios.map((u, i) => (
-          <motion.div
-            key={u.usuario_id}
-            className="list-row"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
-            style={{
-              display: 'grid', minWidth: '870px', gridTemplateColumns: colunas,
-              padding: '12px 24px', alignItems: 'center',
-              borderBottom: i < usuarios.length - 1 ? '1px solid #1A1A1A' : 'none',
-              opacity: savingId === u.usuario_id ? 0.6 : 1,
-            }}
-          >
-            <span style={{ fontSize: '13px', color: '#FFFFFF' }}>{u.email}</span>
-
-            <select
-              className="input"
-              style={{ fontSize: '12px', padding: '6px 8px' }}
-              value={u.papel}
-              onChange={e => salvar(u, 'papel', e.target.value)}
-              disabled={u.papel === 'super_admin'}
-            >
-              {Object.entries(PAPEL_LABEL)
-                .filter(([k]) => k !== 'super_admin')
-                .map(([k, label]) => <option key={k} value={k}>{label}</option>)}
-            </select>
-
-            <input
-              className="input" type="number" min={0} max={100} step={0.1}
-              style={{ fontSize: '12px', padding: '6px 8px' }}
-              placeholder="0%"
-              value={u.comissao_percentual ?? ''}
-              onChange={e => salvar(u, 'comissao_percentual', e.target.value)}
-            />
-
-            <select
-              className="input"
-              style={{ fontSize: '12px', padding: '6px 8px' }}
-              value={u.profissional_id ?? ''}
-              onChange={e => salvar(u, 'profissional_id', e.target.value)}
-            >
-              <option value="">Nenhum profissional</option>
-              {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-            </select>
-
-            <input type="checkbox" checked={u.ativo} onChange={e => salvar(u, 'ativo', e.target.checked)} />
-            <span style={{ fontSize: '12px', color: '#444' }}>{formatDate(u.criado_em)}</span>
-            <Link to={`/permissoes?usuario=${u.usuario_id}`} className="btn btn-icon" title="Permissões de tela">
-              <ShieldCheck size={13} />
-            </Link>
-          </motion.div>
-        ))}
+        {papeisAtribuiveis.length > 0 && (
+          <button className="btn btn-primary" onClick={() => setShowNovo(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            <Plus size={14} strokeWidth={2.5} /> Novo Usuário
+          </button>
+        )}
       </div>
 
-      {/* Cards (mobile) */}
-      {!loading && usuarios.length > 0 && (
-        <div className="entity-grid mobile-only-grid" style={{ gap: '16px' }}>
-          {usuarios.map((u, i) => (
-            <motion.div
+      {usuarios.length > 5 && (
+        <input
+          className="input" placeholder="Buscar por nome ou e-mail" value={busca}
+          onChange={e => setBusca(e.target.value)} style={{ marginBottom: '16px', maxWidth: '360px' }}
+        />
+      )}
+
+      {error && <p className="aviso-erro" style={{ marginBottom: '16px' }}>{error}</p>}
+
+      {loading ? (
+        <div className="card" style={{ padding: '56px', textAlign: 'center', color: '#666', fontSize: '13px' }}>Carregando...</div>
+      ) : visiveis.length === 0 ? (
+        <div className="card" style={{ padding: '56px', textAlign: 'center', color: '#666', fontSize: '13px' }}>
+          {termo ? 'Nenhum usuário encontrado.' : 'Nenhum usuário cadastrado ainda. Use "Novo Usuário" para cadastrar a equipe.'}
+        </div>
+      ) : (
+        <div className="usuarios-lista">
+          {visiveis.map(u => (
+            <UsuarioCard
               key={u.usuario_id}
-              className="card entity-card"
-              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
-              style={{ opacity: savingId === u.usuario_id ? 0.6 : 1 }}
-            >
-              <div className="entity-header" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <div className="entity-avatar" style={{
-                  width: '44px', height: '44px', borderRadius: '50%',
-                  background: '#262626', border: '1px solid #333',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '14px', fontWeight: 700, color: '#A3A3A3', flexShrink: 0,
-                }}>
-                  {initials(u.email.split('@')[0])}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <h3 className="entity-title" style={{
-                    fontSize: '15px', fontWeight: 600, color: '#FFFFFF', fontFamily: 'DM Sans, sans-serif',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>{u.email}</h3>
-                  <p className="entity-subtle" style={{ fontSize: '11px', color: '#444', marginTop: '2px' }}>Desde {formatDate(u.criado_em)}</p>
-                </div>
-              </div>
-
-              <div className="entity-divider" style={{ height: '1px', background: '#222', margin: '16px 0' }} />
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div>
-                  <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Papel</p>
-                  <select
-                    className="input"
-                    style={{ fontSize: '13px' }}
-                    value={u.papel}
-                    onChange={e => salvar(u, 'papel', e.target.value)}
-                    disabled={u.papel === 'super_admin'}
-                  >
-                    {Object.entries(PAPEL_LABEL)
-                      .filter(([k]) => k !== 'super_admin')
-                      .map(([k, label]) => <option key={k} value={k}>{label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Comissão (%)</p>
-                  <input
-                    className="input" type="number" min={0} max={100} step={0.1}
-                    style={{ fontSize: '13px' }}
-                    placeholder="0%"
-                    value={u.comissao_percentual ?? ''}
-                    onChange={e => salvar(u, 'comissao_percentual', e.target.value)}
-                  />
-                </div>
-                <div>
-                  <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Profissional vinculado</p>
-                  <select
-                    className="input"
-                    style={{ fontSize: '13px' }}
-                    value={u.profissional_id ?? ''}
-                    onChange={e => salvar(u, 'profissional_id', e.target.value)}
-                  >
-                    <option value="">Nenhum profissional</option>
-                    {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-                  </select>
-                </div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#A3A3A3', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={u.ativo} onChange={e => salvar(u, 'ativo', e.target.checked)} />
-                  Ativo
-                </label>
-                <Link to={`/permissoes?usuario=${u.usuario_id}`} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                  <ShieldCheck size={13} /> Permissões
-                </Link>
-              </div>
-            </motion.div>
+              usuario={u}
+              aberto={abertoId === u.usuario_id}
+              onToggle={() => alternar(u.usuario_id)}
+              papeis={papeisAtribuiveis}
+              profissionais={profissionais}
+              podeEditar={podeEditarUsuario(u)}
+              motivoSomenteLeitura={motivoSomenteLeitura(u)}
+              comPermissoes
+              onSaved={carregar}
+            />
           ))}
         </div>
       )}
-      {!loading && usuarios.length === 0 && (
-        <div className="card mobile-only-grid" style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
-          Nenhum usuário encontrado (ou você não tem permissão pra ver essa tela).
-        </div>
-      )}
+
+      <AnimatePresence>
+        {showNovo && (
+          <NovoUsuarioModal
+            papeis={papeisAtribuiveis}
+            profissionais={profissionais}
+            onClose={() => setShowNovo(false)}
+            onCreated={id => {
+              setShowNovo(false)
+              carregar()
+              // Abre o cartão do novo usuário para ajustar as permissões.
+              setSearchParams({ usuario: id }, { replace: true })
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

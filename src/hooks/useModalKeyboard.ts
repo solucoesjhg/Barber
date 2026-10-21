@@ -8,6 +8,12 @@ import { useEffect, useRef } from 'react'
  */
 export function useModalKeyboard(active: boolean, onClose: () => void, onSave?: () => void) {
   const ref = useRef<HTMLDivElement>(null)
+  // Guarda sempre a versão mais recente das funções: sem isso o F10
+  // salvava com os valores de quando o modal abriu (formulário vazio).
+  const onCloseRef = useRef(onClose)
+  const onSaveRef = useRef(onSave)
+  onCloseRef.current = onClose
+  onSaveRef.current = onSave
 
   useEffect(() => {
     if (!active) return
@@ -20,10 +26,10 @@ export function useModalKeyboard(active: boolean, onClose: () => void, onSave?: 
     function handler(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         e.preventDefault()
-        onClose()
+        onCloseRef.current()
       } else if (e.key === 'F10') {
         e.preventDefault()
-        onSave?.()
+        onSaveRef.current?.()
       }
     }
 
@@ -32,7 +38,6 @@ export function useModalKeyboard(active: boolean, onClose: () => void, onSave?: 
       clearTimeout(t)
       window.removeEventListener('keydown', handler)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active])
 
   return ref
