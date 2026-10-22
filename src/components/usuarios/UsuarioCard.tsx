@@ -4,7 +4,7 @@ import { ChevronDown, Eye, EyeOff, KeyRound, RotateCcw } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { initials } from '../../lib/utils'
 import { PAPEL_LABEL, nomeExibicao } from '../../lib/permissoes'
-import PermissoesEditor, { cardsAlterados, rascunhoDe, rascunhosIguais, type RascunhoPermissoes } from './PermissoesEditor'
+import PermissoesEditor, { cardsAlterados, rascunhoDe, rascunhosIguais, relatoriosAlterados, type RascunhoPermissoes } from './PermissoesEditor'
 import type { PapelUsuario, PermissoesUsuario, Profissional, UsuarioListado } from '../../types'
 
 type Dados = { nome: string; papel: PapelUsuario; profissional_id: string; comissao: string; ativo: boolean }
@@ -79,7 +79,7 @@ export default function UsuarioCard({ usuario, aberto, onToggle, papeis, profiss
   // Admin tem acesso total; trocar o papel apaga as personalizações,
   // então a tabela só fica editável com o papel atual.
   const permEditavel = podeEditar && !!permissoes?.pode_configurar && !permissoes.acesso_total && !papelMudou
-  const personalizado = !!permissoes && (permissoes.especiais_personalizados || permissoes.dashboard_personalizado || Object.values(permissoes.telas).some(t => t.personalizado))
+  const personalizado = !!permissoes && (permissoes.especiais_personalizados || permissoes.dashboard_personalizado || !!permissoes.relatorios_personalizado || Object.values(permissoes.telas).some(t => t.personalizado))
 
   async function salvar() {
     if (saving) return
@@ -103,14 +103,19 @@ export default function UsuarioCard({ usuario, aberto, onToggle, papeis, profiss
       }
       // O papel novo já zerou as personalizações no banco; só salva a
       // tabela quando o papel não mudou.
-      if (permAlteradas && rascunho && !papelMudou) {
-        const { error: err } = await supabase.rpc('salvar_permissoes_usuario', {
+      if (permAlteradas && rascunho && !papelMudou && permissoes) {
+        const original = rascunhoDe(permissoes)
+        const args: Record<string, unknown> = {
           p_usuario_id: usuario.usuario_id,
           p_telas: rascunho.telas,
           p_ver_vendas_outros: rascunho.ver_vendas_outros,
           p_ver_custo_produtos: rascunho.ver_custo_produtos,
-          p_dashboard_cards: permissoes && cardsAlterados(rascunho, rascunhoDe(permissoes)) ? rascunho.dashboard_cards : null,
-        })
+          p_dashboard_cards: cardsAlterados(rascunho, original) ? rascunho.dashboard_cards : null,
+        }
+        // Só manda os relatórios quando mudaram (o banco sem a migração de
+        // relatórios não conhece esse parâmetro).
+        if (relatoriosAlterados(rascunho, original)) args.p_relatorios = rascunho.relatorios
+        const { error: err } = await supabase.rpc('salvar_permissoes_usuario', args)
         if (err) throw err
       }
       setNovaSenha('')

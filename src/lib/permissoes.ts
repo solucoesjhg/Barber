@@ -1,4 +1,4 @@
-import type { CardDashboardId, PapelUsuario, TelaId } from '../types'
+import type { CardDashboardId, PapelUsuario, RelatorioId, TelaId } from '../types'
 
 export interface TelaDef {
   id: TelaId
@@ -20,12 +20,12 @@ export const TELAS: TelaDef[] = [
   { id: 'fornecedores',   label: 'Fornecedores',     rota: '/fornecedores',   grupo: 'Cadastros',  temEdicao: true, editarDescricao: 'Cadastrar e editar fornecedores' },
   { id: 'categorias',     label: 'Categorias',       rota: '/categorias',     grupo: 'Cadastros',  temEdicao: true, editarDescricao: 'Plano de contas e formas de pagamento' },
   { id: 'agenda',         label: 'Agenda',           rota: '/agenda',         grupo: 'Movimentos', temEdicao: true, editarDescricao: 'Criar agendamentos e mudar o status' },
-  { id: 'pdv',            label: 'PDV',              rota: '/pdv',            grupo: 'Movimentos', temEdicao: true, editarDescricao: 'Registrar vendas' },
+  { id: 'pdv',            label: 'Vendas',           rota: '/vendas',         grupo: 'Movimentos', temEdicao: true, editarDescricao: 'Registrar vendas (administrador e gerente também editam vendas feitas)' },
   { id: 'caixa',          label: 'Caixa',            rota: '/caixa',          grupo: 'Movimentos', temEdicao: true, editarDescricao: 'Abrir e fechar o próprio caixa, sangria e suprimento' },
   { id: 'financeiro',     label: 'Financeiro',       rota: '/financeiro',     grupo: 'Movimentos', temEdicao: true, editarDescricao: 'Contas Caixa/Banco, lançar e excluir movimentos' },
   { id: 'contas_pagar',   label: 'Contas a Pagar',   rota: '/contas-pagar',   grupo: 'Movimentos', temEdicao: true, editarDescricao: 'Lançar contas e registrar pagamentos' },
   { id: 'contas_receber', label: 'Contas a Receber', rota: '/contas-receber', grupo: 'Movimentos', temEdicao: true, editarDescricao: 'Lançar contas e registrar recebimentos' },
-  { id: 'comissoes',      label: 'Comissões',        rota: '/comissoes',      grupo: 'Movimentos', temEdicao: true, editarDescricao: 'Ver as comissões de todos e mudar o status (sem isso, vê só as próprias)' },
+  { id: 'comissoes',      label: 'Comissões',        rota: '/comissoes',      grupo: 'Movimentos', temEdicao: true, editarDescricao: 'Ver as comissões de todos e tirar a comissão de uma venda (sem isso, vê só as próprias)' },
   { id: 'dre',            label: 'DRE',              rota: '/dre',            grupo: 'Relatórios', temEdicao: false },
   { id: 'relatorios',     label: 'Relatórios',       rota: '/relatorios',     grupo: 'Relatórios', temEdicao: false },
   { id: 'auditoria',      label: 'Auditoria',        rota: '/auditoria',      grupo: 'Relatórios', temEdicao: false },
@@ -54,6 +54,18 @@ export const CARDS_DASHBOARD: { id: CardDashboardId; label: string; grupo: 'Agen
   { id: 'saldo_caixa',       label: 'Saldo de Caixa',        grupo: 'Financeiro', ajuda: 'Saldo do caixa aberto do próprio usuário' },
   { id: 'top_servicos',      label: 'Serviços mais vendidos', grupo: 'Rankings',  ajuda: 'Ranking do mês' },
   { id: 'top_profissionais', label: 'Profissionais — faturamento', grupo: 'Rankings', ajuda: 'Ranking do mês' },
+]
+
+// Relatórios (abas da tela Relatórios) que podem ser liberados um a um.
+// Mesma lista de public.relatorios_disponiveis() no banco.
+export const RELATORIOS: { id: RelatorioId; label: string; ajuda: string }[] = [
+  { id: 'vendas',        label: 'Vendas',        ajuda: 'Faturamento, formas de pagamento, serviços, produtos e clientes' },
+  { id: 'caixa',         label: 'Caixa',         ajuda: 'Sessões de caixa, valores esperados e diferenças' },
+  { id: 'comissoes',     label: 'Comissões',     ajuda: 'Comissões geradas pelas vendas, por profissional' },
+  { id: 'clientes',      label: 'Clientes',      ajuda: 'Novos clientes e quem mais compra' },
+  { id: 'produtos',      label: 'Produtos',      ajuda: 'Mais vendidos, estoque baixo e movimentações' },
+  { id: 'profissionais', label: 'Funcionários',  ajuda: 'Atendimentos, faturamento e comissão de cada profissional' },
+  { id: 'agenda',        label: 'Agenda',        ajuda: 'Agendamentos, comparecimento e cancelamentos' },
 ]
 
 /** Papéis que cada papel pode atribuir (mesma regra de papeis_que_posso_atribuir() no banco). */

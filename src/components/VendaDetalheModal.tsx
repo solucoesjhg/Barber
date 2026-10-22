@@ -1,39 +1,88 @@
-import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
-import { X, Package, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { Package, Scissors, Trash2, Pencil, X, ShoppingCart, CalendarDays } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { formatCurrency, formatDate } from '../lib/utils'
-import { useModalKeyboard } from '../hooks/useModalKeyboard'
+import { formatCurrency, formatDateTime } from '../lib/utils'
+import { carregarNomesUsuarios } from '../lib/usuarios'
+import { usePermissoes } from '../hooks/usePermissoes'
+import ModalDetalhe, { Info, InfoGrade, SecaoDetalhe } from './ui/ModalDetalhe'
 import type { Comanda, ItemComanda } from '../types'
 
-// Detalhe de uma venda (comanda) a partir do movimento de caixa que ela
-// gerou — usado ao clicar num lançamento de "venda" no Financeiro.
-// Busca os itens da comanda e, pros itens tipo "produto", a foto
-// cadastrada (serviço não tem foto).
-export default function VendaDetalheModal({ comandaId, onClose, onDelete, destacarProfissionalId }: {
+export const PAGAMENTO_LABEL: Record<string, string> = {
+  pix: 'Pix', credito: 'Cartão Crédito', debito: 'Cartão Débito', dinheiro: 'Dinheiro',
+}
+const STATUS_LABEL: Record<string, string> = { fechada: 'Fechada', cancelada: 'Cancelada', aberta: 'Aberta' }
+
+type ItemDetalhe = ItemComanda & { profissional?: { nome: string } | null }
+
+interface ComissaoDetalhe {
+  id: string
+  valor_comissao: number
+  percentual: number
+  valor_base: number
+  status: string
+  profissional_id: string | null
+  usuario_id: string | null
+  profissional?: { nome: string } | null
+}
+
+/** O que a tela de Vendas recebe para abrir a venda em modo edição. */
+export interface VendaParaEditar {
+  comanda: Comanda
+  itens: ItemComanda[]
+  /** A venda está sem comissão (foi tirada): a edição mantém assim. */
+  semComissao: boolean
+}
+
+/**
+ * Card de uma venda: itens (com o profissional de cada um), pagamento,
+ * quem registrou e as comissões geradas.
+ * - onEditar: mostra "Editar venda" (só administrador/gerente);
+ * - quem edita Comissões pode tirar a comissão da venda aqui;
+ * - onDelete: "Excluir lançamento" (usado no Financeiro).
+ */
+export default function VendaDetalheModal({ comandaId, onClose, onDelete, destacarProfissionalId, onEditar, onAlterado }: {
   comandaId: string
   onClose: () => void
   onDelete?: () => Promise<void> | void
   /** Profissional do usuário logado: os itens dele aparecem destacados. */
   destacarProfissionalId?: string | null
+  onEditar?: (venda: VendaParaEditar) => void
+  /** Chamado depois de tirar comissão (a tela de origem recarrega). */
+  onAlterado?: () => void
 }) {
+  const { podeEditar, podeEditarVendas } = usePermissoes()
+  const podeTirarComissao = podeEditar('comissoes')
   const [comanda, setComanda] = useState<Comanda | null>(null)
-  const [itens, setItens] = useState<ItemComanda[]>([])
+  const [itens, setItens] = useState<ItemDetalhe[]>([])
+  const [comissoes, setComissoes] = useState<ComissaoDetalhe[]>([])
   const [fotos, setFotos] = useState<Record<string, string>>({})
+  const [nomes, setNomes] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [excluindo, setExcluindo] = useState(false)
+  const [salvandoComissao, setSalvandoComissao] = useState(false)
   const [error, setError] = useState('')
+
+  const carregarComissoes = useCallback(async () => {
+    const { data } = await supabase
+      .from('comissoes')
+      .select('id, valor_comissao, percentual, valor_base, status, profissional_id, usuario_id, profissional:profissionais(nome)')
+      .eq('comanda_id', comandaId)
+      .order('created_at')
+    return (data ?? []) as unknown as ComissaoDetalhe[]
+  }, [comandaId])
 
   useEffect(() => {
     let cancelado = false
     setLoading(true)
     Promise.all([
-      supabase.from('comandas').select('*').eq('id', comandaId).single(),
+      supabase.from('comandas').select('*').eq('id', comandaId).maybeSingle(),
       // custo_unitario não é legível pela API (privilégio de coluna)
       supabase.from('itens_comanda').select('id, comanda_id, tipo, referencia_id, nome, quantidade, preco_unitario, profissional_id, profissional:profissionais(nome)').eq('comanda_id', comandaId),
-    ]).then(async ([{ data: comandaData }, { data: itensData }]) => {
+      carregarComissoes(),
+      carregarNomesUsuarios(),
+    ]).then(async ([{ data: comandaData }, { data: itensData }, comissoesData, nomesData]) => {
       if (cancelado) return
-      const itensCarregados = (itensData ?? []) as ItemComanda[]
+      const itensCarregados = (itensData ?? []) as unknown as ItemDetalhe[]
       const idsProdutos = [...new Set(itensCarregados.filter(i => i.tipo === 'produto').map(i => i.referencia_id))]
       let mapaFotos: Record<string, string> = {}
       if (idsProdutos.length > 0) {
@@ -45,16 +94,20 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
         )
       }
       if (cancelado) return
-      setComanda(comandaData as Comanda)
+      setComanda((comandaData ?? null) as Comanda | null)
       setItens(itensCarregados)
+      setComissoes(comissoesData)
+      setNomes(nomesData)
       setFotos(mapaFotos)
       setLoading(false)
     })
     return () => { cancelado = true }
-  }, [comandaId])
+  }, [comandaId, carregarComissoes])
 
-  const modalRef = useModalKeyboard(true, onClose)
   const total = itens.reduce((s, i) => s + i.preco_unitario * i.quantidade, 0)
+  const ativas = comissoes.filter(c => c.status !== 'cancelada')
+  const retiradas = comissoes.length - ativas.length
+  const totalComissoes = ativas.reduce((s, c) => s + Number(c.valor_comissao), 0)
 
   async function handleExcluir() {
     if (!onDelete) return
@@ -68,88 +121,159 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
     }
   }
 
+  async function tirarComissao(ids: string[]) {
+    if (ids.length === 0 || salvandoComissao) return
+    const msg = ids.length === ativas.length
+      ? 'Tirar a comissão desta venda? Ela deixa de aparecer em Comissões e nos relatórios.'
+      : 'Tirar esta comissão da venda?'
+    if (!window.confirm(msg)) return
+    setSalvandoComissao(true); setError('')
+    const { error: err } = await supabase.from('comissoes').update({ status: 'cancelada' }).in('id', ids)
+    if (err) { setError(err.message); setSalvandoComissao(false); return }
+    setComissoes(await carregarComissoes())
+    setSalvandoComissao(false)
+    onAlterado?.()
+  }
+
+  function nomeComissao(c: ComissaoDetalhe): string {
+    if (c.profissional?.nome) return c.profissional.nome
+    if (c.usuario_id) return `${nomes[c.usuario_id] ?? 'Usuário'} · comissão da venda`
+    return '—'
+  }
+
+  const podeAbrirEdicao = !!onEditar && podeEditarVendas && comanda?.status === 'fechada'
+
   return (
-    <motion.div
-      className="modal-overlay"
-      style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      onClick={e => e.target === e.currentTarget && onClose()}
+    <ModalDetalhe
+      largura={480}
+      icone={<ShoppingCart size={18} />}
+      titulo={comanda ? (comanda.cliente_nome || 'Balcão') : 'Venda'}
+      subtitulo={comanda && (
+        <>
+          <span>{formatDateTime(comanda.created_at ?? comanda.data)}</span>
+          {comanda.status !== 'fechada' && (
+            <span className={comanda.status === 'cancelada' ? 'badge badge-canceled' : 'badge badge-pending'}>
+              {STATUS_LABEL[comanda.status] ?? comanda.status}
+            </span>
+          )}
+        </>
+      )}
+      onClose={onClose}
+      acoes={!loading && (podeAbrirEdicao || onDelete) ? (
+        <>
+          {podeAbrirEdicao && comanda && (
+            <button
+              className="btn btn-primary"
+              onClick={() => onEditar!({ comanda, itens, semComissao: ativas.length === 0 && retiradas > 0 })}
+            >
+              <Pencil size={13} /> Editar venda
+            </button>
+          )}
+          {onDelete && (
+            <button className="btn btn-secondary" style={{ color: '#A3A3A3' }} onClick={handleExcluir} disabled={excluindo}>
+              <Trash2 size={13} /> {excluindo ? 'Excluindo...' : 'Excluir lançamento'}
+            </button>
+          )}
+        </>
+      ) : undefined}
     >
-      <motion.div
-        ref={modalRef}
-        className="card"
-        style={{ width: '100%', maxWidth: '440px', padding: '28px', maxHeight: '85vh', overflowY: 'auto' }}
-        initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-          <div>
-            <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>Detalhe da venda</h2>
-            {comanda && (
-              <p style={{ fontSize: '12px', color: '#555', marginTop: '2px' }}>
-                {comanda.cliente_nome ?? 'Balcão'} · {formatDate(comanda.created_at ?? comanda.data)}
-              </p>
+      {loading ? (
+        <p style={{ fontSize: '13px', color: '#555', padding: '32px 0', textAlign: 'center' }}>Carregando...</p>
+      ) : !comanda ? (
+        <p style={{ fontSize: '13px', color: '#555', padding: '32px 0', textAlign: 'center' }}>Venda não encontrada ou sem permissão para ver.</p>
+      ) : (
+        <>
+          <InfoGrade>
+            <Info rotulo="Pagamento">{comanda.forma_pagamento ? PAGAMENTO_LABEL[comanda.forma_pagamento] ?? comanda.forma_pagamento : undefined}</Info>
+            <Info rotulo="Registrada por">{comanda.usuario_id ? nomes[comanda.usuario_id] : undefined}</Info>
+            {comanda.agendamento_id && (
+              <Info rotulo="Origem" largo>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <CalendarDays size={12} style={{ color: '#666' }} /> Gerada por um atendimento da Agenda
+                </span>
+              </Info>
             )}
-          </div>
-          <button className="btn btn-icon" onClick={onClose}><X size={14} /></button>
-        </div>
+          </InfoGrade>
 
-        {loading ? (
-          <p style={{ fontSize: '13px', color: '#555', padding: '32px 0', textAlign: 'center' }}>Carregando...</p>
-        ) : itens.length === 0 ? (
-          <p style={{ fontSize: '13px', color: '#555', padding: '32px 0', textAlign: 'center' }}>Nenhum item encontrado.</p>
-        ) : (
-          <>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', margin: '18px 0' }}>
-              {itens.map(item => {
-                const foto = item.tipo === 'produto' ? fotos[item.referencia_id] : undefined
-                const meu = !!destacarProfissionalId && item.profissional_id === destacarProfissionalId
-                const nomeProfissional = (item as ItemComanda & { profissional?: { nome: string } | null }).profissional?.nome
-                return (
-                  <div key={item.id} style={{
-                    display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px',
-                    borderRadius: '8px',
-                    background: meu ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
-                    border: meu ? '1px solid rgba(255,255,255,0.35)' : '1px solid #252525',
-                    opacity: destacarProfissionalId && !meu ? 0.6 : 1,
-                  }}>
-                    {foto ? (
-                      <img src={foto} alt="" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0, border: '1px solid #2A2A2A' }} />
-                    ) : (
-                      <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: '#1F1F1F', border: '1px solid #2A2A2A', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Package size={14} style={{ color: '#555' }} />
+          <SecaoDetalhe titulo={`Itens (${itens.length})`}>
+            {itens.length === 0 ? (
+              <p style={{ fontSize: '12px', color: '#555' }}>Nenhum item encontrado.</p>
+            ) : (
+              <div className="detalhe-lista">
+                {itens.map(item => {
+                  const foto = item.tipo === 'produto' ? fotos[item.referencia_id] : undefined
+                  const meu = !!destacarProfissionalId && item.profissional_id === destacarProfissionalId
+                  return (
+                    <div key={item.id} className="detalhe-lista-item" style={{
+                      background: meu ? 'rgba(255,255,255,0.08)' : undefined,
+                      borderColor: meu ? 'rgba(255,255,255,0.35)' : undefined,
+                      opacity: destacarProfissionalId && !meu ? 0.6 : 1,
+                    }}>
+                      {foto ? (
+                        <img src={foto} alt="" style={{ width: '30px', height: '30px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0, border: '1px solid #2A2A2A' }} />
+                      ) : (
+                        <div style={{ width: '30px', height: '30px', borderRadius: '6px', background: '#1F1F1F', border: '1px solid #2A2A2A', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {item.tipo === 'servico' ? <Scissors size={13} style={{ color: '#555' }} /> : <Package size={13} style={{ color: '#555' }} />}
+                        </div>
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p className="texto-cortado" style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {item.nome}
+                          {meu && <span className="badge badge-confirmed">Seu</span>}
+                        </p>
+                        <p className="subtexto">
+                          {item.quantidade}x {formatCurrency(item.preco_unitario)}{item.profissional?.nome ? ` · ${item.profissional.nome}` : ''}
+                        </p>
                       </div>
-                    )}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        {item.nome}
-                        {meu && <span className="badge badge-confirmed">Seu</span>}
-                      </p>
-                      <p style={{ fontSize: '11px', color: '#555', marginTop: '2px' }}>
-                        {item.quantidade}x {formatCurrency(item.preco_unitario)}{nomeProfissional ? ` · ${nomeProfissional}` : ''}
-                      </p>
+                      <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: '#A3A3A3', flexShrink: 0 }}>
+                        {formatCurrency(item.preco_unitario * item.quantidade)}
+                      </span>
                     </div>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#A3A3A3', flexShrink: 0 }}>
-                      {formatCurrency(item.preco_unitario * item.quantidade)}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-            <div style={{ padding: '14px 16px', background: 'rgba(255,255,255,0.04)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', marginBottom: onDelete ? '18px' : 0 }}>
-              <span style={{ fontSize: '13px', color: '#A3A3A3' }}>Total</span>
-              <span style={{ fontSize: '18px', fontWeight: 700, color: '#FFFFFF' }}>{formatCurrency(comanda?.total ?? total)}</span>
-            </div>
-
-            {error && <p style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>{error}</p>}
-
-            {onDelete && (
-              <button className="btn btn-secondary" style={{ width: '100%', color: '#A3A3A3', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }} onClick={handleExcluir} disabled={excluindo}>
-                <Trash2 size={13} /> {excluindo ? 'Excluindo...' : 'Excluir lançamento'}
-              </button>
+                  )
+                })}
+              </div>
             )}
-          </>
-        )}
-      </motion.div>
-    </motion.div>
+            <div className="detalhe-total">
+              <span>Total</span>
+              <strong>{formatCurrency(comanda.total ?? total)}</strong>
+            </div>
+          </SecaoDetalhe>
+
+          {comissoes.length > 0 && (
+            <SecaoDetalhe
+              titulo={ativas.length > 0 ? `Comissões · ${formatCurrency(totalComissoes)}` : 'Comissões'}
+              acao={podeTirarComissao && ativas.length > 0 ? (
+                <button className="btn btn-ghost btn-sm" onClick={() => tirarComissao(ativas.map(c => c.id))} disabled={salvandoComissao} style={{ textTransform: 'none', letterSpacing: 0 }}>
+                  Tirar comissão da venda
+                </button>
+              ) : undefined}
+            >
+              {ativas.length === 0 ? (
+                <p style={{ fontSize: '12px', color: '#666' }}>A comissão desta venda foi retirada.</p>
+              ) : (
+                <div className="detalhe-lista">
+                  {ativas.map(c => (
+                    <div key={c.id} className="detalhe-lista-item">
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p className="texto-cortado" style={{ fontSize: '13px', color: '#FFFFFF' }}>{nomeComissao(c)}</p>
+                        <p className="subtexto">{Number(c.percentual)}% de {formatCurrency(Number(c.valor_base))}</p>
+                      </div>
+                      <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>{formatCurrency(Number(c.valor_comissao))}</span>
+                      {podeTirarComissao && (
+                        <button className="btn btn-icon" title="Tirar esta comissão" aria-label="Tirar esta comissão" onClick={() => tirarComissao([c.id])} disabled={salvandoComissao} style={{ width: '28px', height: '28px' }}>
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </SecaoDetalhe>
+          )}
+
+          {error && <p className="aviso-erro" style={{ marginTop: '14px' }}>{error}</p>}
+        </>
+      )}
+    </ModalDetalhe>
   )
 }

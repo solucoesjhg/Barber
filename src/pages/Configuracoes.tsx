@@ -1,20 +1,73 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, type ChangeEvent } from 'react'
 import { motion } from 'framer-motion'
-import { Save } from 'lucide-react'
+import { Save, Upload, Trash2, ImageIcon } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { usePerfil } from '../hooks/usePerfil'
 import { usePermissoes } from '../hooks/usePermissoes'
+import { useLoja } from '../hooks/useLoja'
 import type { Configuracoes as ConfigRow } from '../types'
+
+const TAMANHO_MAX_ARQUIVO = 5 * 1024 * 1024
+
+/**
+ * Reduz a imagem do logo (máx. 256px no lado maior) e devolve em data
+ * URL, que fica gravada em configuracoes.logo_url — sem depender de
+ * Storage. WebP quando o navegador gera (bem menor); senão PNG, que
+ * mantém o fundo transparente.
+ */
+function prepararLogo(arquivo: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const leitor = new FileReader()
+    leitor.onerror = () => reject(new Error('Não foi possível ler a imagem.'))
+    leitor.onload = () => {
+      const img = new Image()
+      img.onerror = () => reject(new Error('Arquivo de imagem inválido.'))
+      img.onload = () => {
+        const lado = 256
+        const escala = Math.min(1, lado / Math.max(img.width || lado, img.height || lado))
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.max(1, Math.round((img.width || lado) * escala))
+        canvas.height = Math.max(1, Math.round((img.height || lado) * escala))
+        const ctx = canvas.getContext('2d')
+        if (!ctx) { reject(new Error('Não foi possível processar a imagem.')); return }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        const webp = canvas.toDataURL('image/webp', 0.9)
+        resolve(webp.startsWith('data:image/webp') ? webp : canvas.toDataURL('image/png'))
+      }
+      img.src = leitor.result as string
+    }
+    leitor.readAsDataURL(arquivo)
+  })
+}
 
 export default function Configuracoes() {
   const { empresaId, loading: perfilLoading } = usePerfil()
   const { podeEditar: podeEditarTela } = usePermissoes()
+  const { recarregar: recarregarLoja } = useLoja()
   const podeEditar = podeEditarTela('configuracoes')
   const [form, setForm] = useState<Partial<ConfigRow>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
+  const [processandoLogo, setProcessandoLogo] = useState(false)
+  const logoInputRef = useRef<HTMLInputElement>(null)
+
+  async function escolherLogo(e: ChangeEvent<HTMLInputElement>) {
+    const arquivo = e.target.files?.[0]
+    e.target.value = ''
+    if (!arquivo) return
+    if (!arquivo.type.startsWith('image/')) { setError('Escolha um arquivo de imagem (PNG, JPG, WebP ou SVG).'); return }
+    if (arquivo.size > TAMANHO_MAX_ARQUIVO) { setError('A imagem é muito grande (máximo 5 MB).'); return }
+    setProcessandoLogo(true); setError('')
+    try {
+      const logo = await prepararLogo(arquivo)
+      setForm(f => ({ ...f, logo_url: logo }))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não foi possível usar essa imagem.')
+    }
+    setProcessandoLogo(false)
+  }
 
   useEffect(() => {
     if (!empresaId) { setLoading(false); return }
@@ -27,6 +80,7 @@ export default function Configuracoes() {
     setSaving(true); setError(''); setSaved(false)
     const { error: err } = await supabase.from('configuracoes').update({
       nome_empresa: form.nome_empresa,
+      logo_url: form.logo_url || null,
       cnpj: form.cnpj || null,
       telefone: form.telefone || null,
       endereco: form.endereco || null,
@@ -39,6 +93,8 @@ export default function Configuracoes() {
     }).eq('empresa_id', empresaId)
     setSaving(false)
     if (err) { setError(err.message); return }
+    // Nome e logo do topo do menu atualizam na hora.
+    recarregarLoja()
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
   }
@@ -70,8 +126,36 @@ export default function Configuracoes() {
         <p style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', marginBottom: '16px' }}>Empresa</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div className="field">
-            <label className="label">Nome</label>
-            <input className="input" value={form.nome_empresa ?? ''} onChange={e => setForm(f => ({ ...f, nome_empresa: e.target.value }))} />
+            <label className="label">Logo</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+              <div className="logo-preview">
+                {form.logo_url
+                  ? <img src={form.logo_url} alt="Logo da loja" />
+                  : <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Logo padrão" style={{ opacity: 0.35 }} />}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0, flex: 1 }}>
+                <p style={{ fontSize: '12px', color: '#777', lineHeight: 1.5 }}>
+                  {form.logo_url ? 'Aparece no topo do menu, ao lado do nome da loja.' : 'Sem logo próprio: o menu mostra o logo padrão.'}
+                  {' '}Use uma imagem quadrada, de preferência com fundo transparente.
+                </p>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => logoInputRef.current?.click()} disabled={processandoLogo} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    {form.logo_url ? <ImageIcon size={13} /> : <Upload size={13} />}
+                    {processandoLogo ? 'Preparando...' : form.logo_url ? 'Trocar logo' : 'Enviar logo'}
+                  </button>
+                  {form.logo_url && (
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setForm(f => ({ ...f, logo_url: '' }))} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <Trash2 size={13} /> Remover
+                    </button>
+                  )}
+                </div>
+              </div>
+              <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={escolherLogo} style={{ display: 'none' }} />
+            </div>
+          </div>
+          <div className="field">
+            <label className="label">Nome da loja</label>
+            <input className="input" value={form.nome_empresa ?? ''} placeholder="Aparece no topo do menu" onChange={e => setForm(f => ({ ...f, nome_empresa: e.target.value }))} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div className="field">

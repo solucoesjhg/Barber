@@ -93,3 +93,26 @@ permissões por tela (`20261019000001`).
 - `salvar_permissoes_usuario` ganhou o parâmetro `p_dashboard_cards`
   (a versão de 4 parâmetros é removida).
 - Pode rodar de novo sem problema (idempotente).
+
+## Editar venda, venda pela agenda e relatórios por usuário (20261022000002)
+
+`20261022000002_editar_venda_agenda_relatorios.sql` — rodar depois de
+`20261022000001_vendas_por_profissional.sql`.
+
+- **Editar venda** (`editar_venda`): administrador e gerente (com Vendas =
+  editar) corrigem uma venda já feita — itens, quantidades, profissional,
+  cliente, forma de pagamento — e podem tirar a comissão dela. O estoque
+  é devolvido e baixado de novo (com registro em movimentações), as
+  comissões são recalculadas e o lançamento de caixa da venda é
+  atualizado (não cria outro).
+- **Venda pela agenda** (`vincular_venda_agendamento`): o "Gerar venda" do
+  atendimento liga a venda ao agendamento e marca o agendamento como
+  concluído.
+- **Relatórios por usuário**: em Usuários → Permissões → Relatórios, o
+  administrador/gerente escolhe quais relatórios cada usuário vê
+  (`usuario_perfis.relatorios`; vazio = todos). `salvar_permissoes_usuario`
+  ganhou `p_relatorios` (a versão de 5 parâmetros é removida).
+- **Comissões** não têm mais aprovar nem marcar como paga: tirar a
+  comissão de uma venda grava `status = 'cancelada'` (não precisa de
+  mudança no banco para isso).
+- Pode rodar de novo sem problema (idempotente).

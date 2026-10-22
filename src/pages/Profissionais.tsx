@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, X, Scissors, Percent, Pencil } from 'lucide-react'
+import { Plus, X, Scissors, Percent, Pencil, Power } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { initials } from '../lib/utils'
+import { formatCurrency, initials } from '../lib/utils'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
 import { usePermissoes } from '../hooks/usePermissoes'
 import type { Profissional } from '../types'
@@ -87,7 +87,9 @@ export default function Profissionais() {
       <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
         <div>
           <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Profissionais</h1>
-          <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>{profissionais.length} profissionais</p>
+          <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
+            {profissionais.filter(p => p.ativo).length} ativos · {profissionais.length} cadastrados
+          </p>
         </div>
         {podeEditar && (
           <button className="btn btn-primary" onClick={abrirNovo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -103,91 +105,66 @@ export default function Profissionais() {
           Nenhum profissional cadastrado.
         </div>
       ) : (
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 250px), 1fr))', gap: '12px' }}>
         {profissionais.map((p, i) => (
           <motion.div
             key={p.id}
             className="card"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.06 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: p.ativo ? 1 : 0.6, y: 0 }}
+            transition={{ delay: Math.min(i, 12) * 0.04 }}
+            style={{ padding: '14px 16px' }}
           >
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{
-                width: '44px', height: '44px',
+                width: '36px', height: '36px',
                 borderRadius: '50%',
                 background: '#262626',
                 border: '1px solid #333',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '14px', fontWeight: 700, color: '#A3A3A3',
+                fontSize: '12px', fontWeight: 700, color: '#A3A3A3',
                 flexShrink: 0,
               }}>
                 {initials(p.nome)}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-                  <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#FFFFFF', fontFamily: 'DM Sans, sans-serif' }}>{p.nome}</h3>
-                  <span
-                    style={{
-                      fontSize: '10px', padding: '2px 8px', borderRadius: '99px',
-                      border: p.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
-                      color: p.ativo ? '#A3A3A3' : '#444',
-                    }}
-                  >
-                    {p.ativo ? 'Ativo' : 'Inativo'}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Scissors size={11} style={{ color: '#444' }} />
-                  <span style={{ fontSize: '12px', color: '#666' }}>{p.especialidade}</span>
-                </div>
-                {(p.email || p.documento) && (
-                  <p style={{ fontSize: '11px', color: '#444', marginTop: '4px' }}>
-                    {[p.email, p.documento].filter(Boolean).join(' · ')}
-                  </p>
-                )}
+                <h3 className="texto-cortado" title={p.nome} style={{ fontSize: '14px', fontWeight: 600, color: '#FFFFFF', fontFamily: 'DM Sans, sans-serif' }}>{p.nome}</h3>
+                <p className="texto-cortado" style={{ fontSize: '12px', color: '#666', marginTop: '1px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Scissors size={10} style={{ color: '#444', flexShrink: 0 }} /> <span className="texto-cortado">{p.especialidade}</span>
+                </p>
               </div>
             </div>
 
-            <div style={{ height: '1px', background: '#222', margin: '16px 0' }} />
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Comissão</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Percent size={13} style={{ color: '#A3A3A3' }} />
-                  <span style={{ fontSize: '20px', fontWeight: 700, color: '#FFFFFF', fontFamily: 'DM Sans, sans-serif' }}>
-                    {p.comissao_percentual}
-                  </span>
-                </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #222' }}>
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', fontSize: '12px', color: '#777' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: '#FFFFFF', fontWeight: 600 }}>
+                  <Percent size={11} style={{ color: '#888' }} /> {p.comissao_percentual}
+                  <span style={{ color: '#666', fontWeight: 400, marginLeft: '2px' }}>comissão</span>
+                </span>
               </div>
-
-              {p.valor_fixo ? (
-                <div>
-                  <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Valor fixo</p>
-                  <p style={{ fontSize: '13px', color: '#A3A3A3' }}>R$ {p.valor_fixo.toFixed(2)}</p>
-                </div>
-              ) : p.telefone ? (
-                <div>
-                  <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Telefone</p>
-                  <p style={{ fontSize: '13px', color: '#A3A3A3' }}>{p.telefone}</p>
-                </div>
-              ) : null}
-
+              <span className={`status-pill${p.ativo ? '' : ' inativo'}`} style={{ flexShrink: 0 }}>{p.ativo ? 'Ativo' : 'Inativo'}</span>
               {podeEditar && (
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicao(p)}>
+                <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                  <button className="btn btn-icon" title="Editar" aria-label={`Editar ${p.nome}`} onClick={() => abrirEdicao(p)} style={{ width: '28px', height: '28px' }}>
                     <Pencil size={12} />
                   </button>
                   <button
+                    className="btn btn-icon"
+                    title={p.ativo ? 'Desativar' : 'Ativar'}
+                    aria-label={`${p.ativo ? 'Desativar' : 'Ativar'} ${p.nome}`}
                     onClick={() => toggleAtivo(p.id, p.ativo)}
-                    className="btn btn-secondary btn-sm"
+                    style={{ width: '28px', height: '28px' }}
                   >
-                    {p.ativo ? 'Desativar' : 'Ativar'}
+                    <Power size={12} />
                   </button>
                 </div>
               )}
             </div>
+            {(p.valor_fixo || p.telefone || p.email || p.documento) && (
+              <p className="texto-cortado" style={{ fontSize: '11px', color: '#555', marginTop: '6px' }}>
+                {[p.valor_fixo ? `fixo ${formatCurrency(p.valor_fixo)}` : null, p.telefone, p.email, p.documento].filter(Boolean).join(' · ')}
+              </p>
+            )}
           </motion.div>
         ))}
       </div>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -11,6 +11,7 @@ import {
 import { useAuth } from '../../hooks/useAuth'
 import { usePerfil } from '../../hooks/usePerfil'
 import { usePermissoes } from '../../hooks/usePermissoes'
+import { useLoja } from '../../hooks/useLoja'
 import { initials } from '../../lib/utils'
 import { PAPEL_LABEL } from '../../lib/permissoes'
 import type { TelaId } from '../../types'
@@ -45,7 +46,7 @@ const NAV_GRUPOS: { label: string; icon: typeof LayoutDashboard; items: NavItemD
     icon: ArrowLeftRight,
     items: [
       { to: '/agenda',         icon: Calendar,        label: 'Agenda',           tela: 'agenda'         },
-      { to: '/pdv',            icon: ShoppingCart,    label: 'PDV',              tela: 'pdv'            },
+      { to: '/vendas',         icon: ShoppingCart,    label: 'Vendas',           tela: 'pdv'            },
       { to: '/caixa',          icon: Wallet,          label: 'Caixa',            tela: 'caixa'          },
       { to: '/financeiro',     icon: BarChart2,       label: 'Financeiro',       tela: 'financeiro'     },
       { to: '/contas-pagar',   icon: ArrowUpCircle,   label: 'Contas a Pagar',   tela: 'contas_pagar'   },
@@ -119,7 +120,7 @@ const DESCRICAO_ITEM: Record<string, string> = {
   '/categorias': 'Plano de contas e formas de pagamento',
   '/usuarios': 'Equipe, senhas, comissões e permissões',
   '/agenda': 'Horários marcados por profissional',
-  '/pdv': 'Vendas de serviços e produtos',
+  '/vendas': 'Vendas de serviços e produtos',
   '/caixa': 'Abrir, fechar, sangria e suprimento',
   '/financeiro': 'Contas Caixa/Banco e lançamentos',
   '/contas-pagar': 'Despesas, parcelas e pagamentos',
@@ -144,19 +145,33 @@ function useTelaPequena() {
 
 /**
  * Grupo do menu (Cadastros, Movimentos, Relatórios).
- * Computador: clicar ou passar o mouse abre um painel AO LADO do menu
- * com as telas do grupo e uma descrição curta de cada uma.
+ * Computador: passar o mouse abre um painel AO LADO do menu com as
+ * telas do grupo e uma descrição curta de cada uma; clicar deixa o
+ * painel fixo (fecha com outro clique, Esc, clique fora ou ao escolher
+ * uma tela).
  * Celular: o menu já é uma gaveta estreita, então o grupo abre para baixo.
  * O título do grupo mantém sempre a mesma cor; um ponto indica que a
  * tela atual está dentro dele.
+ *
+ * O que fazia o painel "sumir": cada grupo tinha um timer de fechar que
+ * fechava QUALQUER painel aberto — saindo de Cadastros para Movimentos,
+ * o timer de Cadastros fechava o painel de Movimentos que tinha acabado
+ * de abrir; e clicar no grupo logo depois do hover fechava o painel.
+ * Agora onFechar só fecha o próprio grupo, o clique fixa em vez de
+ * fechar, a zona do painel cobre o vão até o menu e, com outro painel
+ * aberto, o hover espera um instante antes de trocar (passar por cima de
+ * um grupo no caminho até o painel não troca de painel).
  */
-function NavGroup({ label, icon: Icon, items, ativo, aberto, onAbrir, onFechar }: {
+function NavGroup({ label, icon: Icon, items, ativo, aberto, outroAberto, onAbrir, onFechar }: {
   label: string
   icon: typeof LayoutDashboard
   items: NavItemDef[]
   ativo: boolean
   aberto: boolean
+  /** Outro grupo está com o painel aberto agora. */
+  outroAberto: boolean
   onAbrir: () => void
+  /** Fecha o painel DESTE grupo (não mexe no de outro). */
   onFechar: () => void
 }) {
   const pequena = useTelaPequena()
@@ -164,22 +179,56 @@ function NavGroup({ label, icon: Icon, items, ativo, aberto, onAbrir, onFechar }
   const botaoRef = useRef<HTMLButtonElement>(null)
   const painelRef = useRef<HTMLDivElement>(null)
   const fecharTimer = useRef<number | null>(null)
+  const abrirTimer = useRef<number | null>(null)
+  const fixado = useRef(false)
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
 
+  function limparTimers() {
+    if (fecharTimer.current) { window.clearTimeout(fecharTimer.current); fecharTimer.current = null }
+    if (abrirTimer.current) { window.clearTimeout(abrirTimer.current); abrirTimer.current = null }
+  }
   function cancelarFechar() {
     if (fecharTimer.current) { window.clearTimeout(fecharTimer.current); fecharTimer.current = null }
   }
+  function fechar() {
+    limparTimers()
+    fixado.current = false
+    onFechar()
+  }
   function fecharDepois() {
+    if (fixado.current) return
     cancelarFechar()
-    fecharTimer.current = window.setTimeout(onFechar, 180)
+    fecharTimer.current = window.setTimeout(() => { fecharTimer.current = null; onFechar() }, 280)
   }
   function abrir() {
-    cancelarFechar()
+    limparTimers()
     const r = botaoRef.current?.getBoundingClientRect()
     const menu = botaoRef.current?.closest('.app-sidebar')?.getBoundingClientRect()
-    if (r) setPos({ top: r.top, left: (menu?.right ?? r.right) + 8 })
+    if (r) setPos({ top: r.top, left: menu?.right ?? r.right })
     onAbrir()
   }
+  function entrarNoGrupo() {
+    if (pequena) return
+    cancelarFechar()
+    if (aberto) return
+    if (abrirTimer.current) window.clearTimeout(abrirTimer.current)
+    abrirTimer.current = window.setTimeout(() => { abrirTimer.current = null; abrir() }, outroAberto ? 170 : 60)
+  }
+  function sairDoGrupo() {
+    if (pequena) return
+    if (abrirTimer.current) { window.clearTimeout(abrirTimer.current); abrirTimer.current = null }
+    if (aberto) fecharDepois()
+  }
+  function clicar() {
+    if (pequena) { setAbertoMobile(o => !o); return }
+    if (!aberto) { abrir(); fixado.current = true; return }
+    // Aberto pelo hover: o clique só deixa fixo (antes fechava).
+    if (!fixado.current) { cancelarFechar(); fixado.current = true; return }
+    fechar()
+  }
+
+  // Fechou por fora (outro grupo, troca de tela): deixa de estar fixo.
+  useEffect(() => { if (!aberto) fixado.current = false }, [aberto])
 
   // Mantém o painel inteiro dentro da tela (grupo perto do rodapé).
   useLayoutEffect(() => {
@@ -194,24 +243,27 @@ function NavGroup({ label, icon: Icon, items, ativo, aberto, onAbrir, onFechar }
     if (!aberto) return
     function fora(e: MouseEvent) {
       const alvo = e.target as Node
-      if (!painelRef.current?.contains(alvo) && !botaoRef.current?.contains(alvo)) onFechar()
+      if (!painelRef.current?.contains(alvo) && !botaoRef.current?.contains(alvo)) {
+        fixado.current = false
+        onFechar()
+      }
     }
-    function tecla(e: KeyboardEvent) { if (e.key === 'Escape') onFechar() }
+    function tecla(e: KeyboardEvent) { if (e.key === 'Escape') { fixado.current = false; onFechar() } }
     document.addEventListener('mousedown', fora)
     document.addEventListener('keydown', tecla)
     return () => { document.removeEventListener('mousedown', fora); document.removeEventListener('keydown', tecla) }
   }, [aberto, onFechar])
 
-  useEffect(() => cancelarFechar, [])
+  useEffect(() => limparTimers, [])
 
   const cabecalho = (
     <button
       ref={botaoRef}
       className={`nav-grupo${aberto && !pequena ? ' aberto' : ''}`}
       aria-expanded={pequena ? abertoMobile : aberto}
-      onClick={() => pequena ? setAbertoMobile(o => !o) : (aberto ? onFechar() : abrir())}
-      onMouseEnter={() => { if (!pequena) abrir() }}
-      onMouseLeave={() => { if (!pequena) fecharDepois() }}
+      onClick={clicar}
+      onMouseEnter={entrarNoGrupo}
+      onMouseLeave={sairDoGrupo}
     >
       <Icon size={14} strokeWidth={1.9} style={{ flexShrink: 0 }} />
       <span style={{ flex: 1, textAlign: 'left' }}>{label}</span>
@@ -253,9 +305,7 @@ function NavGroup({ label, icon: Icon, items, ativo, aberto, onAbrir, onFechar }
           {aberto && pos && (
             <motion.div
               ref={painelRef}
-              className="nav-painel"
-              role="menu"
-              aria-label={label}
+              className="nav-painel-zona"
               style={{ top: pos.top, left: pos.left }}
               initial={{ opacity: 0, x: -6 }}
               animate={{ opacity: 1, x: 0 }}
@@ -264,16 +314,18 @@ function NavGroup({ label, icon: Icon, items, ativo, aberto, onAbrir, onFechar }
               onMouseEnter={cancelarFechar}
               onMouseLeave={fecharDepois}
             >
-              <p className="nav-painel-titulo">{label}</p>
-              {items.map(({ to, icon: ItemIcon, label: itemLabel }) => (
-                <NavLink key={to} to={to} role="menuitem" className={({ isActive }) => `nav-painel-item${isActive ? ' ativo' : ''}`} onClick={onFechar}>
-                  <span className="nav-painel-icone"><ItemIcon size={15} strokeWidth={1.8} /></span>
-                  <span style={{ minWidth: 0 }}>
-                    <span className="nav-painel-nome">{itemLabel}</span>
-                    {DESCRICAO_ITEM[to] && <span className="nav-painel-desc">{DESCRICAO_ITEM[to]}</span>}
-                  </span>
-                </NavLink>
-              ))}
+              <div className="nav-painel" role="menu" aria-label={label}>
+                <p className="nav-painel-titulo">{label}</p>
+                {items.map(({ to, icon: ItemIcon, label: itemLabel }) => (
+                  <NavLink key={to} to={to} role="menuitem" className={({ isActive }) => `nav-painel-item${isActive ? ' ativo' : ''}`} onClick={fechar}>
+                    <span className="nav-painel-icone"><ItemIcon size={15} strokeWidth={1.8} /></span>
+                    <span style={{ minWidth: 0 }}>
+                      <span className="nav-painel-nome">{itemLabel}</span>
+                      {DESCRICAO_ITEM[to] && <span className="nav-painel-desc">{DESCRICAO_ITEM[to]}</span>}
+                    </span>
+                  </NavLink>
+                ))}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>,
@@ -296,9 +348,16 @@ export default function Sidebar({ hidden }: { hidden: boolean }) {
   const name = user?.email?.split('@')[0] ?? 'Usuário'
   const ini = initials(name)
   const isSuperAdmin = papel === 'super_admin'
+  const { nome: nomeLoja, logoUrl } = useLoja()
+  const tituloMenu = isSuperAdmin ? 'BarberOS' : (nomeLoja ?? '')
   // Só um painel lateral aberto por vez; fecha ao trocar de tela.
+  // Fechar um grupo nunca fecha o painel de outro.
   const [grupoAberto, setGrupoAberto] = useState<string | null>(null)
-  const fecharGrupo = useCallback(() => setGrupoAberto(null), [])
+  const fecharGrupo = useCallback((label: string) => setGrupoAberto(g => (g === label ? null : g)), [])
+  const fechadores = useMemo(
+    () => Object.fromEntries(NAV_GRUPOS.map(g => [g.label, () => fecharGrupo(g.label)])) as Record<string, () => void>,
+    [fecharGrupo],
+  )
   useEffect(() => { setGrupoAberto(null) }, [location.pathname, hidden])
 
   async function handleSignOut() {
@@ -332,31 +391,26 @@ export default function Sidebar({ hidden }: { hidden: boolean }) {
         borderBottom: '1px solid #1F1F1F',
         flexShrink: 0,
       }}>
+        {/* Logo e nome da loja (Configurações); sem logo cadastrado, o padrão. */}
         <img
-          src={`${import.meta.env.BASE_URL}logo.png`}
-          alt="Logo"
+          src={logoUrl ?? `${import.meta.env.BASE_URL}logo.png`}
+          alt={tituloMenu || 'Logo'}
           style={{
             width: '32px',
             height: '32px',
             objectFit: 'contain',
+            borderRadius: logoUrl ? '8px' : 0,
             flexShrink: 0,
           }}
         />
-        <span style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
-          BarberOS
-        </span>
-        <span style={{
-          marginLeft: 'auto',
-          fontSize: '9px',
-          fontWeight: 700,
-          padding: '2px 6px',
-          borderRadius: '4px',
-          background: 'rgba(255,255,255,0.08)',
-          color: '#A3A3A3',
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-        }}>
-          ERP
+        <span
+          title={tituloMenu}
+          style={{
+            fontSize: '13px', fontWeight: 600, color: '#FFFFFF', letterSpacing: '-0.01em', lineHeight: 1.25,
+            minWidth: 0, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+          }}
+        >
+          {tituloMenu}
         </span>
       </div>
 
@@ -376,8 +430,9 @@ export default function Sidebar({ hidden }: { hidden: boolean }) {
                 items={grupo.items}
                 ativo={grupo.items.some(i => location.pathname.startsWith(i.to))}
                 aberto={grupoAberto === grupo.label}
+                outroAberto={grupoAberto !== null && grupoAberto !== grupo.label}
                 onAbrir={() => setGrupoAberto(grupo.label)}
-                onFechar={fecharGrupo}
+                onFechar={fechadores[grupo.label]}
               />
             ))}
             <div style={{ height: '10px' }} />

@@ -262,16 +262,21 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
    BADGES DE STATUS
    ============================================================ */
 
+/* Compacto: o status é informação de apoio, não pode disputar espaço
+   com o conteúdo da linha. */
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
+  gap: 4px;
+  padding: 1px 7px;
   border-radius: 99px;
-  font-size: 11px;
+  font-size: 10px;
+  line-height: 16px;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
+  white-space: nowrap;
+  width: fit-content;
 }
 
 /* Sem cores vibrantes — usa opacidade e bordas */
@@ -673,8 +678,7 @@ fieldset { border: none; padding: 0; margin: 0; min-width: 0; }
 .perm-ponto { width: 5px; height: 5px; border-radius: 50%; background: var(--text-muted); flex-shrink: 0; }
 .perm-celula { display: flex; justify-content: center; }
 .perm-traco { font-size: 12px; color: #444; }
-.perm-check { width: 16px; height: 16px; flex-shrink: 0; accent-color: #FFFFFF; cursor: pointer; }
-.perm-check:disabled { cursor: default; }
+.perm-check { width: 15px; height: 15px; }
 
 @media (max-width: 768px) {
   .usuario-resumo { grid-template-columns: 36px minmax(0, 1fr) 32px; gap: 12px; padding: 12px 14px; }
@@ -701,8 +705,11 @@ fieldset { border: none; padding: 0; margin: 0; min-width: 0; }
 .nav-grupo:focus-visible { outline: 1.5px solid var(--text-muted); outline-offset: 1px; }
 .nav-grupo-ponto { width: 4px; height: 4px; border-radius: 50%; background: #FFFFFF; flex-shrink: 0; }
 
+/* A "zona" é uma faixa transparente que começa na borda do menu e
+   envolve o painel: o mouse atravessa o vão entre o menu e o painel
+   sem sair da área de hover (antes o painel fechava no caminho). */
+.nav-painel-zona { position: fixed; z-index: 60; padding-left: 12px; }
 .nav-painel {
-  position: fixed; z-index: 60;
   width: 280px; max-height: calc(100vh - 16px); overflow-y: auto;
   padding: 8px;
   background: #161616; border: 1px solid var(--border); border-radius: var(--radius-lg);
@@ -737,4 +744,236 @@ fieldset { border: none; padding: 0; margin: 0; min-width: 0; }
 .secao-separador { display: flex; flex-direction: column; gap: 4px; padding-top: 14px; margin-top: 4px; border-top: 1px solid var(--border); }
 @media (max-width: 768px) {
   .pendente-linha { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ============================================================
+   CHECKBOX — pequeno e discreto, igual em todas as telas
+   ============================================================ */
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  flex-shrink: 0;
+  margin: 0;
+  border: 1px solid #4A4A4A;
+  border-radius: 4px;
+  background: transparent;
+  display: inline-grid;
+  place-content: center;
+  vertical-align: middle;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+input[type="checkbox"]:hover { border-color: #8A8A8A; }
+input[type="checkbox"]::before {
+  content: '';
+  width: 8px; height: 8px;
+  background: #0D0D0D;
+  transform: scale(0);
+  transition: transform 0.1s ease;
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+}
+input[type="checkbox"]:checked,
+input[type="checkbox"]:indeterminate { background: #FFFFFF; border-color: #FFFFFF; }
+input[type="checkbox"]:checked::before { transform: scale(1); }
+input[type="checkbox"]:indeterminate::before { transform: scale(1); clip-path: none; width: 8px; height: 2px; border-radius: 1px; }
+input[type="checkbox"]:disabled { opacity: 0.35; cursor: default; }
+input[type="checkbox"]:focus-visible { outline: 1.5px solid rgba(255,255,255,0.4); outline-offset: 2px; border-radius: 4px; }
+
+/* Rótulo ao lado de um checkbox ("Mostrar inativos" etc.) */
+.check-rotulo {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12px; color: var(--text-muted); cursor: pointer; white-space: nowrap; user-select: none;
+}
+
+/* ============================================================
+   STATUS ATIVO / INATIVO — pílula compacta
+   ============================================================ */
+.status-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 1px 8px;
+  border-radius: 99px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit; font-size: 10px; font-weight: 500; line-height: 16px;
+  white-space: nowrap; width: fit-content;
+}
+.status-pill::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.status-pill.inativo { border: 1px dashed #333; color: #555; }
+button.status-pill { cursor: pointer; transition: border-color 0.12s ease; }
+button.status-pill:hover:not(:disabled) { border-color: rgba(255,255,255,0.35); }
+button.status-pill:disabled { cursor: default; }
+
+/* ============================================================
+   LISTAS — linha clicável e coluna de seleção
+   ============================================================ */
+.list-row.clicavel { cursor: pointer; }
+.list-row.selecionada { background: rgba(255,255,255,0.035); }
+.celula-check { display: flex; align-items: center; }
+.texto-cortado { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.subtexto { font-size: 11px; color: #555; margin-top: 2px; }
+.valor-num { font-variant-numeric: tabular-nums; }
+
+/* ============================================================
+   BARRA DE FILTROS
+   ============================================================ */
+.barra-filtros { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.filtro-select {
+  height: 36px; min-height: 36px;
+  padding: 0 30px 0 12px;
+  background-color: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  color: var(--text); font-family: inherit; font-size: 13px;
+  outline: none; cursor: pointer; max-width: 240px;
+  appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 11px center;
+}
+.filtro-select:hover, .filtro-select:focus { border-color: var(--border-strong); }
+.filtro-busca {
+  display: flex; align-items: center; gap: 8px;
+  height: 36px; padding: 0 12px; min-width: 0; flex: 1 1 200px; max-width: 320px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+}
+.filtro-busca:focus-within { border-color: var(--border-strong); }
+.filtro-busca input { flex: 1; min-width: 0; background: transparent; border: none; outline: none; color: var(--text); font-family: inherit; font-size: 13px; }
+.filtro-busca svg { color: #555; flex-shrink: 0; }
+
+/* Pílulas de filtro (Todas / Abertas / Pagas...) */
+.pilulas { display: inline-flex; gap: 2px; padding: 3px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); flex-wrap: wrap; }
+.pilula {
+  padding: 5px 11px; border-radius: 6px; border: 1px solid transparent;
+  background: transparent; color: #777; font-family: inherit; font-size: 12px; cursor: pointer; white-space: nowrap;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+.pilula:hover { color: var(--text); }
+.pilula.ativa { background: rgba(255,255,255,0.08); border-color: var(--border-strong); color: var(--text); }
+.pilula-contagem { margin-left: 5px; font-size: 10px; color: #666; font-variant-numeric: tabular-nums; }
+
+/* ============================================================
+   FILTRO DE PERÍODO — botão de calendário + painel
+   ============================================================ */
+.periodo-wrap { position: relative; display: inline-flex; }
+.periodo-botao {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 36px; padding: 0 12px;
+  border-radius: var(--radius); border: 1px solid var(--border);
+  background: var(--surface); color: var(--text);
+  font-family: inherit; font-size: 13px; white-space: nowrap; cursor: pointer;
+  transition: border-color 0.12s ease;
+}
+.periodo-botao:hover, .periodo-botao.aberto { border-color: var(--border-strong); }
+.periodo-botao > svg { color: var(--text-muted); flex-shrink: 0; }
+.periodo-pop {
+  position: absolute; top: calc(100% + 6px); z-index: 70;
+  width: 300px; max-width: calc(100vw - 32px);
+  padding: 12px;
+  background: #161616; border: 1px solid var(--border); border-radius: var(--radius-lg);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.55);
+}
+.periodo-pop.direita { right: 0; }
+.periodo-pop.esquerda { left: 0; }
+.periodo-titulo { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+.periodo-atalhos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-bottom: 14px; }
+.periodo-atalho {
+  padding: 8px 10px; border-radius: var(--radius); border: 1px solid var(--border);
+  background: transparent; color: var(--text-muted); font-family: inherit; font-size: 12px; text-align: left; cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+.periodo-atalho:hover { border-color: var(--border-strong); color: var(--text); }
+.periodo-atalho.ativo { border-color: #FFFFFF; color: var(--text); background: rgba(255,255,255,0.06); }
+.periodo-datas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.periodo-datas .input { min-height: 36px; padding: 7px 10px; font-size: 13px; }
+.periodo-navegar { display: flex; gap: 6px; margin-top: 10px; }
+.periodo-navegar .btn { flex: 1; }
+
+/* ============================================================
+   BARRA DE SELEÇÃO — soma dos itens marcados
+   ============================================================ */
+.selecao-barra {
+  position: sticky; bottom: 16px; z-index: 30;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  margin-top: 12px; padding: 10px 12px 10px 16px;
+  background: #161616; border: 1px solid var(--border-strong); border-radius: var(--radius-lg);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.55);
+  font-size: 12px; color: var(--text-muted);
+}
+.selecao-barra strong { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.selecao-contagem { color: var(--text); font-weight: 600; }
+.selecao-item { display: inline-flex; align-items: baseline; gap: 6px; }
+
+/* ============================================================
+   CARD DE DETALHE (modal de visualização)
+   ============================================================ */
+.detalhe-topo { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 18px; }
+.detalhe-icone {
+  width: 44px; height: 44px; flex-shrink: 0; border-radius: 10px; overflow: hidden;
+  background: var(--surface-2); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center; color: var(--text-muted);
+  font-size: 14px; font-weight: 700;
+}
+.detalhe-icone img { width: 100%; height: 100%; object-fit: cover; }
+.detalhe-titulo { font-size: 18px; color: var(--text); line-height: 1.25; }
+.detalhe-sub { font-size: 12px; color: #666; margin-top: 3px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.detalhe-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 18px; }
+.detalhe-item { min-width: 0; }
+.detalhe-item.largo { grid-column: 1 / -1; }
+.detalhe-rotulo { font-size: 10px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px; }
+.detalhe-valor { font-size: 13px; color: var(--text); line-height: 1.5; word-break: break-word; }
+.detalhe-valor.fraco { color: #555; }
+.detalhe-secao { margin-top: 18px; padding-top: 16px; border-top: 1px solid #262626; }
+.detalhe-secao-titulo { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+.detalhe-total {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 14px; margin-top: 14px;
+  background: rgba(255,255,255,0.04); border-radius: var(--radius);
+  font-size: 13px; color: var(--text-muted);
+}
+.detalhe-total strong { font-size: 18px; color: var(--text); font-variant-numeric: tabular-nums; }
+.detalhe-acoes { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 20px; }
+.detalhe-acoes .btn { flex: 1 1 140px; }
+.detalhe-lista { display: flex; flex-direction: column; gap: 6px; }
+.detalhe-lista-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: var(--radius);
+  background: rgba(255,255,255,0.03); border: 1px solid #252525;
+  font-size: 12px; color: var(--text-muted);
+}
+.textarea { min-height: 84px; resize: vertical; line-height: 1.5; font-family: inherit; }
+
+/* ============================================================
+   CARD DE INDICADOR (valor de destaque)
+   ============================================================ */
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; min-width: 0; }
+.stat-card-rotulo { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.08em; }
+.stat-card-rotulo svg { color: #555; flex-shrink: 0; }
+.stat-card-valor { font-size: 20px; font-weight: 700; color: var(--text); margin-top: 8px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stat-card-sub { font-size: 11px; color: #555; margin-top: 3px; }
+.stat-grid-auto { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 20px; }
+
+/* Linha de total no fim das tabelas de relatório */
+.list-total { background: rgba(255,255,255,0.03); border-top: 1px solid var(--border) !important; }
+.list-total span { color: var(--text) !important; font-weight: 600 !important; }
+
+/* Logo da loja na tela de Configurações */
+.logo-preview {
+  width: 72px; height: 72px; flex-shrink: 0; border-radius: 12px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.logo-preview img { width: 100%; height: 100%; object-fit: contain; }
+
+@media (max-width: 768px) {
+  .periodo-pop { position: fixed; left: 12px !important; right: 12px !important; top: auto; bottom: 12px; width: auto; max-width: none; }
+  .selecao-barra { bottom: 10px; }
+  .filtro-busca { max-width: none; flex-basis: 100%; }
+  .stat-grid-auto { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .stat-card { padding: 14px; }
+  .stat-card-valor { font-size: 17px; }
+  /* No celular a linha vira card: o check fica no canto */
+  .list-row:has(> .celula-check) { position: relative; padding-right: 44px !important; }
+  .list-row > .celula-check { position: absolute; top: 16px; right: 16px; width: auto !important; }
+  /* Botões de ícone e "Pagar" mantêm o tamanho (a regra do card encolhia a largura) */
+  .list-row > .btn-icon { width: 32px !important; height: 32px !important; }
+  .list-row > .btn-sm { width: auto !important; align-self: flex-start; }
 }

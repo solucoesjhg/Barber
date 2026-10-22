@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
-import type { CardDashboardId, PermissoesUsuario, TelaId } from '../types'
+import type { CardDashboardId, PermissoesUsuario, RelatorioId, TelaId } from '../types'
 
 interface PermissoesCtx {
   permissoes: PermissoesUsuario | null
@@ -11,8 +11,12 @@ interface PermissoesCtx {
   podeEditar: (tela: TelaId) => boolean
   /** O card aparece no Dashboard desse usuário? */
   podeVerCard: (card: CardDashboardId) => boolean
+  /** A aba de Relatórios está liberada pra esse usuário? */
+  podeVerRelatorio: (relatorio: RelatorioId) => boolean
   /** Administrador/gerente: telas Usuários e Permissões. */
   gerenciaEquipe: boolean
+  /** Administrador/gerente com Vendas (editar): pode editar uma venda já feita. */
+  podeEditarVendas: boolean
   verVendasOutros: boolean
   verCustoProdutos: boolean
   recarregar: () => void
@@ -44,11 +48,14 @@ export function PermissoesProvider({ children }: { children: ReactNode }) {
   const podeVer = useCallback((tela: TelaId) => !!permissoes?.telas?.[tela]?.ver, [permissoes])
   const podeEditar = useCallback((tela: TelaId) => !!permissoes?.telas?.[tela]?.editar, [permissoes])
   const podeVerCard = useCallback((card: CardDashboardId) => !!permissoes?.dashboard_cards?.includes(card), [permissoes])
+  // Sem a lista (banco antes da migração de relatórios): todos liberados.
+  const podeVerRelatorio = useCallback((r: RelatorioId) => !permissoes?.relatorios || permissoes.relatorios.includes(r), [permissoes])
 
   return (
     <Ctx.Provider value={{
-      permissoes, loading, erro, podeVer, podeEditar, podeVerCard, recarregar,
+      permissoes, loading, erro, podeVer, podeEditar, podeVerCard, podeVerRelatorio, recarregar,
       gerenciaEquipe: !!permissoes?.gerenciar_equipe,
+      podeEditarVendas: !!permissoes?.gerenciar_equipe && !!permissoes?.telas?.pdv?.editar,
       verVendasOutros: !!permissoes?.ver_vendas_outros,
       verCustoProdutos: !!permissoes?.ver_custo_produtos,
     }}>

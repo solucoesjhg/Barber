@@ -1,9 +1,15 @@
-import { useState } from 'react'
-import { motion } from 'framer-motion'
-import { X, ArrowUpRight, ArrowDownRight, Trash2 } from 'lucide-react'
-import { formatCurrency, formatDate } from '../lib/utils'
-import { useModalKeyboard } from '../hooks/useModalKeyboard'
+import { useEffect, useState } from 'react'
+import { ArrowUpRight, ArrowDownRight, Trash2 } from 'lucide-react'
+import { supabase } from '../lib/supabase'
+import { formatCurrency, formatDate, formatDateTime } from '../lib/utils'
+import ModalDetalhe, { Info, InfoGrade, SecaoDetalhe } from './ui/ModalDetalhe'
 import type { MovimentoCaixa } from '../types'
+
+const CATEGORIA_LABEL: Record<string, string> = {
+  venda: 'Venda', sangria: 'Sangria', suprimento: 'Suprimento', capital_inicial: 'Saldo inicial',
+  conta_a_pagar: 'Conta paga', conta_a_receber: 'Conta recebida', compra_mercadoria: 'Compra de mercadoria',
+  entrada: 'Entrada', saida: 'Saída',
+}
 
 // Detalhe de um lançamento sem venda associada (manual, sangria,
 // suprimento...) — a linha da lista corta a descrição, aqui mostra
@@ -15,6 +21,13 @@ export default function LancamentoDetalheModal({ movimento, onClose, onDelete }:
 }) {
   const [excluindo, setExcluindo] = useState(false)
   const [error, setError] = useState('')
+  const [conta, setConta] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!movimento.conta_financeira_id) return
+    supabase.from('contas_financeiras').select('nome').eq('id', movimento.conta_financeira_id).maybeSingle()
+      .then(({ data }) => setConta((data as { nome: string } | null)?.nome ?? null))
+  }, [movimento.conta_financeira_id])
 
   async function handleExcluir() {
     if (!onDelete) return
@@ -28,64 +41,38 @@ export default function LancamentoDetalheModal({ movimento, onClose, onDelete }:
     }
   }
 
-  const modalRef = useModalKeyboard(true, onClose)
+  const entrada = movimento.tipo === 'entrada'
 
   return (
-    <motion.div
-      className="modal-overlay"
-      style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      onClick={e => e.target === e.currentTarget && onClose()}
+    <ModalDetalhe
+      largura={440}
+      icone={entrada ? <ArrowUpRight size={18} style={{ color: '#FFFFFF' }} /> : <ArrowDownRight size={18} />}
+      titulo={entrada ? 'Entrada' : 'Saída'}
+      subtitulo={formatDateTime(movimento.created_at ?? movimento.data)}
+      onClose={onClose}
+      acoes={onDelete ? (
+        <button className="btn btn-secondary" style={{ color: '#A3A3A3' }} onClick={handleExcluir} disabled={excluindo}>
+          <Trash2 size={13} /> {excluindo ? 'Excluindo...' : 'Excluir lançamento'}
+        </button>
+      ) : undefined}
     >
-      <motion.div
-        ref={modalRef}
-        className="card"
-        style={{ width: '100%', maxWidth: '440px', padding: '28px', maxHeight: '85vh', overflowY: 'auto' }}
-        initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {movimento.tipo === 'entrada'
-              ? <ArrowUpRight size={16} style={{ color: '#FFFFFF' }} />
-              : <ArrowDownRight size={16} style={{ color: '#555' }} />}
-            <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>{movimento.tipo === 'entrada' ? 'Entrada' : 'Saída'}</h2>
-          </div>
-          <button className="btn btn-icon" onClick={onClose}><X size={14} /></button>
-        </div>
+      <InfoGrade>
+        <Info rotulo="Categoria">{CATEGORIA_LABEL[movimento.categoria] ?? movimento.categoria}</Info>
+        <Info rotulo="Data">{formatDate(movimento.data)}</Info>
+        <Info rotulo="Conta">{conta}</Info>
+        <Info rotulo="Origem">{movimento.sessao_caixa_id ? 'Caixa' : 'Financeiro'}</Info>
+      </InfoGrade>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '14px 0' }}>
-          <span style={{ fontSize: '11px', padding: '3px 9px', borderRadius: '99px', border: '1px solid #2A2A2A', color: '#777', textTransform: 'capitalize' }}>
-            {movimento.categoria}
-          </span>
-          <span style={{ fontSize: '11px', color: '#555' }}>{formatDate(movimento.data)}</span>
-        </div>
+      <SecaoDetalhe titulo="Descrição">
+        <p className="detalhe-valor" style={{ color: '#A3A3A3', whiteSpace: 'pre-wrap' }}>{movimento.descricao}</p>
+      </SecaoDetalhe>
 
-        <p style={{
-          fontSize: '13px', color: '#A3A3A3', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-          background: 'rgba(255,255,255,0.03)', border: '1px solid #252525', borderRadius: '8px', padding: '14px 16px',
-          marginBottom: '18px',
-        }}>
-          {movimento.descricao}
-        </p>
+      <div className="detalhe-total">
+        <span>Valor</span>
+        <strong style={{ color: entrada ? '#FFFFFF' : '#A3A3A3' }}>{entrada ? '+' : '−'}{formatCurrency(movimento.valor)}</strong>
+      </div>
 
-        <div style={{ padding: '14px 16px', background: 'rgba(255,255,255,0.04)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
-          <span style={{ fontSize: '13px', color: '#A3A3A3' }}>Valor</span>
-          <span style={{ fontSize: '18px', fontWeight: 700, color: movimento.tipo === 'entrada' ? '#FFFFFF' : '#A3A3A3' }}>
-            {movimento.tipo === 'saida' ? '−' : '+'}{formatCurrency(movimento.valor)}
-          </span>
-        </div>
-
-        {error && <p style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>{error}</p>}
-
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Fechar</button>
-          {onDelete && (
-            <button className="btn btn-secondary" style={{ flex: 1, color: '#A3A3A3', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }} onClick={handleExcluir} disabled={excluindo}>
-              <Trash2 size={13} /> {excluindo ? 'Excluindo...' : 'Excluir'}
-            </button>
-          )}
-        </div>
-      </motion.div>
-    </motion.div>
+      {error && <p className="aviso-erro" style={{ marginTop: '12px' }}>{error}</p>}
+    </ModalDetalhe>
   )
 }

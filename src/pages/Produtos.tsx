@@ -7,8 +7,12 @@ import { formatCurrency } from '../lib/utils'
 import EtiquetaModal from '../components/EtiquetaModal'
 import EntradaProdutosModal from '../components/EntradaProdutosModal'
 import ProdutoFotosModal from '../components/ProdutoFotosModal'
+import { ProdutoDetalheModal, ServicoDetalheModal } from '../components/ProdutoServicoDetalhe'
+import Checkbox from '../components/ui/Checkbox'
+import BarraSelecao, { ItemSelecao } from '../components/ui/BarraSelecao'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
 import { usePermissoes } from '../hooks/usePermissoes'
+import { useSelecao } from '../hooks/useSelecao'
 import { COLUNAS_PRODUTO } from '../lib/produtos'
 import type { Produto, ProdutoCategoria, Servico, Profissional } from '../types'
 
@@ -19,6 +23,8 @@ const CAT_LABEL: Record<ProdutoCategoria, string> = {
 }
 
 const CATEGORIAS_VALIDAS: ProdutoCategoria[] = ['bebidas', 'pomadas', 'petiscos', 'outros']
+
+const COLUNAS_SERVICO = 'minmax(200px, 1fr) 92px 76px 76px minmax(120px, 0.9fr) 70px 36px'
 
 const COLUNAS_IMPORTACAO = [
   'Nome do Produto', 'Categoria (bebidas/pomadas/petiscos/outros)', 'Unidade (un, kg, ml...)',
@@ -120,15 +126,24 @@ export default function Produtos() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [produtosEtiqueta, setProdutosEtiqueta] = useState<Produto[] | null>(null)
-  const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
   const [importando, setImportando] = useState(false)
   const [resultadoImportacao, setResultadoImportacao] = useState<{ ok: number; erros: string[] } | null>(null)
   const [showEntrada, setShowEntrada] = useState(false)
   const [produtoFotosAlvo, setProdutoFotosAlvo] = useState<Produto | null>(null)
+  const [produtoAbertoId, setProdutoAbertoId] = useState<string | null>(null)
+  const [servicoAbertoId, setServicoAbertoId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const selecao = useSelecao(produtos.map(p => p.id))
 
   const alertas = produtos.filter(p => p.estoque_atual <= p.estoque_minimo)
-  const colunasTabela = verCusto ? '28px 1fr 100px 120px 120px 90px 90px 80px 76px' : '28px 1fr 100px 120px 90px 90px 80px 76px'
+  // Colunas enxutas: SKU, margem e comissão vão numa 2ª linha embaixo do
+  // nome e o mínimo aparece junto do estoque.
+  const colunasTabela = verCusto
+    ? '22px minmax(220px, 1fr) 92px 96px 96px 104px 70px 72px'
+    : '22px minmax(220px, 1fr) 92px 96px 104px 70px 72px'
+  const larguraMinima = verCusto ? '780px' : '680px'
+  const produtoAberto = produtoAbertoId ? produtos.find(p => p.id === produtoAbertoId) ?? null : null
+  const servicoAberto = servicoAbertoId ? servicos.find(s => s.id === servicoAbertoId) ?? null : null
 
   // O custo não sai da tabela produtos pela API (privilégio de coluna):
   // quem tem permissão de ver custo recebe pela RPC custos_produtos().
@@ -162,20 +177,8 @@ export default function Produtos() {
     setImportando(false)
   }
 
-  function toggleSelecionado(id: string) {
-    setSelecionados(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id); else next.add(id)
-      return next
-    })
-  }
-
-  function toggleSelecionarTodos() {
-    setSelecionados(prev => prev.size === produtos.length ? new Set() : new Set(produtos.map(p => p.id)))
-  }
-
   function imprimirSelecionados() {
-    setProdutosEtiqueta(produtos.filter(p => selecionados.has(p.id)))
+    setProdutosEtiqueta(produtos.filter(p => selecao.tem(p.id)))
   }
 
   useEffect(() => {
@@ -359,16 +362,6 @@ export default function Produtos() {
         </div>
         {secao === 'produtos' ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            {podeEditar && produtos.length > 0 && (
-              <button className="btn btn-secondary btn-sm" onClick={toggleSelecionarTodos} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Check size={12} /> {selecionados.size === produtos.length ? 'Desmarcar todos' : 'Selecionar todos'}
-              </button>
-            )}
-            {podeEditar && selecionados.size > 0 && (
-              <button className="btn btn-secondary btn-sm" onClick={imprimirSelecionados} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Tag size={12} /> Imprimir etiquetas ({selecionados.size})
-              </button>
-            )}
             {podeEditar && (
               <button className="btn btn-icon" title="Baixar modelo de planilha" onClick={baixarModeloProdutos}>
                 <Download size={13} />
@@ -490,18 +483,21 @@ export default function Produtos() {
             <div className="card desktop-row" style={{ padding: 0, overflow: 'hidden' }}>
               <div className="list-header" style={{
                 display: 'grid',
-                minWidth: verCusto ? '980px' : '860px',
+                minWidth: larguraMinima,
                 gridTemplateColumns: colunasTabela,
-                padding: '10px 24px',
+                gap: '12px',
+                padding: '10px 20px',
                 borderBottom: '1px solid #222',
                 fontSize: '10px', fontWeight: 600, color: '#444',
                 textTransform: 'uppercase', letterSpacing: '0.1em',
                 background: 'rgba(0,0,0,0.2)',
                 alignItems: 'center',
               }}>
-                {podeEditar ? <input type="checkbox" checked={produtos.length > 0 && selecionados.size === produtos.length} onChange={toggleSelecionarTodos} /> : <span />}
-                <span>Produto</span><span>Categoria</span>{verCusto && <span>Custo</span>}
-                <span>Venda</span><span>Estoque</span><span>Mínimo</span><span>Status</span><span></span>
+                <span className="celula-check">
+                  <Checkbox label="Selecionar todos os produtos" checked={selecao.todos} indeterminate={selecao.alguns} onChange={selecao.alternarTodos} disabled={produtos.length === 0} />
+                </span>
+                <span>Produto</span><span>Categoria</span>{verCusto && <span style={{ textAlign: 'right' }}>Custo</span>}
+                <span style={{ textAlign: 'right' }}>Venda</span><span>Estoque</span><span>Status</span><span />
               </div>
 
               {produtos.length === 0 ? (
@@ -511,74 +507,70 @@ export default function Produtos() {
               ) : produtos.map((p, i) => {
                 const baixo  = p.estoque_atual <= p.estoque_minimo
                 const margem = verCusto && p.preco_custo > 0 ? ((p.preco_venda - p.preco_custo) / p.preco_custo * 100).toFixed(0) : null
+                const detalhes = [p.sku && `#${p.sku}`, margem && `+${margem}% margem`, p.comissao_percentual != null && `comissão ${p.comissao_percentual}%`].filter(Boolean).join(' · ')
                 return (
                   <motion.div
                     key={p.id}
-                    className="list-row"
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
+                    className={`list-row clicavel${selecao.tem(p.id) ? ' selecionada' : ''}`}
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i, 20) * 0.02 }}
+                    onClick={() => setProdutoAbertoId(p.id)}
                     style={{
                       display: 'grid',
-                      minWidth: verCusto ? '980px' : '860px',
+                      minWidth: larguraMinima,
                       gridTemplateColumns: colunasTabela,
-                      padding: '14px 24px',
+                      gap: '12px',
+                      padding: '10px 20px',
                       borderBottom: i < produtos.length - 1 ? '1px solid #1F1F1F' : 'none',
                       alignItems: 'center',
                     }}
                     whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
                   >
-                    {podeEditar ? <input type="checkbox" checked={selecionados.has(p.id)} onChange={() => toggleSelecionado(p.id)} /> : <span />}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <button
-                        title="Ver fotos"
-                        onClick={e => { e.stopPropagation(); setProdutoFotosAlvo(p) }}
-                        style={{
-                          width: '26px', height: '26px', borderRadius: '6px', padding: 0, cursor: 'pointer', flexShrink: 0,
-                          background: '#1F1F1F', border: '1px solid #2A2A2A',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-                        }}
-                      >
+                    <span className="celula-check">
+                      <Checkbox label={`Selecionar ${p.nome}`} checked={selecao.tem(p.id)} onChange={m => selecao.alternar(p.id, m)} />
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                      <div style={{
+                        width: '30px', height: '30px', borderRadius: '6px', flexShrink: 0,
+                        background: '#1F1F1F', border: '1px solid #2A2A2A',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                      }}>
                         {p.foto_url ? (
                           <img src={p.foto_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         ) : (
                           <Package size={13} style={{ color: '#444' }} />
                         )}
-                      </button>
-                      <div>
-                        <span style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{p.nome}</span>
-                        {p.sku && <span style={{ fontSize: '10px', color: '#444', marginLeft: '8px' }}>#{p.sku}</span>}
-                        {margem && <span style={{ fontSize: '10px', color: '#555', marginLeft: '8px' }}>+{margem}% margem</span>}
-                        {p.comissao_percentual != null && <span style={{ fontSize: '10px', color: '#555', marginLeft: '8px' }}>comissão {p.comissao_percentual}%</span>}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <p className="texto-cortado" style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{p.nome}</p>
+                        {detalhes && <p className="subtexto texto-cortado">{detalhes}</p>}
                       </div>
                     </div>
-                    <span style={{ fontSize: '12px', color: '#666', textTransform: 'capitalize' }}>{CAT_LABEL[p.categoria]}</span>
-                    {verCusto && <span style={{ fontSize: '13px', color: '#555' }}>{formatCurrency(p.preco_custo)}</span>}
-                    <span style={{ fontSize: '13px', color: '#A3A3A3', fontWeight: 500 }}>{formatCurrency(p.preco_venda)}</span>
-                    <span style={{ fontSize: '14px', fontWeight: 700, color: baixo ? '#FFFFFF' : '#A3A3A3' }}>
-                      {p.estoque_atual} {p.unidade}
-                      {baixo && <AlertTriangle size={12} style={{ marginLeft: '4px', color: '#777', verticalAlign: 'middle' }} />}
-                    </span>
-                    <span style={{ fontSize: '13px', color: '#444' }}>{p.estoque_minimo}</span>
+                    <span className="texto-cortado" style={{ fontSize: '12px', color: '#666' }}>{CAT_LABEL[p.categoria]}</span>
+                    {verCusto && <span className="valor-num" style={{ fontSize: '13px', color: '#555', textAlign: 'right' }}>{formatCurrency(p.preco_custo)}</span>}
+                    <span className="valor-num" style={{ fontSize: '13px', color: '#A3A3A3', fontWeight: 500, textAlign: 'right' }}>{formatCurrency(p.preco_venda)}</span>
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: baixo ? '#FFFFFF' : '#A3A3A3', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {p.estoque_atual} {p.unidade}
+                        {baixo && <AlertTriangle size={11} style={{ color: '#777' }} />}
+                      </p>
+                      <p className="subtexto">mín. {p.estoque_minimo}</p>
+                    </div>
                     <button
-                      onClick={() => { if (podeEditar) toggleAtivoProd(p.id, p.ativo) }}
+                      className={`status-pill${p.ativo ? '' : ' inativo'}`}
+                      onClick={e => { e.stopPropagation(); if (podeEditar) toggleAtivoProd(p.id, p.ativo) }}
                       disabled={!podeEditar}
-                      style={{
-                        fontSize: '10px', padding: '3px 9px', borderRadius: '99px',
-                        border: p.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
-                        background: 'transparent',
-                        color: p.ativo ? '#A3A3A3' : '#444',
-                        cursor: podeEditar ? 'pointer' : 'default', width: 'fit-content',
-                      }}
+                      title={podeEditar ? (p.ativo ? 'Clique para desativar' : 'Clique para ativar') : undefined}
                     >
                       {p.ativo ? 'Ativo' : 'Inativo'}
                     </button>
-                    <div style={{ display: 'flex', gap: '4px' }}>
+                    <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
                       {podeEditar && (
-                        <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicaoProd(p)}>
+                        <button className="btn btn-icon" title="Editar" onClick={e => { e.stopPropagation(); abrirEdicaoProd(p) }} style={{ width: '30px', height: '30px' }}>
                           <Pencil size={12} />
                         </button>
                       )}
                       {podeEditar && (
-                        <button className="btn btn-icon" title="Gerar/imprimir etiqueta" onClick={() => setProdutosEtiqueta([p])}>
+                        <button className="btn btn-icon" title="Gerar/imprimir etiqueta" onClick={e => { e.stopPropagation(); setProdutosEtiqueta([p]) }} style={{ width: '30px', height: '30px' }}>
                           <Tag size={12} />
                         </button>
                       )}
@@ -599,13 +591,17 @@ export default function Produtos() {
                     <motion.div
                       key={p.id}
                       className="card entity-card"
-                      initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                      initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 20) * 0.04 }}
+                      onClick={() => setProdutoAbertoId(p.id)}
+                      style={{ cursor: 'pointer', borderColor: selecao.tem(p.id) ? '#555' : undefined }}
                     >
                       <div className="entity-header" style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                        {podeEditar && <input type="checkbox" checked={selecionados.has(p.id)} onChange={() => toggleSelecionado(p.id)} style={{ marginTop: '4px', flexShrink: 0 }} />}
+                        <span style={{ marginTop: '3px', display: 'flex' }}>
+                          <Checkbox label={`Selecionar ${p.nome}`} checked={selecao.tem(p.id)} onChange={m => selecao.alternar(p.id, m)} />
+                        </span>
                         <button
                           title="Ver fotos"
-                          onClick={() => setProdutoFotosAlvo(p)}
+                          onClick={e => { e.stopPropagation(); setProdutoFotosAlvo(p) }}
                           className="entity-avatar"
                           style={{
                             width: '40px', height: '40px', borderRadius: '10px', padding: 0, cursor: 'pointer',
@@ -630,13 +626,10 @@ export default function Produtos() {
                           {detalhes && <p className="entity-subtle" style={{ fontSize: '11px', color: '#555', marginTop: '2px' }}>{detalhes}</p>}
                         </div>
                         <button
-                          onClick={() => { if (podeEditar) toggleAtivoProd(p.id, p.ativo) }}
+                          className={`status-pill${p.ativo ? '' : ' inativo'}`}
+                          onClick={e => { e.stopPropagation(); if (podeEditar) toggleAtivoProd(p.id, p.ativo) }}
                           disabled={!podeEditar}
-                          style={{
-                            fontSize: '10px', padding: '3px 9px', borderRadius: '99px', flexShrink: 0,
-                            border: p.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
-                            background: 'transparent', color: p.ativo ? '#A3A3A3' : '#444', cursor: podeEditar ? 'pointer' : 'default',
-                          }}
+                          style={{ flexShrink: 0 }}
                         >
                           {p.ativo ? 'Ativo' : 'Inativo'}
                         </button>
@@ -669,12 +662,12 @@ export default function Produtos() {
 
                       <div className="entity-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
                         {podeEditar && (
-                          <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicaoProd(p)}>
+                          <button className="btn btn-icon" title="Editar" onClick={e => { e.stopPropagation(); abrirEdicaoProd(p) }}>
                             <Pencil size={12} />
                           </button>
                         )}
                         {podeEditar && (
-                          <button className="btn btn-icon" title="Gerar/imprimir etiqueta" onClick={() => setProdutosEtiqueta([p])}>
+                          <button className="btn btn-icon" title="Gerar/imprimir etiqueta" onClick={e => { e.stopPropagation(); setProdutosEtiqueta([p]) }}>
                             <Tag size={12} />
                           </button>
                         )}
@@ -684,6 +677,19 @@ export default function Produtos() {
                 })}
               </div>
             )}
+
+            <BarraSelecao
+              quantidade={selecao.quantidade}
+              onLimpar={selecao.limpar}
+              acoes={podeEditar ? (
+                <button className="btn btn-secondary btn-sm" onClick={imprimirSelecionados} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <Tag size={12} /> Imprimir etiquetas
+                </button>
+              ) : undefined}
+            >
+              <ItemSelecao rotulo="Em estoque" valor={produtos.filter(p => selecao.tem(p.id)).reduce((s, p) => s + p.estoque_atual, 0)} />
+              <ItemSelecao rotulo="Valor de venda" valor={formatCurrency(produtos.filter(p => selecao.tem(p.id)).reduce((s, p) => s + p.estoque_atual * p.preco_venda, 0))} />
+            </BarraSelecao>
             {produtos.length === 0 && (
               <div className="card mobile-only-grid" style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
                 Nenhum produto cadastrado.
@@ -695,14 +701,14 @@ export default function Produtos() {
             <div className="card desktop-row" style={{ padding: 0, overflow: 'hidden' }}>
               <div className="list-header" style={{
                 display: 'grid',
-                minWidth: '870px', gridTemplateColumns: '1fr 100px 120px 90px 1fr 80px 76px',
-                padding: '10px 24px',
+                minWidth: '720px', gridTemplateColumns: COLUNAS_SERVICO, gap: '12px', alignItems: 'center',
+                padding: '10px 20px',
                 borderBottom: '1px solid #222',
                 fontSize: '10px', fontWeight: 600, color: '#444',
                 textTransform: 'uppercase', letterSpacing: '0.1em',
                 background: 'rgba(0,0,0,0.2)',
               }}>
-                <span>Serviço</span><span>Preço</span><span>Duração</span><span>Comissão</span><span>Profissionais</span><span>Status</span><span></span>
+                <span>Serviço</span><span style={{ textAlign: 'right' }}>Preço</span><span>Duração</span><span>Comissão</span><span>Profissionais</span><span>Status</span><span />
               </div>
 
               {loading ? (
@@ -716,56 +722,41 @@ export default function Produtos() {
               ) : servicos.map((s, i) => (
                 <motion.div
                   key={s.id}
-                  className="list-row"
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
+                  className="list-row clicavel"
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i, 20) * 0.02 }}
+                  onClick={() => setServicoAbertoId(s.id)}
                   style={{
                     display: 'grid',
-                    minWidth: '870px', gridTemplateColumns: '1fr 100px 120px 90px 1fr 80px 76px',
-                    padding: '14px 24px',
+                    minWidth: '720px', gridTemplateColumns: COLUNAS_SERVICO, gap: '12px',
+                    padding: '11px 20px',
                     borderBottom: i < servicos.length - 1 ? '1px solid #1F1F1F' : 'none',
                     alignItems: 'center',
                   }}
                   whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                     <Scissors size={13} style={{ color: '#444', flexShrink: 0 }} />
-                    <div>
-                      <span style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{s.nome}</span>
-                      {s.categoria && <span style={{ fontSize: '10px', color: '#444', marginLeft: '8px' }}>{s.categoria}</span>}
+                    <div style={{ minWidth: 0 }}>
+                      <p className="texto-cortado" style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{s.nome}</p>
+                      {s.categoria && <p className="subtexto texto-cortado">{s.categoria}</p>}
                     </div>
                   </div>
-                  <span style={{ fontSize: '13px', color: '#A3A3A3', fontWeight: 500 }}>{formatCurrency(s.preco)}</span>
+                  <span className="valor-num" style={{ fontSize: '13px', color: '#A3A3A3', fontWeight: 500, textAlign: 'right' }}>{formatCurrency(s.preco)}</span>
                   <span style={{ fontSize: '12px', color: '#666' }}>{s.duracao_minutos} min</span>
                   <span style={{ fontSize: '12px', color: '#666' }}>{s.comissao_percentual != null ? `${s.comissao_percentual}%` : '—'}</span>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                    {s.profissionais && s.profissionais.length > 0
-                      ? s.profissionais.map(p => (
-                          <span key={p.id} style={{
-                            fontSize: '10px', color: '#A3A3A3',
-                            background: 'rgba(255,255,255,0.06)',
-                            border: '1px solid #2A2A2A',
-                            borderRadius: '99px',
-                            padding: '2px 8px',
-                          }}>{p.nome}</span>
-                        ))
-                      : <span style={{ fontSize: '12px', color: '#333' }}>—</span>
-                    }
-                  </div>
+                  <span className="texto-cortado" style={{ fontSize: '12px', color: '#A3A3A3' }} title={s.profissionais?.map(p => p.nome).join(', ')}>
+                    {s.profissionais && s.profissionais.length > 0 ? s.profissionais.map(p => p.nome).join(', ') : <span style={{ color: '#333' }}>—</span>}
+                  </span>
                   <button
-                    onClick={() => { if (podeEditar) toggleAtivoServ(s.id, s.ativo) }}
+                    className={`status-pill${s.ativo ? '' : ' inativo'}`}
+                    onClick={e => { e.stopPropagation(); if (podeEditar) toggleAtivoServ(s.id, s.ativo) }}
                     disabled={!podeEditar}
-                    style={{
-                      fontSize: '10px', padding: '3px 9px', borderRadius: '99px',
-                      border: s.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
-                      background: 'transparent',
-                      color: s.ativo ? '#A3A3A3' : '#444',
-                      cursor: podeEditar ? 'pointer' : 'default', width: 'fit-content',
-                    }}
+                    title={podeEditar ? (s.ativo ? 'Clique para desativar' : 'Clique para ativar') : undefined}
                   >
                     {s.ativo ? 'Ativo' : 'Inativo'}
                   </button>
                   {podeEditar ? (
-                    <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicaoServ(s)}>
+                    <button className="btn btn-icon" title="Editar" onClick={e => { e.stopPropagation(); abrirEdicaoServ(s) }} style={{ width: '30px', height: '30px', justifySelf: 'end' }}>
                       <Pencil size={12} />
                     </button>
                   ) : <span />}
@@ -780,7 +771,9 @@ export default function Produtos() {
                   <motion.div
                     key={s.id}
                     className="card entity-card"
-                    initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                    initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 20) * 0.04 }}
+                    onClick={() => setServicoAbertoId(s.id)}
+                    style={{ cursor: 'pointer' }}
                   >
                     <div className="entity-header" style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                       <div className="entity-avatar" style={{
@@ -798,13 +791,10 @@ export default function Produtos() {
                         {s.categoria && <p className="entity-subtle" style={{ fontSize: '11px', color: '#555', marginTop: '2px' }}>{s.categoria}</p>}
                       </div>
                       <button
-                        onClick={() => { if (podeEditar) toggleAtivoServ(s.id, s.ativo) }}
+                        className={`status-pill${s.ativo ? '' : ' inativo'}`}
+                        onClick={e => { e.stopPropagation(); if (podeEditar) toggleAtivoServ(s.id, s.ativo) }}
                         disabled={!podeEditar}
-                        style={{
-                          fontSize: '10px', padding: '3px 9px', borderRadius: '99px', flexShrink: 0,
-                          border: s.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
-                          background: 'transparent', color: s.ativo ? '#A3A3A3' : '#444', cursor: podeEditar ? 'pointer' : 'default',
-                        }}
+                        style={{ flexShrink: 0 }}
                       >
                         {s.ativo ? 'Ativo' : 'Inativo'}
                       </button>
@@ -843,7 +833,7 @@ export default function Produtos() {
 
                     {podeEditar && (
                       <div className="entity-footer" style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicaoServ(s)}>
+                        <button className="btn btn-icon" title="Editar" onClick={e => { e.stopPropagation(); abrirEdicaoServ(s) }}>
                           <Pencil size={12} />
                         </button>
                       </div>
@@ -1050,11 +1040,38 @@ export default function Produtos() {
         )}
       </AnimatePresence>
 
+      {/* Cards de visualização */}
+      <AnimatePresence>
+        {produtoAberto && (
+          <ProdutoDetalheModal
+            key={produtoAberto.id}
+            produto={produtoAberto}
+            verCusto={verCusto}
+            podeEditar={podeEditar}
+            onClose={() => setProdutoAbertoId(null)}
+            onEditar={() => { setProdutoAbertoId(null); abrirEdicaoProd(produtoAberto) }}
+            onFotos={() => { setProdutoAbertoId(null); setProdutoFotosAlvo(produtoAberto) }}
+            onEtiqueta={() => { setProdutoAbertoId(null); setProdutosEtiqueta([produtoAberto]) }}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {servicoAberto && (
+          <ServicoDetalheModal
+            key={servicoAberto.id}
+            servico={servicoAberto}
+            podeEditar={podeEditar}
+            onClose={() => setServicoAbertoId(null)}
+            onEditar={() => { setServicoAbertoId(null); abrirEdicaoServ(servicoAberto) }}
+          />
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {produtosEtiqueta && (
           <EtiquetaModal
             produtos={produtosEtiqueta}
-            onClose={() => { setProdutosEtiqueta(null); setSelecionados(new Set()) }}
+            onClose={() => { setProdutosEtiqueta(null); selecao.limpar() }}
             onSkuGerado={(id, sku) => {
               setProdutos(prev => prev.map(x => x.id === id ? { ...x, sku } : x))
               setProdutosEtiqueta(prev => prev ? prev.map(x => x.id === id ? { ...x, sku } : x) : prev)
