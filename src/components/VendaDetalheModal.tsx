@@ -10,10 +10,12 @@ import type { Comanda, ItemComanda } from '../types'
 // gerou — usado ao clicar num lançamento de "venda" no Financeiro.
 // Busca os itens da comanda e, pros itens tipo "produto", a foto
 // cadastrada (serviço não tem foto).
-export default function VendaDetalheModal({ comandaId, onClose, onDelete }: {
+export default function VendaDetalheModal({ comandaId, onClose, onDelete, destacarProfissionalId }: {
   comandaId: string
   onClose: () => void
   onDelete?: () => Promise<void> | void
+  /** Profissional do usuário logado: os itens dele aparecem destacados. */
+  destacarProfissionalId?: string | null
 }) {
   const [comanda, setComanda] = useState<Comanda | null>(null)
   const [itens, setItens] = useState<ItemComanda[]>([])
@@ -28,7 +30,7 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete }: {
     Promise.all([
       supabase.from('comandas').select('*').eq('id', comandaId).single(),
       // custo_unitario não é legível pela API (privilégio de coluna)
-      supabase.from('itens_comanda').select('id, comanda_id, tipo, referencia_id, nome, quantidade, preco_unitario, profissional_id').eq('comanda_id', comandaId),
+      supabase.from('itens_comanda').select('id, comanda_id, tipo, referencia_id, nome, quantidade, preco_unitario, profissional_id, profissional:profissionais(nome)').eq('comanda_id', comandaId),
     ]).then(async ([{ data: comandaData }, { data: itensData }]) => {
       if (cancelado) return
       const itensCarregados = (itensData ?? []) as ItemComanda[]
@@ -100,10 +102,15 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete }: {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', margin: '18px 0' }}>
               {itens.map(item => {
                 const foto = item.tipo === 'produto' ? fotos[item.referencia_id] : undefined
+                const meu = !!destacarProfissionalId && item.profissional_id === destacarProfissionalId
+                const nomeProfissional = (item as ItemComanda & { profissional?: { nome: string } | null }).profissional?.nome
                 return (
                   <div key={item.id} style={{
                     display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px',
-                    borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid #252525',
+                    borderRadius: '8px',
+                    background: meu ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
+                    border: meu ? '1px solid rgba(255,255,255,0.35)' : '1px solid #252525',
+                    opacity: destacarProfissionalId && !meu ? 0.6 : 1,
                   }}>
                     {foto ? (
                       <img src={foto} alt="" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0, border: '1px solid #2A2A2A' }} />
@@ -113,8 +120,13 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete }: {
                       </div>
                     )}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{item.nome}</p>
-                      <p style={{ fontSize: '11px', color: '#555', marginTop: '2px' }}>{item.quantidade}x {formatCurrency(item.preco_unitario)}</p>
+                      <p style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {item.nome}
+                        {meu && <span className="badge badge-confirmed">Seu</span>}
+                      </p>
+                      <p style={{ fontSize: '11px', color: '#555', marginTop: '2px' }}>
+                        {item.quantidade}x {formatCurrency(item.preco_unitario)}{nomeProfissional ? ` · ${nomeProfissional}` : ''}
+                      </p>
                     </div>
                     <span style={{ fontSize: '13px', fontWeight: 600, color: '#A3A3A3', flexShrink: 0 }}>
                       {formatCurrency(item.preco_unitario * item.quantidade)}
