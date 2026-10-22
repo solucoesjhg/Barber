@@ -8,6 +8,7 @@ import { TrendingUp, TrendingDown, DollarSign, Plus, ArrowUpRight, ArrowDownRigh
 import { supabase } from '../lib/supabase'
 import { formatCurrency, formatDate } from '../lib/utils'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
+import { confirmarSaldoSuficiente } from '../lib/contasFinanceiras'
 import { usePermissoes } from '../hooks/usePermissoes'
 import { rangeFor } from '../lib/periodo'
 import VendaDetalheModal from '../components/VendaDetalheModal'
@@ -141,8 +142,11 @@ export default function Financeiro() {
   }, [])
 
   async function handleSave() {
-    if (!form.descricao || !form.valor) return
+    if (!form.descricao || !form.valor || saving) return
     setSaving(true); setFormError('')
+    if (form.tipo === 'saida' && !(await confirmarSaldoSuficiente(form.contaId || null, Number(form.valor)))) {
+      setSaving(false); return
+    }
     const { error: err } = await supabase.rpc('registrar_movimento_caixa', {
       p_tipo: form.tipo, p_categoria: form.categoria || form.tipo,
       p_descricao: form.descricao, p_valor: Number(form.valor),

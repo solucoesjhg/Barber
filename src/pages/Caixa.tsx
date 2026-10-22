@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { formatCurrency, formatDate } from '../lib/utils'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
+import { confirmarSaldoSuficiente } from '../lib/contasFinanceiras'
 import { usePermissoes } from '../hooks/usePermissoes'
 import type { SessaoCaixa, MovimentoCaixa } from '../types'
 
@@ -70,7 +71,11 @@ export default function Caixa() {
 
   async function confirmarMovimento(tipo: 'sangria' | 'suprimento') {
     if (!valorInput || Number(valorInput) <= 0) { setError('Informe um valor válido.'); return }
+    if (saving) return
     setSaving(true); setError('')
+    if (tipo === 'sangria' && !(await confirmarSaldoSuficiente(null, Number(valorInput)))) {
+      setSaving(false); return
+    }
     const { error: err } = await supabase.rpc('registrar_movimento_caixa', {
       p_tipo: tipo === 'sangria' ? 'saida' : 'entrada',
       p_categoria: tipo,
