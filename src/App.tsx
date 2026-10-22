@@ -7,7 +7,7 @@ import Empresas from './pages/Empresas'
 import EmpresaDetalhe from './pages/EmpresaDetalhe'
 import Dashboard from './pages/Dashboard'
 import Agenda from './pages/Agenda'
-import PDV from './pages/PDV'
+import Vendas from './pages/Vendas'
 import Caixa from './pages/Caixa'
 import Clientes from './pages/Clientes'
 import Profissionais from './pages/Profissionais'
@@ -25,11 +25,18 @@ import Financeiro from './pages/Financeiro'
 import Categorias from './pages/Categorias'
 import RotaPermitida from './components/RotaPermitida'
 import { PermissoesProvider } from './hooks/usePermissoes'
+import { LojaProvider } from './hooks/useLoja'
 
 // Permissões agora ficam no cartão de cada usuário, em Usuários.
 function IrParaUsuarios() {
   const { search } = useLocation()
   return <Navigate to={'/usuarios' + search} replace />
+}
+
+// A tela PDV passou a se chamar Vendas; links antigos continuam valendo.
+function IrParaVendas() {
+  const { search } = useLocation()
+  return <Navigate to={'/vendas' + search} replace />
 }
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -59,12 +66,13 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/cadastro" element={<Signup />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route element={<PrivateRoute><PermissoesProvider><AppLayout /></PermissoesProvider></PrivateRoute>}>
+        <Route element={<PrivateRoute><PermissoesProvider><LojaProvider><AppLayout /></LojaProvider></PermissoesProvider></PrivateRoute>}>
           <Route path="/empresas"       element={<RotaPermitida superAdmin><Empresas /></RotaPermitida>} />
           <Route path="/empresas/:id"   element={<RotaPermitida superAdmin><EmpresaDetalhe /></RotaPermitida>} />
           <Route path="/dashboard"      element={<RotaPermitida tela="dashboard"><Dashboard /></RotaPermitida>} />
           <Route path="/agenda"         element={<RotaPermitida tela="agenda"><Agenda /></RotaPermitida>} />
-          <Route path="/pdv"            element={<RotaPermitida tela="pdv"><PDV /></RotaPermitida>} />
+          <Route path="/vendas"         element={<RotaPermitida tela="pdv"><Vendas /></RotaPermitida>} />
+          <Route path="/pdv"            element={<IrParaVendas />} />
           <Route path="/caixa"          element={<RotaPermitida tela="caixa"><Caixa /></RotaPermitida>} />
           <Route path="/clientes"       element={<RotaPermitida tela="clientes"><Clientes /></RotaPermitida>} />
           <Route path="/profissionais"  element={<RotaPermitida tela="profissionais"><Profissionais /></RotaPermitida>} />

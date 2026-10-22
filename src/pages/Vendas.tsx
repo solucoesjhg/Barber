@@ -1,15 +1,22 @@
 import { useState, useEffect, useCallback, useMemo, type KeyboardEvent } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ShoppingCart, Plus, Minus, Trash2, X, Check, Search, Scissors, Package, ScanLine, ArrowLeft } from 'lucide-react'
+import { ShoppingCart, Plus, Minus, Trash2, X, Check, Search, Scissors, Package, ScanLine, ArrowLeft, CalendarDays, Pencil } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { formatCurrency, formatDate } from '../lib/utils'
+import { formatCurrency, formatDate, formatDateTime } from '../lib/utils'
+import { intervaloMes, rotuloIntervalo, type Intervalo } from '../lib/periodo'
+import { carregarNomesUsuarios } from '../lib/usuarios'
 import ScannerCamera from '../components/ScannerCamera'
-import VendaDetalheModal from '../components/VendaDetalheModal'
+import VendaDetalheModal, { PAGAMENTO_LABEL, type VendaParaEditar } from '../components/VendaDetalheModal'
+import FiltroPeriodo from '../components/ui/FiltroPeriodo'
+import Checkbox from '../components/ui/Checkbox'
+import BarraSelecao, { ItemSelecao } from '../components/ui/BarraSelecao'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
 import { usePerfil } from '../hooks/usePerfil'
 import { usePermissoes } from '../hooks/usePermissoes'
+import { useSelecao } from '../hooks/useSelecao'
 import { COLUNAS_PRODUTO } from '../lib/produtos'
-import type { Comanda, ItemComanda, PagamentoMetodo, Produto, Profissional, Servico } from '../types'
+import type { Agendamento, Comanda, ItemComanda, PagamentoMetodo, Produto, Profissional, Servico } from '../types'
 
 const PAGAMENTOS: { id: PagamentoMetodo; label: string }[] = [
   { id: 'pix',      label: 'Pix'            },
@@ -19,8 +26,16 @@ const PAGAMENTOS: { id: PagamentoMetodo; label: string }[] = [
 ]
 
 const STATUS_LABEL: Record<string, string> = { fechada: 'Fechada', cancelada: 'Cancelada', aberta: 'Aberta' }
+const STATUS_CLASS: Record<string, string> = { fechada: 'badge badge-done', cancelada: 'badge badge-canceled', aberta: 'badge badge-pending' }
+
+const COLUNAS_LISTA = '22px minmax(200px, 1fr) 150px 120px 84px 110px'
 
 function uid() { return Math.random().toString(36).slice(2) }
+
+// RPC que ainda não existe no banco (migração não aplicada).
+function semFuncaoNoBanco(err: { code?: string; message?: string }) {
+  return err.code === 'PGRST202' || /could not find the function/i.test(err.message ?? '')
+}
 
 type VendaLista = Comanda & {
   itens?: { profissional_id: string | null; preco_unitario: number; quantidade: number }[]
@@ -30,52 +45,58 @@ type ItemCatalogo =
   | { tipo: 'servico'; dado: Servico }
   | { tipo: 'produto'; dado: Produto }
 
-export default function PDV() {
+interface OrigemAgenda { id: string; descricao: string; clienteId: string | null }
+
+export default function Vendas() {
   const { podeEditar, verVendasOutros } = usePermissoes()
   const { profissionalId: meuProfissional } = usePerfil()
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const podeVender = podeEditar('pdv')
+  // Quem edita Comissões pode vender/editar "sem comissão".
+  const podeTirarComissao = podeEditar('comissoes')
   // Barbeiro com login próprio: vê as vendas em que atendeu (o banco
   // devolve só essas) e quanto foi nos itens dele.
   const modoProfissional = !verVendasOutros && !!meuProfissional
-  const [modo, setModo] = useState<'lista' | 'nova'>('lista')
+  const [modo, setModo] = useState<'lista' | 'nova' | 'editar'>('lista')
   const [vendas, setVendas] = useState<VendaLista[]>([])
   const [loadingVendas, setLoadingVendas] = useState(true)
   const [vendaSelecionadaId, setVendaSelecionadaId] = useState<string | null>(null)
-  const [emailPorUsuario, setEmailPorUsuario] = useState<Record<string, string>>({})
+  const [nomesUsuarios, setNomesUsuarios] = useState<Record<string, string>>({})
+  const [periodo, setPeriodo] = useState<Intervalo>(() => intervaloMes())
+  const [buscaLista, setBuscaLista] = useState('')
 
   // O banco já só devolve as vendas que o usuário pode ver: todas (ver
   // vendas de outros), as que ele registrou e as que têm item dele.
   const carregarVendas = useCallback(() => {
     setLoadingVendas(true)
     supabase.from('comandas').select('*, itens:itens_comanda(profissional_id, preco_unitario, quantidade)')
-      .order('created_at', { ascending: false }).limit(100)
+      .gte('data', periodo.inicio).lte('data', periodo.fim)
+      .order('created_at', { ascending: false }).limit(500)
       .then(({ data }) => { setVendas((data ?? []) as VendaLista[]); setLoadingVendas(false) })
-  }, [])
+  }, [periodo])
+
+  useEffect(() => { carregarVendas() }, [carregarVendas])
+  useEffect(() => { carregarNomesUsuarios().then(setNomesUsuarios) }, [])
 
   const valorMeusItens = (v: VendaLista) => (v.itens ?? [])
     .filter(i => i.profissional_id === meuProfissional)
     .reduce((s, i) => s + i.preco_unitario * i.quantidade, 0)
 
-  const inicioMes = useMemo(() => {
-    const d = new Date()
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
-  }, [])
-  const vendasDoMes = vendas.filter(v => v.status === 'fechada' && v.data >= inicioMes)
-  const totalMeusItensMes = vendasDoMes.reduce((s, v) => s + valorMeusItens(v), 0)
+  const vendasFiltradas = useMemo(() => {
+    const termo = buscaLista.trim().toLowerCase()
+    return termo ? vendas.filter(v => (v.cliente_nome ?? 'Balcão').toLowerCase().includes(termo)) : vendas
+  }, [vendas, buscaLista])
+  const fechadas = vendasFiltradas.filter(v => v.status === 'fechada')
+  const totalPeriodo = fechadas.reduce((s, v) => s + Number(v.total), 0)
+  const totalMeusItens = fechadas.reduce((s, v) => s + valorMeusItens(v), 0)
 
-  useEffect(() => {
-    carregarVendas()
-    supabase.rpc('listar_usuarios_basico').then(({ data }) => {
-      if (!data) return
-      const mapa: Record<string, string> = {}
-      ;(data as { usuario_id: string; email: string }[]).forEach(u => { mapa[u.usuario_id] = u.email })
-      setEmailPorUsuario(mapa)
-    })
-  }, [carregarVendas])
+  const selecao = useSelecao(vendasFiltradas.map(v => v.id))
+  const selecionadas = vendasFiltradas.filter(v => selecao.tem(v.id))
 
   function nomeUsuarioVenda(usuarioId?: string): string {
     if (!usuarioId) return '—'
-    return emailPorUsuario[usuarioId]?.split('@')[0] ?? '—'
+    return nomesUsuarios[usuarioId] ?? '—'
   }
 
   const [search, setSearch]   = useState('')
@@ -87,8 +108,11 @@ export default function PDV() {
   const [cart, setCart]           = useState<ItemComanda[]>([])
   const [clienteNome, setClienteNome] = useState('')
   const [pagamento, setPagamento] = useState<PagamentoMetodo>('pix')
+  const [semComissao, setSemComissao] = useState(false)
+  const [edicao, setEdicao] = useState<Comanda | null>(null)
+  const [origemAgenda, setOrigemAgenda] = useState<OrigemAgenda | null>(null)
   const [showPayModal, setShowPayModal] = useState(false)
-  const [done, setDone]         = useState(false)
+  const [done, setDone]         = useState<string | null>(null)
   const [saving, setSaving]     = useState(false)
   const [error, setError]       = useState('')
   const [showScanner, setShowScanner] = useState(false)
@@ -96,16 +120,44 @@ export default function PDV() {
 
   const total = cart.reduce((s, i) => s + i.preco_unitario * i.quantidade, 0)
 
+  function carregarProdutos() {
+    supabase.from('produtos').select(COLUNAS_PRODUTO).eq('ativo', true).order('nome')
+      .then(({ data }) => { if (data) setProdutos(data as unknown as Produto[]) })
+  }
+
   useEffect(() => {
     supabase.from('servicos').select('*').eq('ativo', true).order('nome')
       .then(({ data }) => { if (data) setServicos(data as Servico[]) })
-
-    supabase.from('produtos').select(COLUNAS_PRODUTO).eq('ativo', true).order('nome')
-      .then(({ data }) => { if (data) setProdutos(data as unknown as Produto[]) })
-
+    carregarProdutos()
     supabase.from('profissionais').select('*').eq('ativo', true).order('nome')
       .then(({ data }) => { if (data) setProfissionais(data as Profissional[]) })
   }, [])
+
+  // Venda aberta pela Agenda (/vendas?agendamento=<id>): já vem com o
+  // cliente, o serviço e o profissional do atendimento.
+  useEffect(() => {
+    const agendamentoId = searchParams.get('agendamento')
+    if (!agendamentoId) return
+    setSearchParams({}, { replace: true })
+    if (!podeVender) { setError('Seu usuário não tem permissão para registrar vendas.'); return }
+    supabase.from('agendamentos').select('*, cliente:clientes(*), servico:servicos(*)').eq('id', agendamentoId).maybeSingle()
+      .then(({ data, error: err }) => {
+        if (err || !data) { setError('Agendamento não encontrado.'); return }
+        const ag = data as Agendamento
+        const quando = new Date(ag.data_hora).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+        setOrigemAgenda({ id: ag.id, descricao: `${ag.servico?.nome ?? 'Atendimento'} · ${quando}`, clienteId: ag.cliente_id ?? null })
+        setClienteNome(ag.cliente?.nome ?? '')
+        setProfissionalId(ag.profissional_id ?? '')
+        setCart(ag.servico ? [{
+          id: uid(), tipo: 'servico', referencia_id: ag.servico.id, nome: ag.servico.nome, quantidade: 1,
+          preco_unitario: Number(ag.valor ?? ag.servico.preco), profissional_id: ag.profissional_id ?? undefined,
+        }] : [])
+        setEdicao(null)
+        setSemComissao(false)
+        setError('')
+        setModo('nova')
+      })
+  }, [searchParams, setSearchParams, podeVender])
 
   const servicosFiltrados = useMemo(() =>
     servicos.filter(s => s.nome.toLowerCase().includes(search.toLowerCase())),
@@ -201,139 +253,274 @@ export default function PDV() {
     setShowPayModal(true)
   }
 
+  function limparVenda() {
+    setCart([])
+    setClienteNome('')
+    setPagamento('pix')
+    setSemComissao(false)
+    setEdicao(null)
+    setOrigemAgenda(null)
+    setProfissionalId('')
+    setSearch('')
+    setError('')
+  }
+
+  function sairDaVenda() {
+    const voltarAgenda = !!origemAgenda
+    limparVenda()
+    if (voltarAgenda) navigate('/agenda')
+    else setModo('lista')
+  }
+
+  function abrirEdicao(venda: VendaParaEditar) {
+    setVendaSelecionadaId(null)
+    setCart(venda.itens.map(i => ({
+      id: uid(), tipo: i.tipo, referencia_id: i.referencia_id, nome: i.nome,
+      quantidade: i.quantidade, preco_unitario: Number(i.preco_unitario), profissional_id: i.profissional_id ?? undefined,
+    })))
+    setClienteNome(venda.comanda.cliente_nome && venda.comanda.cliente_nome !== 'Balcão' ? venda.comanda.cliente_nome : '')
+    setPagamento((venda.comanda.forma_pagamento ?? 'pix') as PagamentoMetodo)
+    setSemComissao(venda.semComissao)
+    setEdicao(venda.comanda)
+    setOrigemAgenda(null)
+    setProfissionalId('')
+    setError('')
+    setModo('editar')
+  }
+
+  const itensPayload = () => cart.map(i => ({
+    tipo: i.tipo,
+    referencia_id: i.referencia_id,
+    nome: i.nome,
+    quantidade: i.quantidade,
+    preco_unitario: i.preco_unitario,
+    profissional_id: i.profissional_id ?? null,
+  }))
+
   async function finalizarVenda() {
     if (saving) return
     setSaving(true); setError('')
-    const { error: err } = await supabase.rpc('finalizar_venda', {
+
+    if (edicao) {
+      const { error: err } = await supabase.rpc('editar_venda', {
+        p_comanda_id: edicao.id,
+        p_cliente_nome: clienteNome || null,
+        p_forma_pagamento: pagamento,
+        p_itens: itensPayload(),
+        p_sem_comissao: semComissao,
+      })
+      setSaving(false)
+      if (err) {
+        setError(semFuncaoNoBanco(err)
+          ? 'A edição de vendas ainda não está ativa no banco de dados. Peça para rodar a atualização do banco (migração 20261022000002) no Supabase.'
+          : err.message)
+        return
+      }
+      concluir('Venda atualizada!')
+      return
+    }
+
+    const { data: comandaId, error: err } = await supabase.rpc('finalizar_venda', {
       p_cliente_nome: clienteNome || null,
-      p_cliente_id: null,
+      p_cliente_id: origemAgenda?.clienteId ?? null,
       p_forma_pagamento: pagamento,
-      p_itens: cart.map(i => ({
-        tipo: i.tipo,
-        referencia_id: i.referencia_id,
-        nome: i.nome,
-        quantidade: i.quantidade,
-        preco_unitario: i.preco_unitario,
-        profissional_id: i.profissional_id ?? null,
-      })),
+      p_itens: itensPayload(),
     })
+    if (err) { setSaving(false); setError(err.message); return }
 
+    // A venda já está gravada; o que vem abaixo é complemento. Se falhar,
+    // avisa sem desfazer a venda.
+    const avisos: string[] = []
+    if (semComissao && comandaId) {
+      const { error: errComissao } = await supabase.from('comissoes').update({ status: 'cancelada' }).eq('comanda_id', comandaId as string)
+      if (errComissao) avisos.push(`não deu para tirar a comissão (${errComissao.message}). Tire pelo card da venda.`)
+    }
+    if (origemAgenda && comandaId) {
+      const { error: errAgenda } = await supabase.rpc('vincular_venda_agendamento', { p_comanda_id: comandaId, p_agendamento_id: origemAgenda.id })
+      if (errAgenda) {
+        avisos.push(semFuncaoNoBanco(errAgenda)
+          ? 'o agendamento não foi marcado como concluído (atualização do banco pendente). Conclua pela Agenda.'
+          : `o agendamento não foi marcado como concluído (${errAgenda.message}).`)
+      }
+    }
     setSaving(false)
-    if (err) { setError(err.message); return }
+    if (avisos.length > 0) window.alert(`A venda foi registrada, mas ${avisos.join(' Além disso, ')}`)
+    concluir('Venda registrada!')
+  }
 
-    setDone(true)
-    setCart([])
-    setClienteNome('')
+  function concluir(mensagem: string) {
+    const voltarAgenda = !!origemAgenda
     setShowPayModal(false)
-    setTimeout(() => setDone(false), 2500)
-    supabase.from('produtos').select(COLUNAS_PRODUTO).eq('ativo', true).order('nome')
-      .then(({ data }) => { if (data) setProdutos(data as unknown as Produto[]) })
+    limparVenda()
+    setDone(mensagem)
+    setTimeout(() => setDone(null), 2500)
+    carregarProdutos()
     carregarVendas()
+    if (voltarAgenda) navigate('/agenda')
+    else setModo('lista')
   }
 
   const modalRef = useModalKeyboard(showPayModal, () => setShowPayModal(false), finalizarVenda)
 
+  const toast = (
+    <AnimatePresence>
+      {done && (
+        <motion.div
+          style={{
+            position: 'fixed', bottom: '28px', right: '28px', zIndex: 100,
+            display: 'flex', alignItems: 'center', gap: '10px',
+            padding: '14px 20px',
+            background: '#1E1E1E', border: '1px solid #333', borderRadius: '10px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.7)',
+          }}
+          initial={{ opacity: 0, y: 16, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16 }}
+        >
+          <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Check size={14} style={{ color: '#FFFFFF' }} />
+          </div>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>{done}</p>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+
   if (modo === 'lista') {
     return (
       <div className="page">
-        <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
+        <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
           <div>
             <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Vendas</h1>
             <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
-              {verVendasOutros ? 'Histórico de vendas da loja'
-                : modoProfissional ? `Vendas em que você atendeu · neste mês ${vendasDoMes.length} ${vendasDoMes.length === 1 ? 'venda' : 'vendas'}, ${formatCurrency(totalMeusItensMes)} nos seus itens`
-                : 'Vendas registradas por você'}
+              {loadingVendas ? 'Carregando...'
+                : modoProfissional
+                  ? `Vendas em que você atendeu · ${fechadas.length} ${fechadas.length === 1 ? 'venda' : 'vendas'} · ${formatCurrency(totalMeusItens)} nos seus itens`
+                  : `${fechadas.length} ${fechadas.length === 1 ? 'venda' : 'vendas'} · ${formatCurrency(totalPeriodo)}${verVendasOutros ? '' : ' · registradas por você'}`}
             </p>
           </div>
           {podeVender && (
-            <button className="btn btn-primary" onClick={() => setModo('nova')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button className="btn btn-primary" onClick={() => { limparVenda(); setModo('nova') }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Plus size={14} strokeWidth={2.5} /> Incluir Venda
             </button>
           )}
         </div>
 
+        <div className="barra-filtros">
+          <div className="filtro-busca">
+            <Search size={13} />
+            <input placeholder="Buscar cliente..." value={buscaLista} onChange={e => setBuscaLista(e.target.value)} />
+            {buscaLista && (
+              <button onClick={() => setBuscaLista('')} aria-label="Limpar busca" style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', display: 'flex' }}>
+                <X size={12} />
+              </button>
+            )}
+          </div>
+          <FiltroPeriodo valor={periodo} onChange={v => v && setPeriodo(v)} alinhar="esquerda" />
+        </div>
+
         <div className="card desktop-row" style={{ padding: 0, overflow: 'hidden' }}>
           <div className="list-header" style={{
-            display: 'grid', minWidth: '720px', gridTemplateColumns: '1fr 130px 130px 110px 120px',
-            padding: '10px 24px', borderBottom: '1px solid #222',
+            display: 'grid', minWidth: '680px', gridTemplateColumns: COLUNAS_LISTA, gap: '12px',
+            padding: '10px 20px', borderBottom: '1px solid #222', alignItems: 'center',
             fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
             background: 'rgba(0,0,0,0.2)',
           }}>
-            <span>Cliente</span><span>{modoProfissional ? 'Seus itens' : 'Registrada por'}</span><span>Pagamento</span><span>Status</span><span>Total</span>
+            <span className="celula-check">
+              <Checkbox label="Selecionar todas" checked={selecao.todos} indeterminate={selecao.alguns} onChange={selecao.alternarTodos} disabled={vendasFiltradas.length === 0} />
+            </span>
+            <span>Cliente</span><span>{modoProfissional ? 'Seus itens' : 'Registrada por'}</span><span>Pagamento</span><span>Status</span><span style={{ textAlign: 'right' }}>Total</span>
           </div>
 
           {loadingVendas ? (
             <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Carregando...</div>
-          ) : vendas.length === 0 ? (
-            <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Nenhuma venda registrada ainda.</div>
-          ) : vendas.map((v, i) => (
+          ) : vendasFiltradas.length === 0 ? (
+            <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+              {buscaLista ? 'Nenhuma venda encontrada.' : `Nenhuma venda no período (${rotuloIntervalo(periodo)}).`}
+            </div>
+          ) : vendasFiltradas.map((v, i) => (
             <motion.div
               key={v.id}
-              className="list-row"
+              className={`list-row clicavel${selecao.tem(v.id) ? ' selecionada' : ''}`}
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i, 20) * 0.02 }}
               onClick={() => setVendaSelecionadaId(v.id)}
               style={{
-                display: 'grid', minWidth: '720px', gridTemplateColumns: '1fr 130px 130px 110px 120px',
-                padding: '14px 24px', alignItems: 'center', cursor: 'pointer',
-                borderBottom: i < vendas.length - 1 ? '1px solid #1F1F1F' : 'none',
+                display: 'grid', minWidth: '680px', gridTemplateColumns: COLUNAS_LISTA, gap: '12px',
+                padding: '12px 20px', alignItems: 'center',
+                borderBottom: i < vendasFiltradas.length - 1 ? '1px solid #1F1F1F' : 'none',
               }}
             >
-              <div>
-                <span style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{v.cliente_nome ?? 'Balcão'}</span>
-                <p style={{ fontSize: '11px', color: '#555' }}>{formatDate(v.data)}</p>
+              <span className="celula-check">
+                <Checkbox label={`Selecionar venda de ${v.cliente_nome ?? 'Balcão'}`} checked={selecao.tem(v.id)} onChange={m => selecao.alternar(v.id, m)} />
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <p className="texto-cortado" style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{v.cliente_nome ?? 'Balcão'}</p>
+                <p className="subtexto">{formatDateTime(v.created_at ?? v.data)}</p>
               </div>
               {modoProfissional
-                ? <span style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>{formatCurrency(valorMeusItens(v))}</span>
-                : <span style={{ fontSize: '12px', color: '#A3A3A3' }}>{nomeUsuarioVenda(v.usuario_id)}</span>}
-              <span style={{ fontSize: '12px', color: '#A3A3A3' }}>{PAGAMENTOS.find(p => p.id === v.forma_pagamento)?.label ?? '—'}</span>
-              <span className={v.status === 'fechada' ? 'badge badge-done' : v.status === 'cancelada' ? 'badge badge-canceled' : 'badge badge-pending'}>
-                {STATUS_LABEL[v.status] ?? v.status}
-              </span>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>{formatCurrency(v.total)}</span>
+                ? <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>{formatCurrency(valorMeusItens(v))}</span>
+                : <span className="texto-cortado" style={{ fontSize: '12px', color: '#A3A3A3' }}>{nomeUsuarioVenda(v.usuario_id)}</span>}
+              <span style={{ fontSize: '12px', color: '#A3A3A3' }}>{v.forma_pagamento ? PAGAMENTO_LABEL[v.forma_pagamento] ?? v.forma_pagamento : '—'}</span>
+              <span className={STATUS_CLASS[v.status] ?? 'badge badge-pending'}>{STATUS_LABEL[v.status] ?? v.status}</span>
+              <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', textAlign: 'right' }}>{formatCurrency(v.total)}</span>
             </motion.div>
           ))}
         </div>
 
         {/* Cards (mobile) */}
-        {!loadingVendas && vendas.length > 0 && (
-          <div className="entity-grid mobile-only-grid" style={{ gap: '16px' }}>
-            {vendas.map((v, i) => (
+        {!loadingVendas && vendasFiltradas.length > 0 && (
+          <div className="entity-grid mobile-only-grid" style={{ gap: '12px' }}>
+            {vendasFiltradas.map((v, i) => (
               <motion.div
                 key={v.id}
                 className="card entity-card"
                 initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 20) * 0.04 }}
                 onClick={() => setVendaSelecionadaId(v.id)}
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: 'pointer', borderColor: selecao.tem(v.id) ? '#555' : undefined }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
-                  <div style={{ minWidth: 0 }}>
-                    <p className="entity-title" style={{ fontSize: '14px', color: '#FFFFFF', fontWeight: 600 }}>{v.cliente_nome ?? 'Balcão'}</p>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <p className="entity-title texto-cortado" style={{ fontSize: '14px', color: '#FFFFFF', fontWeight: 600 }}>{v.cliente_nome ?? 'Balcão'}</p>
                     <p className="entity-subtle" style={{ fontSize: '11px', color: '#555', marginTop: '2px' }}>
                       {formatDate(v.data)} · {modoProfissional ? `seus itens ${formatCurrency(valorMeusItens(v))}` : nomeUsuarioVenda(v.usuario_id)}
                     </p>
                   </div>
-                  <span className={v.status === 'fechada' ? 'badge badge-done' : v.status === 'cancelada' ? 'badge badge-canceled' : 'badge badge-pending'}>
-                    {STATUS_LABEL[v.status] ?? v.status}
-                  </span>
+                  <Checkbox label="Selecionar venda" checked={selecao.tem(v.id)} onChange={m => selecao.alternar(v.id, m)} />
                 </div>
-                <div className="entity-divider" style={{ height: '1px', background: '#222', margin: '14px 0' }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '12px', color: '#A3A3A3' }}>{PAGAMENTOS.find(p => p.id === v.forma_pagamento)?.label ?? '—'}</span>
-                  <span style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF' }}>{formatCurrency(v.total)}</span>
+                <div className="entity-divider" style={{ height: '1px', background: '#222', margin: '12px 0' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '12px', color: '#A3A3A3' }}>{v.forma_pagamento ? PAGAMENTO_LABEL[v.forma_pagamento] ?? v.forma_pagamento : '—'}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {v.status !== 'fechada' && <span className={STATUS_CLASS[v.status] ?? 'badge badge-pending'}>{STATUS_LABEL[v.status] ?? v.status}</span>}
+                    <span className="valor-num" style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF' }}>{formatCurrency(v.total)}</span>
+                  </span>
                 </div>
               </motion.div>
             ))}
           </div>
         )}
 
+        <BarraSelecao quantidade={selecao.quantidade} onLimpar={selecao.limpar}>
+          <ItemSelecao rotulo="Total" valor={formatCurrency(selecionadas.reduce((s, v) => s + Number(v.total), 0))} />
+          {modoProfissional && <ItemSelecao rotulo="Seus itens" valor={formatCurrency(selecionadas.reduce((s, v) => s + valorMeusItens(v), 0))} />}
+        </BarraSelecao>
+
         <AnimatePresence>
           {vendaSelecionadaId && (
-            <VendaDetalheModal comandaId={vendaSelecionadaId} onClose={() => setVendaSelecionadaId(null)} destacarProfissionalId={meuProfissional} />
+            <VendaDetalheModal
+              comandaId={vendaSelecionadaId}
+              onClose={() => setVendaSelecionadaId(null)}
+              destacarProfissionalId={meuProfissional}
+              onEditar={abrirEdicao}
+              onAlterado={carregarVendas}
+            />
           )}
         </AnimatePresence>
+
+        {toast}
       </div>
     )
   }
+
+  const editando = modo === 'editar' && !!edicao
 
   return (
     <div className="page pdv-layout" style={{ display: 'flex', gap: '24px', height: 'calc(100vh - 64px)', paddingBottom: '0', overflow: 'hidden' }}>
@@ -342,10 +529,10 @@ export default function PDV() {
       <div className="pdv-catalog" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         <button
-          onClick={() => setModo('lista')}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#666', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '14px', flexShrink: 0 }}
+          onClick={sairDaVenda}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#666', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '14px', flexShrink: 0, fontFamily: 'inherit' }}
         >
-          <ArrowLeft size={13} /> Vendas
+          <ArrowLeft size={13} /> {editando ? 'Cancelar edição' : origemAgenda ? 'Voltar para a Agenda' : 'Vendas'}
         </button>
 
         {/* Search */}
@@ -445,8 +632,8 @@ export default function PDV() {
       }}>
         <div style={{ padding: '18px 20px', borderBottom: '1px solid #222', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <ShoppingCart size={15} style={{ color: '#555' }} />
-            <span style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>Comanda</span>
+            {editando ? <Pencil size={14} style={{ color: '#555' }} /> : <ShoppingCart size={15} style={{ color: '#555' }} />}
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>{editando ? 'Editando venda' : 'Comanda'}</span>
             {cart.length > 0 && (
               <span style={{
                 marginLeft: 'auto', fontSize: '11px', padding: '2px 8px',
@@ -456,6 +643,15 @@ export default function PDV() {
               </span>
             )}
           </div>
+          {editando && edicao && (
+            <p style={{ fontSize: '11px', color: '#666', marginTop: '6px' }}>Venda de {formatDateTime(edicao.created_at ?? edicao.data)}</p>
+          )}
+          {origemAgenda && (
+            <p style={{ fontSize: '11px', color: '#A3A3A3', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <CalendarDays size={12} style={{ color: '#555', flexShrink: 0 }} />
+              <span className="texto-cortado">Agenda: {origemAgenda.descricao}</span>
+            </p>
+          )}
           <input
             className="input"
             style={{ marginTop: '12px', fontSize: '13px' }}
@@ -519,6 +715,7 @@ export default function PDV() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <button
                     onClick={() => changeQty(item.id, -1)}
+                    aria-label="Diminuir quantidade"
                     style={{ width: '22px', height: '22px', borderRadius: '5px', border: '1px solid #333', background: 'transparent', color: '#666', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
                     <Minus size={10} />
@@ -526,12 +723,13 @@ export default function PDV() {
                   <span style={{ fontSize: '13px', fontWeight: 700, color: '#FFFFFF', minWidth: '16px', textAlign: 'center' }}>{item.quantidade}</span>
                   <button
                     onClick={() => changeQty(item.id, 1)}
+                    aria-label="Aumentar quantidade"
                     style={{ width: '22px', height: '22px', borderRadius: '5px', border: '1px solid #333', background: 'transparent', color: '#666', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
                     <Plus size={10} />
                   </button>
                 </div>
-                <button onClick={() => removeItem(item.id)} style={{ background: 'transparent', border: 'none', color: '#333', cursor: 'pointer', padding: '2px', display: 'flex' }}>
+                <button onClick={() => removeItem(item.id)} aria-label={`Remover ${item.nome}`} style={{ background: 'transparent', border: 'none', color: '#333', cursor: 'pointer', padding: '2px', display: 'flex' }}>
                   <Trash2 size={12} />
                 </button>
               </motion.div>
@@ -540,6 +738,12 @@ export default function PDV() {
         </div>
 
         <div style={{ padding: '16px 20px', borderTop: '1px solid #222', flexShrink: 0 }}>
+          {podeTirarComissao && (
+            <label className="check-rotulo" style={{ marginBottom: '12px' }} title="A venda não gera comissão para ninguém">
+              <input type="checkbox" checked={semComissao} onChange={e => setSemComissao(e.target.checked)} />
+              Sem comissão nesta venda
+            </label>
+          )}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
             <span style={{ fontSize: '13px', color: '#A3A3A3' }}>Total</span>
             <span style={{ fontSize: '20px', fontWeight: 700, color: '#FFFFFF', fontVariantNumeric: 'tabular-nums', fontFamily: 'DM Sans, sans-serif' }}>
@@ -548,7 +752,7 @@ export default function PDV() {
           </div>
           {error && !showPayModal && <p style={{ fontSize: '12px', color: '#A3A3A3', marginBottom: '10px' }}>{error}</p>}
           <button className="btn btn-primary btn-full" onClick={abrirPagamento} disabled={cart.length === 0}>
-            Finalizar Venda
+            {editando ? 'Salvar Edição' : 'Finalizar Venda'}
           </button>
         </div>
       </div>
@@ -592,42 +796,21 @@ export default function PDV() {
                   </button>
                 ))}
               </div>
-              <div style={{ padding: '14px 16px', background: 'rgba(255,255,255,0.04)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <div style={{ padding: '14px 16px', background: 'rgba(255,255,255,0.04)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', marginBottom: semComissao ? '10px' : '20px' }}>
                 <span style={{ fontSize: '13px', color: '#A3A3A3' }}>Total a cobrar</span>
                 <span style={{ fontSize: '18px', fontWeight: 700, color: '#FFFFFF' }}>{formatCurrency(total)}</span>
               </div>
-              {error && <p style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>{error}</p>}
+              {semComissao && <p style={{ fontSize: '12px', color: '#666', marginBottom: '16px' }}>Esta venda não vai gerar comissão.</p>}
+              {error && <p style={{ fontSize: '12px', color: '#A3A3A3', marginBottom: '12px' }}>{error}</p>}
               <button className="btn btn-primary btn-full" onClick={finalizarVenda} disabled={saving}>
-                {saving ? 'Processando...' : 'Confirmar Pagamento (F10)'}
+                {saving ? 'Processando...' : editando ? 'Salvar Edição (F10)' : 'Confirmar Pagamento (F10)'}
               </button>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Success toast */}
-      <AnimatePresence>
-        {done && (
-          <motion.div
-            style={{
-              position: 'fixed', bottom: '28px', right: '28px', zIndex: 100,
-              display: 'flex', alignItems: 'center', gap: '10px',
-              padding: '14px 20px',
-              background: '#1E1E1E', border: '1px solid #333', borderRadius: '10px',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.7)',
-            }}
-            initial={{ opacity: 0, y: 16, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16 }}
-          >
-            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Check size={14} style={{ color: '#FFFFFF' }} />
-            </div>
-            <div>
-              <p style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>Venda registrada!</p>
-              <p style={{ fontSize: '11px', color: '#555' }}>Comanda finalizada com sucesso.</p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {toast}
 
       {/* Camera scanner */}
       <AnimatePresence>

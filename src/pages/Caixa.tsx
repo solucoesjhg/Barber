@@ -1,13 +1,24 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Lock, Unlock, ArrowUpRight, ArrowDownRight, X, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react'
+import { Lock, Unlock, ArrowUpRight, ArrowDownRight, X, ArrowDownToLine, ArrowUpFromLine, Wallet, TrendingUp, TrendingDown, Scale } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { formatCurrency, formatDate } from '../lib/utils'
+import { formatCurrency, formatDateTime, formatTime } from '../lib/utils'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
 import { confirmarSaldoSuficiente } from '../lib/contasFinanceiras'
 import { usePermissoes } from '../hooks/usePermissoes'
+import { useSelecao } from '../hooks/useSelecao'
+import Checkbox from '../components/ui/Checkbox'
+import StatCard from '../components/ui/StatCard'
+import BarraSelecao, { ItemSelecao } from '../components/ui/BarraSelecao'
+import VendaDetalheModal from '../components/VendaDetalheModal'
+import LancamentoDetalheModal from '../components/LancamentoDetalheModal'
 import type { SessaoCaixa, MovimentoCaixa } from '../types'
+
+const CATEGORIA_LABEL: Record<string, string> = {
+  venda: 'Venda', sangria: 'Sangria', suprimento: 'Suprimento',
+  conta_a_pagar: 'Conta paga', conta_a_receber: 'Conta recebida',
+}
 
 type ModalTipo = null | 'abrir' | 'sangria' | 'suprimento' | 'fechar'
 
@@ -24,6 +35,11 @@ export default function Caixa() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [resultadoFechamento, setResultadoFechamento] = useState<SessaoCaixa | null>(null)
+  const [movimentoAberto, setMovimentoAberto] = useState<MovimentoCaixa | null>(null)
+  const selecao = useSelecao(movimentos.map(m => m.id))
+  const marcados = movimentos.filter(m => selecao.tem(m.id))
+  const entradasMarcadas = marcados.filter(m => m.tipo === 'entrada').reduce((s, m) => s + Number(m.valor), 0)
+  const saidasMarcadas = marcados.filter(m => m.tipo === 'saida').reduce((s, m) => s + Number(m.valor), 0)
 
   const carregar = useCallback(async () => {
     if (!user) return
@@ -124,7 +140,7 @@ export default function Caixa() {
         <div>
           <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Caixa</h1>
           <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
-            {sessao ? `Aberto desde ${formatDate(sessao.aberto_em)}` : 'Nenhum caixa aberto'}
+            {sessao ? `Aberto desde ${formatDateTime(sessao.aberto_em)}` : 'Nenhum caixa aberto'}
           </p>
         </div>
         {!podeEditar ? null : sessao ? (
@@ -142,37 +158,38 @@ export default function Caixa() {
         <div className="card" style={{ padding: '56px', textAlign: 'center' }}>
           <p style={{ fontSize: '14px', color: '#555' }}>O caixa está fechado.</p>
           <p style={{ fontSize: '12px', color: '#444', marginTop: '6px' }}>
-            {podeEditar ? 'Abra o caixa para poder vender no PDV e registrar movimentos.' : 'Seu usuário não tem permissão para abrir o caixa.'}
+            {podeEditar ? 'Abra o caixa para poder registrar vendas e movimentos.' : 'Seu usuário não tem permissão para abrir o caixa.'}
           </p>
         </div>
       ) : (
         <>
-          <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
-            {[
-              { label: 'Valor inicial', value: formatCurrency(sessao.valor_inicial) },
-              { label: 'Entradas',      value: formatCurrency(entradas) },
-              { label: 'Saídas',        value: formatCurrency(saidas) },
-              { label: 'Saldo atual',   value: formatCurrency(saldoAtual) },
-            ].map(s => (
-              <div className="card" key={s.label}>
-                <span style={{ fontSize: '11px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{s.label}</span>
-                <p style={{ fontSize: '22px', fontWeight: 700, color: '#FFFFFF', marginTop: '10px', fontFamily: 'DM Sans, sans-serif' }}>{s.value}</p>
-              </div>
-            ))}
+          <div className="stat-grid-auto">
+            <StatCard rotulo="Valor inicial" icone={Wallet} valor={formatCurrency(sessao.valor_inicial)} />
+            <StatCard rotulo="Entradas" icone={TrendingUp} valor={formatCurrency(entradas)} />
+            <StatCard rotulo="Saídas" icone={TrendingDown} valor={formatCurrency(saidas)} />
+            <StatCard rotulo="Saldo atual" icone={Scale} valor={formatCurrency(saldoAtual)} />
           </div>
 
-          {podeEditar && <div style={{ display: 'flex', gap: '10px', marginBottom: '24px' }}>
-            <button className="btn btn-secondary" onClick={() => abrirModal('sangria')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ArrowUpFromLine size={14} /> Sangria
+          {podeEditar && <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+            <button className="btn btn-secondary btn-sm" onClick={() => abrirModal('sangria')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ArrowUpFromLine size={13} /> Sangria
             </button>
-            <button className="btn btn-secondary" onClick={() => abrirModal('suprimento')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ArrowDownToLine size={14} /> Suprimento
+            <button className="btn btn-secondary btn-sm" onClick={() => abrirModal('suprimento')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ArrowDownToLine size={13} /> Suprimento
             </button>
           </div>}
 
           <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-            <div style={{ padding: '16px 24px', borderBottom: '1px solid #222' }}>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>Movimentos da sessão</span>
+            <div className="list-header" style={{
+              display: 'grid', minWidth: '560px', gridTemplateColumns: '22px minmax(200px, 1fr) 120px 70px 120px', gap: '12px', alignItems: 'center',
+              padding: '10px 20px', borderBottom: '1px solid #222',
+              fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
+              background: 'rgba(0,0,0,0.2)',
+            }}>
+              <span className="celula-check">
+                <Checkbox label="Selecionar todos os movimentos" checked={selecao.todos} indeterminate={selecao.alguns} onChange={selecao.alternarTodos} disabled={movimentos.length === 0} />
+              </span>
+              <span>Movimentos da sessão</span><span>Tipo</span><span>Hora</span><span style={{ textAlign: 'right' }}>Valor</span>
             </div>
             {movimentos.length === 0 ? (
               <div style={{ padding: '48px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
@@ -181,26 +198,37 @@ export default function Caixa() {
             ) : movimentos.map((m, i) => (
               <div
                 key={m.id}
+                className={`list-row clicavel${selecao.tem(m.id) ? ' selecionada' : ''}`}
+                onClick={() => setMovimentoAberto(m)}
                 style={{
-                  display: 'grid', gridTemplateColumns: '1fr 120px 100px 110px',
-                  padding: '13px 24px', alignItems: 'center',
+                  display: 'grid', minWidth: '560px', gridTemplateColumns: '22px minmax(200px, 1fr) 120px 70px 120px', gap: '12px',
+                  padding: '12px 20px', alignItems: 'center',
                   borderBottom: i < movimentos.length - 1 ? '1px solid #1A1A1A' : 'none',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="celula-check">
+                  <Checkbox label={`Selecionar ${m.descricao}`} checked={selecao.tem(m.id)} onChange={v => selecao.alternar(m.id, v)} />
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                   {m.tipo === 'entrada'
-                    ? <ArrowUpRight size={13} style={{ color: '#FFFFFF' }} />
-                    : <ArrowDownRight size={13} style={{ color: '#555' }} />}
-                  <span style={{ fontSize: '13px', color: m.tipo === 'entrada' ? '#FFFFFF' : '#A3A3A3' }}>{m.descricao}</span>
+                    ? <ArrowUpRight size={13} style={{ color: '#FFFFFF', flexShrink: 0 }} />
+                    : <ArrowDownRight size={13} style={{ color: '#555', flexShrink: 0 }} />}
+                  <span className="texto-cortado" style={{ fontSize: '13px', color: m.tipo === 'entrada' ? '#FFFFFF' : '#A3A3A3' }}>{m.descricao}</span>
                 </div>
-                <span style={{ fontSize: '12px', color: '#555', textTransform: 'capitalize' }}>{m.categoria}</span>
-                <span style={{ fontSize: '12px', color: '#444' }}>{formatDate(m.data)}</span>
-                <span style={{ fontSize: '14px', fontWeight: 600, color: m.tipo === 'entrada' ? '#FFFFFF' : '#555' }}>
+                <span style={{ fontSize: '12px', color: '#555' }}>{CATEGORIA_LABEL[m.categoria] ?? m.categoria}</span>
+                <span style={{ fontSize: '12px', color: '#444' }}>{formatTime(m.created_at)}</span>
+                <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: m.tipo === 'entrada' ? '#FFFFFF' : '#777', textAlign: 'right' }}>
                   {m.tipo === 'saida' ? '−' : '+'}{formatCurrency(m.valor)}
                 </span>
               </div>
             ))}
           </div>
+
+          <BarraSelecao quantidade={selecao.quantidade} onLimpar={selecao.limpar}>
+            <ItemSelecao rotulo="Entradas" valor={formatCurrency(entradasMarcadas)} />
+            <ItemSelecao rotulo="Saídas" valor={formatCurrency(saidasMarcadas)} />
+            <ItemSelecao rotulo="Saldo" valor={formatCurrency(entradasMarcadas - saidasMarcadas)} />
+          </BarraSelecao>
         </>
       )}
 
@@ -295,6 +323,17 @@ export default function Caixa() {
               </button>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Card do movimento (venda abre a venda completa) */}
+      <AnimatePresence>
+        {movimentoAberto && (
+          movimentoAberto.comanda_id ? (
+            <VendaDetalheModal comandaId={movimentoAberto.comanda_id} onClose={() => setMovimentoAberto(null)} />
+          ) : (
+            <LancamentoDetalheModal movimento={movimentoAberto} onClose={() => setMovimentoAberto(null)} />
+          )
         )}
       </AnimatePresence>
     </div>

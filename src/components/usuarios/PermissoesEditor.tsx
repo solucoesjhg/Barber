@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { CARDS_DASHBOARD, GRUPOS_TELAS, TELAS } from '../../lib/permissoes'
-import type { CardDashboardId, PermissoesUsuario, TelaId } from '../../types'
+import { CARDS_DASHBOARD, GRUPOS_TELAS, RELATORIOS, TELAS } from '../../lib/permissoes'
+import type { CardDashboardId, PermissoesUsuario, RelatorioId, TelaId } from '../../types'
 
 export type RascunhoPermissoes = {
   telas: Record<TelaId, { ver: boolean; editar: boolean }>
   ver_vendas_outros: boolean
   ver_custo_produtos: boolean
   dashboard_cards: CardDashboardId[]
+  relatorios: RelatorioId[]
 }
 
 export function rascunhoDe(p: PermissoesUsuario): RascunhoPermissoes {
@@ -17,21 +18,28 @@ export function rascunhoDe(p: PermissoesUsuario): RascunhoPermissoes {
     ver_vendas_outros: p.ver_vendas_outros,
     ver_custo_produtos: p.ver_custo_produtos,
     dashboard_cards: [...(p.dashboard_cards ?? [])],
+    // Banco sem a migração de relatórios: todos liberados.
+    relatorios: [...(p.relatorios ?? RELATORIOS.map(r => r.id))],
   }
 }
 
-function mesmosCards(a: CardDashboardId[], b: CardDashboardId[]) {
+function mesmaLista<T>(a: T[], b: T[]) {
   return a.length === b.length && a.every(c => b.includes(c))
 }
 
 export function cardsAlterados(a: RascunhoPermissoes, b: RascunhoPermissoes) {
-  return !mesmosCards(a.dashboard_cards, b.dashboard_cards)
+  return !mesmaLista(a.dashboard_cards, b.dashboard_cards)
+}
+
+export function relatoriosAlterados(a: RascunhoPermissoes, b: RascunhoPermissoes) {
+  return !mesmaLista(a.relatorios, b.relatorios)
 }
 
 export function rascunhosIguais(a: RascunhoPermissoes, b: RascunhoPermissoes) {
   return a.ver_vendas_outros === b.ver_vendas_outros
     && a.ver_custo_produtos === b.ver_custo_produtos
     && !cardsAlterados(a, b)
+    && !relatoriosAlterados(a, b)
     && TELAS.every(t => a.telas[t.id].ver === b.telas[t.id].ver && a.telas[t.id].editar === b.telas[t.id].editar)
 }
 
@@ -39,7 +47,7 @@ const ESPECIAIS: { campo: 'ver_vendas_outros' | 'ver_custo_produtos'; label: str
   {
     campo: 'ver_vendas_outros',
     label: 'Ver vendas de outros usuários',
-    descricao: 'No PDV, nos relatórios e no dashboard, vê as vendas de todos. Sem isso, vê só as que ele mesmo fez.',
+    descricao: 'Em Vendas, nos relatórios e no dashboard, vê as vendas de todos. Sem isso, vê só as que ele mesmo fez ou atendeu.',
   },
   {
     campo: 'ver_custo_produtos',
@@ -107,6 +115,15 @@ export default function PermissoesEditor({ permissoes, rascunho, onChange, edita
     onChange({ ...rascunho, dashboard_cards: valor ? [...sem, ...doGrupo] : sem })
   }
 
+  function marcarRelatorio(id: RelatorioId, valor: boolean) {
+    const sem = rascunho.relatorios.filter(r => r !== id)
+    onChange({ ...rascunho, relatorios: valor ? [...sem, id] : sem })
+  }
+
+  // Sem relatorios em permissoes: banco ainda sem a migração (não dá pra salvar).
+  const relatoriosDisponiveis = Array.isArray(permissoes.relatorios)
+  const relatoriosEditavel = editavel && relatoriosDisponiveis && rascunho.telas.relatorios.ver
+
   // Quantos itens liberados em cada aba (mostrado ao lado do nome).
   function contagem(a: Aba): string {
     if (a === 'Dashboard') return `${rascunho.dashboard_cards.length}/${CARDS_DASHBOARD.length}`
@@ -119,6 +136,7 @@ export default function PermissoesEditor({ permissoes, rascunho, onChange, edita
     a === 'Dashboard' ? permissoes.dashboard_personalizado
       : a === 'Especiais' ? permissoes.especiais_personalizados
         : TELAS.some(t => t.grupo === a && permissoes.telas[t.id]?.personalizado)
+          || (a === 'Relatórios' && !!permissoes.relatorios_personalizado)
 
   return (
     <div className="perm-editor">
@@ -181,6 +199,43 @@ export default function PermissoesEditor({ permissoes, rascunho, onChange, edita
                   </div>
                 </div>
               ))}
+
+              {/* Quais abas da tela Relatórios o usuário vê */}
+              {aba === 'Relatórios' && (
+                <>
+                  <div className="perm-linha perm-linha-grupo perm-linha-1col">
+                    <span className="perm-titulo-grupo">Relatórios liberados</span>
+                    <label className="perm-coluna-titulo">
+                      {relatoriosEditavel && (
+                        <Caixa
+                          label="Liberar todos os relatórios"
+                          checked={rascunho.relatorios.length === RELATORIOS.length}
+                          onChange={v => onChange({ ...rascunho, relatorios: v ? RELATORIOS.map(r => r.id) : [] })}
+                        />
+                      )}
+                      Ver
+                    </label>
+                  </div>
+                  {!relatoriosDisponiveis ? (
+                    <p className="perm-ajuda perm-intro">
+                      Escolher relatório por relatório fica disponível depois da atualização do banco de dados (migração 20261022000002). Até lá, quem vê a tela Relatórios vê todos.
+                    </p>
+                  ) : !rascunho.telas.relatorios.ver && (
+                    <p className="perm-ajuda perm-intro">Libere a tela Relatórios acima para escolher quais relatórios este usuário vê.</p>
+                  )}
+                  {RELATORIOS.map(r => (
+                    <div key={r.id} className="perm-linha perm-linha-1col" style={{ opacity: rascunho.telas.relatorios.ver ? 1 : 0.5 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <p className="perm-nome">{r.label}</p>
+                        <p className="perm-ajuda">{r.ajuda}</p>
+                      </div>
+                      <div className="perm-celula">
+                        <Caixa label={`Ver relatório ${r.label}`} checked={rascunho.relatorios.includes(r.id)} disabled={!relatoriosEditavel} onChange={v => marcarRelatorio(r.id, v)} />
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
             </>
           )
         })()}

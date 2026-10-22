@@ -130,7 +130,7 @@ export default function Clientes() {
             <X size={13} />
           </button>
         )}
-        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#666', cursor: 'pointer', flexShrink: 0, paddingLeft: '10px', borderLeft: '1px solid #252525' }}>
+        <label className="check-rotulo" style={{ flexShrink: 0, paddingLeft: '10px', borderLeft: '1px solid #252525' }}>
           <input type="checkbox" checked={mostrarInativos} onChange={e => setMostrarInativos(e.target.checked)} />
           Mostrar inativos
         </label>
@@ -140,8 +140,8 @@ export default function Clientes() {
       <div className="card desktop-row" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="list-header" style={{
           display: 'grid',
-          minWidth: '810px', gridTemplateColumns: '1fr 160px 180px 110px 90px 40px',
-          padding: '10px 24px',
+          minWidth: '720px', gridTemplateColumns: '1fr 150px minmax(150px, 200px) 96px 70px 36px', gap: '12px', alignItems: 'center',
+          padding: '10px 20px',
           borderBottom: '1px solid #222',
           fontSize: '10px', fontWeight: 600, color: '#444',
           textTransform: 'uppercase', letterSpacing: '0.1em',
@@ -172,8 +172,8 @@ export default function Clientes() {
             transition={{ delay: i * 0.03 }}
             style={{
               display: 'grid',
-              minWidth: '810px', gridTemplateColumns: '1fr 160px 180px 110px 90px 40px',
-              padding: '14px 24px',
+              minWidth: '720px', gridTemplateColumns: '1fr 150px minmax(150px, 200px) 96px 70px 36px', gap: '12px',
+              padding: '11px 20px',
               borderBottom: i < filtered.length - 1 ? '1px solid #1F1F1F' : 'none',
               alignItems: 'center',
               transition: 'background 0.12s',
@@ -203,15 +203,10 @@ export default function Clientes() {
             <div style={{ fontSize: '12px', color: '#444' }}>{formatDate(c.created_at)}</div>
             <div>
               <button
+                className={`status-pill${c.ativo ? '' : ' inativo'}`}
                 onClick={() => { if (podeEditar) toggleAtivo(c.id, c.ativo) }}
                 disabled={!podeEditar}
-                style={{
-                  fontSize: '10px', padding: '3px 9px', borderRadius: '99px',
-                  border: c.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
-                  background: 'transparent',
-                  color: c.ativo ? '#A3A3A3' : '#444',
-                  cursor: podeEditar ? 'pointer' : 'default',
-                }}
+                title={podeEditar ? (c.ativo ? 'Clique para desativar' : 'Clique para ativar') : undefined}
               >
                 {c.ativo ? 'Ativo' : 'Inativo'}
               </button>
@@ -254,11 +249,7 @@ export default function Clientes() {
                       fontSize: '15px', fontWeight: 600, color: '#FFFFFF', fontFamily: 'DM Sans, sans-serif',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
                     }}>{c.nome}</h3>
-                    <span style={{
-                      fontSize: '10px', padding: '2px 8px', borderRadius: '99px', flexShrink: 0,
-                      border: c.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
-                      color: c.ativo ? '#A3A3A3' : '#444',
-                    }}>
+                    <span className={`status-pill${c.ativo ? '' : ' inativo'}`} style={{ flexShrink: 0 }}>
                       {c.ativo ? 'Ativo' : 'Inativo'}
                     </span>
                   </div>

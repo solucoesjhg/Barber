@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronRight, Bell, Search, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import Sidebar from './Sidebar'
 import { usePerfil } from '../../hooks/usePerfil'
+import { useLoja } from '../../hooks/useLoja'
 
 const SIDEBAR_KEY = 'barberos-sidebar-hidden'
 
@@ -11,7 +12,7 @@ const PAGE_NAMES: Record<string, string> = {
   '/empresas':      'Empresas',
   '/dashboard':     'Dashboard',
   '/agenda':        'Agenda',
-  '/pdv':           'PDV',
+  '/vendas':        'Vendas',
   '/caixa':         'Caixa',
   '/clientes':      'Clientes',
   '/profissionais': 'Profissionais',
@@ -37,6 +38,8 @@ export default function AppLayout() {
     ?? Object.entries(PAGE_NAMES).find(([rota]) => location.pathname.startsWith(rota + '/'))?.[1]
     ?? ''
   const { papel, empresaId, ativo, loading: perfilLoading } = usePerfil()
+  const { nome: nomeLoja } = useLoja()
+  const raizCaminho = papel === 'super_admin' ? 'BarberOS' : (nomeLoja ?? '')
   const [sidebarHidden, setSidebarHidden] = useState(() => {
     if (typeof window !== 'undefined' && window.innerWidth <= 768) return true
     try { return localStorage.getItem(SIDEBAR_KEY) === '1' } catch { return false }
@@ -92,14 +95,15 @@ export default function AppLayout() {
             </button>
             <span
               onClick={() => navigate('/dashboard')}
-              style={{ fontSize: '12px', color: '#3D3D3D', cursor: 'pointer' }}
+              className="texto-cortado"
+              style={{ fontSize: '12px', color: '#555', cursor: 'pointer', maxWidth: '180px' }}
             >
-              BarberOS
+              {raizCaminho}
             </span>
             {pageName && (
               <>
-                <ChevronRight size={12} style={{ color: '#2A2A2A' }} />
-                <span style={{ fontSize: '12px', color: '#A3A3A3', fontWeight: 500 }}>{pageName}</span>
+                {raizCaminho && <ChevronRight size={12} style={{ color: '#2A2A2A', flexShrink: 0 }} />}
+                <span style={{ fontSize: '12px', color: '#A3A3A3', fontWeight: 500, whiteSpace: 'nowrap' }}>{pageName}</span>
               </>
             )}
           </div>

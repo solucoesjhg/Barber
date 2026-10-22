@@ -46,7 +46,7 @@ BarberOS é um ERP para barbearias com visual **minimalista premium monocromáti
 
 ## Layout
 
-- Estrutura do app: `Sidebar` à esquerda (220px, colapsável) + cabeçalho de `header-height` com breadcrumb "BarberOS › Página", busca e notificações + conteúdo em `.page`.
+- Estrutura do app: `Sidebar` à esquerda (220px, colapsável) + cabeçalho de `header-height` com breadcrumb "Nome da loja › Página", busca e notificações + conteúdo em `.page`.
 - Cada página abre com `PageHeader`: título serifado, contador abaixo e a ação principal à direita.
 - Monte telas com os componentes React em `window.BarberOS` (`AppLayout`, `PageHeader`, `StatGrid` + `StatCard`, `Table`, `Modal`, `Field`, `Button`, `Badge`). Eles já trazem o comportamento mobile; não reescreva os estilos inline.
 
@@ -71,7 +71,7 @@ BarberOS é um ERP para barbearias com visual **minimalista premium monocromáti
 ## Logo
 
 - Use `assets/Logos/barberos-logo.png`, monograma branco sobre fundo transparente. Aplique apenas sobre `bg`, `sidebar-bg` ou `surface`.
-- Na sidebar o logo tem 32px, ao lado do nome "BarberOS" em `body-sm` 600 e do selo "ERP".
+- Na sidebar o logo tem 32px, ao lado do nome da loja em `body-sm` 600 (até 2 linhas). Logo e nome vêm de Configurações; sem logo cadastrado, usa o logo padrão. O super admin vê "BarberOS".
 
 ---
 

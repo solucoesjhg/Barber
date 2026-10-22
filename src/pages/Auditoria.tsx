@@ -3,10 +3,15 @@ import { motion } from 'framer-motion'
 import { ChevronDown, ChevronRight as ChevronRightIcon, User } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatDateTime } from '../lib/utils'
+import { carregarNomesUsuarios } from '../lib/usuarios'
 import type { Auditoria as AuditoriaRow } from '../types'
 
 const ACAO_LABEL: Record<string, string> = { insert: 'Criação', update: 'Alteração', delete: 'Exclusão' }
 const MODULOS = ['comandas', 'sessoes_caixa', 'contas_pagar', 'contas_receber', 'agendamentos']
+const MODULO_LABEL: Record<string, string> = {
+  comandas: 'Vendas', sessoes_caixa: 'Caixa', contas_pagar: 'Contas a pagar',
+  contas_receber: 'Contas a receber', agendamentos: 'Agenda',
+}
 const CAMPOS_IGNORADOS = new Set(['created_at', 'updated_at', 'empresa_id', 'id'])
 
 function formatarValor(v: unknown): string {
@@ -50,12 +55,7 @@ export default function Auditoria() {
     if (filtroModulo) query = query.eq('modulo', filtroModulo)
     query.then(({ data }) => { setLogs((data ?? []) as AuditoriaRow[]); setLoading(false) })
 
-    supabase.rpc('listar_usuarios_basico').then(({ data }) => {
-      if (!data) return
-      const map: Record<string, string> = {}
-      ;(data as any[]).forEach(u => { map[u.usuario_id] = u.email })
-      setUsuariosMap(map)
-    })
+    carregarNomesUsuarios().then(setUsuariosMap)
   }, [filtroModulo])
 
   return (
@@ -67,34 +67,15 @@ export default function Auditoria() {
         </p>
       </div>
 
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', flexWrap: 'wrap' }}>
-        <button
-          onClick={() => setFiltroModulo('')}
-          style={{
-            padding: '6px 14px', borderRadius: '99px', fontFamily: 'inherit',
-            border: filtroModulo === '' ? '1px solid #FFFFFF' : '1px solid #2A2A2A',
-            background: filtroModulo === '' ? 'rgba(255,255,255,0.08)' : 'transparent',
-            color: filtroModulo === '' ? '#FFFFFF' : '#555',
-            fontSize: '12px', cursor: 'pointer',
-          }}
-        >
-          Todos
-        </button>
-        {MODULOS.map(m => (
-          <button
-            key={m}
-            onClick={() => setFiltroModulo(m)}
-            style={{
-              padding: '6px 14px', borderRadius: '99px', fontFamily: 'inherit',
-              border: filtroModulo === m ? '1px solid #FFFFFF' : '1px solid #2A2A2A',
-              background: filtroModulo === m ? 'rgba(255,255,255,0.08)' : 'transparent',
-              color: filtroModulo === m ? '#FFFFFF' : '#555',
-              fontSize: '12px', cursor: 'pointer',
-            }}
-          >
-            {m}
-          </button>
-        ))}
+      <div className="barra-filtros">
+        <div className="pilulas" role="tablist">
+          <button role="tab" aria-selected={filtroModulo === ''} className={`pilula${filtroModulo === '' ? ' ativa' : ''}`} onClick={() => setFiltroModulo('')}>Todos</button>
+          {MODULOS.map(m => (
+            <button key={m} role="tab" aria-selected={filtroModulo === m} className={`pilula${filtroModulo === m ? ' ativa' : ''}`} onClick={() => setFiltroModulo(m)}>
+              {MODULO_LABEL[m] ?? m}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -128,7 +109,7 @@ export default function Auditoria() {
               }}
             >
               {expandido === l.id ? <ChevronDown size={13} style={{ color: '#555' }} /> : <ChevronRightIcon size={13} style={{ color: '#555' }} />}
-              <span style={{ fontSize: '13px', color: '#FFFFFF' }}>{l.modulo}</span>
+              <span style={{ fontSize: '13px', color: '#FFFFFF' }}>{MODULO_LABEL[l.modulo] ?? l.modulo}</span>
               <span style={{ fontSize: '12px', color: '#A3A3A3' }}>{ACAO_LABEL[l.acao]}</span>
               <span style={{ fontSize: '12px', color: '#A3A3A3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rotuloRegistro(l)}</span>
               <span style={{ fontSize: '12px', color: '#A3A3A3', display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

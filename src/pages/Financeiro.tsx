@@ -8,13 +8,24 @@ import { TrendingUp, TrendingDown, DollarSign, Plus, ArrowUpRight, ArrowDownRigh
 import { supabase } from '../lib/supabase'
 import { formatCurrency, formatDate } from '../lib/utils'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
+import { useSelecao } from '../hooks/useSelecao'
 import { confirmarSaldoSuficiente } from '../lib/contasFinanceiras'
 import { usePermissoes } from '../hooks/usePermissoes'
-import { rangeFor } from '../lib/periodo'
+import { dataLocalISO, intervaloMes, rotuloIntervalo, type Intervalo } from '../lib/periodo'
 import VendaDetalheModal from '../components/VendaDetalheModal'
 import LancamentoDetalheModal from '../components/LancamentoDetalheModal'
 import ContaFinanceiraModal from '../components/ContaFinanceiraModal'
+import FiltroPeriodo from '../components/ui/FiltroPeriodo'
+import Checkbox from '../components/ui/Checkbox'
+import StatCard from '../components/ui/StatCard'
+import BarraSelecao, { ItemSelecao } from '../components/ui/BarraSelecao'
 import type { MovimentoCaixa, ContaFinanceira } from '../types'
+
+const CATEGORIA_LABEL: Record<string, string> = {
+  venda: 'Venda', sangria: 'Sangria', suprimento: 'Suprimento', capital_inicial: 'Saldo inicial',
+  conta_a_pagar: 'Conta paga', conta_a_receber: 'Conta recebida', compra_mercadoria: 'Compra de mercadoria',
+  entrada: 'Entrada', saida: 'Saída',
+}
 
 interface SaldoConta { conta_id: string; nome: string; tipo: string; padrao: boolean; saldo: number }
 
@@ -48,7 +59,7 @@ export default function Financeiro() {
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
   const [lancamentoSelecionado, setLancamentoSelecionado] = useState<MovimentoCaixa | null>(null)
-  const [custom, setCustom] = useState({ inicio: new Date().toISOString().split('T')[0], fim: new Date().toISOString().split('T')[0] })
+  const [periodo, setPeriodo] = useState<Intervalo>(() => intervaloMes())
   const [graficoAberto, setGraficoAberto] = useState(() => {
     try { return localStorage.getItem(GRAFICO_KEY) !== '0' } catch { return true }
   })
@@ -57,15 +68,10 @@ export default function Financeiro() {
   const [contaEditando, setContaEditando] = useState<ContaFinanceira | null>(null)
   const [saldoInicialPeriodo, setSaldoInicialPeriodo] = useState(0)
 
-  const inicio = custom.inicio
-  const fim = custom.fim
+  const inicio = periodo.inicio
+  const fim = periodo.fim
 
-  function irParaMesAtual() {
-    const [mesInicio, mesFim] = rangeFor('mes', new Date(), custom)
-    setCustom({ inicio: mesInicio, fim: mesFim })
-  }
-
-  const hoje = new Date().toISOString().split('T')[0]
+  const hoje = dataLocalISO()
   const movHoje    = movimentos.filter(m => m.data === hoje)
   const entradas   = movimentos.filter(m => m.tipo === 'entrada').reduce((s, m) => s + m.valor, 0)
   const saidas     = movimentos.filter(m => m.tipo === 'saida').reduce((s, m) => s + m.valor, 0)
@@ -82,6 +88,11 @@ export default function Financeiro() {
   }
 
   const saldoAtualConsolidado = contas.reduce((s, c) => s + c.saldo, 0)
+
+  const selecao = useSelecao(movimentos.map(m => m.id))
+  const marcados = movimentos.filter(m => selecao.tem(m.id))
+  const entradasMarcadas = marcados.filter(m => m.tipo === 'entrada').reduce((s, m) => s + Number(m.valor), 0)
+  const saidasMarcadas = marcados.filter(m => m.tipo === 'saida').reduce((s, m) => s + Number(m.valor), 0)
 
   function toggleGrafico() {
     setGraficoAberto(prev => {
@@ -106,13 +117,13 @@ export default function Financeiro() {
   }, [])
 
   useEffect(() => {
-    const seteDiasAtras = new Date(Date.now() - 6 * 86400000).toISOString().split('T')[0]
+    const seteDiasAtras = dataLocalISO(new Date(Date.now() - 6 * 86400000))
     supabase.from('movimentos_caixa').select('tipo, valor, data').gte('data', seteDiasAtras)
       .then(({ data }) => {
         const porDia: Record<string, { entrada: number; saida: number }> = {}
         for (let i = 6; i >= 0; i--) {
           const d = new Date(Date.now() - i * 86400000)
-          porDia[d.toISOString().split('T')[0]] = { entrada: 0, saida: 0 }
+          porDia[dataLocalISO(d)] = { entrada: 0, saida: 0 }
         }
         ;((data ?? []) as { tipo: string; valor: number; data: string }[]).forEach(m => {
           if (porDia[m.data]) porDia[m.data][m.tipo === 'entrada' ? 'entrada' : 'saida'] += m.valor
@@ -122,7 +133,7 @@ export default function Financeiro() {
         })))
       })
 
-    const hoje2 = new Date().toISOString().split('T')[0]
+    const hoje2 = dataLocalISO()
     supabase.from('contas_pagar').select('valor, valor_pago, status, data_vencimento').in('status', ['aberta', 'parcial'])
       .then(({ data }) => {
         const rows = (data ?? []) as { valor: number; valor_pago: number; data_vencimento: string }[]
@@ -176,20 +187,16 @@ export default function Financeiro() {
       <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Financeiro</h1>
-          <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>{inicio} até {fim}</p>
+          <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>{rotuloIntervalo(periodo)}</p>
         </div>
-        {podeEditar && (
-          <button className="btn btn-secondary" onClick={() => { setFormError(''); setShowModal(true) }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Plus size={14} /> Lançar Saída
-          </button>
-        )}
-      </div>
-
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', marginBottom: '20px' }}>
-        <input className="input" type="date" style={{ padding: '6px 10px', fontSize: '12px' }} value={custom.inicio} onChange={e => setCustom(c => ({ ...c, inicio: e.target.value }))} />
-        <span style={{ color: '#444', fontSize: '12px' }}>até</span>
-        <input className="input" type="date" style={{ padding: '6px 10px', fontSize: '12px' }} value={custom.fim} onChange={e => setCustom(c => ({ ...c, fim: e.target.value }))} />
-        <button className="btn btn-secondary btn-sm" onClick={irParaMesAtual}>Mês</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <FiltroPeriodo valor={periodo} onChange={v => v && setPeriodo(v)} />
+          {podeEditar && (
+            <button className="btn btn-secondary btn-sm" onClick={() => { setFormError(''); setShowModal(true) }} style={{ display: 'flex', alignItems: 'center', gap: '8px', minHeight: '36px' }}>
+              <Plus size={13} /> Novo Lançamento
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Contas financeiras */}
@@ -229,36 +236,12 @@ export default function Financeiro() {
       </div>
 
       {/* Stats */}
-      <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '24px' }}>
-        {[
-          { label: 'Entradas (total)', value: formatCurrency(entradas), icon: TrendingUp, suffix: `Hoje: ${formatCurrency(entradasHoje)}` },
-          { label: 'Saídas (total)',   value: formatCurrency(saidas),   icon: TrendingDown, suffix: '' },
-          { label: 'Lucro Líquido',    value: formatCurrency(lucro),    icon: DollarSign, suffix: '' },
-          { label: 'A Pagar',          value: formatCurrency(aPagar.aberto),   icon: TrendingDown, suffix: aPagar.vencido > 0 ? `${formatCurrency(aPagar.vencido)} vencido` : '' },
-          { label: 'A Receber',        value: formatCurrency(aReceber.aberto), icon: TrendingUp, suffix: aReceber.vencido > 0 ? `${formatCurrency(aReceber.vencido)} vencido` : '' },
-        ].map((s, i) => {
-          const Icon = s.icon
-          return (
-            <motion.div
-              key={s.label}
-              className="card"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.07 }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <Icon size={15} style={{ color: '#555' }} />
-                <span style={{ fontSize: '11px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                  {s.label}
-                </span>
-              </div>
-              <p style={{ fontSize: '24px', fontWeight: 700, color: '#FFFFFF', fontFamily: 'DM Sans, sans-serif', letterSpacing: '-0.02em' }}>
-                {s.value}
-              </p>
-              {s.suffix && <p style={{ fontSize: '11px', color: '#444', marginTop: '4px' }}>{s.suffix}</p>}
-            </motion.div>
-          )
-        })}
+      <div className="stat-grid-auto">
+        <StatCard rotulo="Entradas" icone={TrendingUp} valor={formatCurrency(entradas)} sub={`Hoje: ${formatCurrency(entradasHoje)}`} />
+        <StatCard rotulo="Saídas" icone={TrendingDown} valor={formatCurrency(saidas)} />
+        <StatCard rotulo="Lucro líquido" icone={DollarSign} valor={formatCurrency(lucro)} />
+        <StatCard rotulo="A pagar" icone={TrendingDown} valor={formatCurrency(aPagar.aberto)} sub={aPagar.vencido > 0 ? `${formatCurrency(aPagar.vencido)} vencido` : undefined} />
+        <StatCard rotulo="A receber" icone={TrendingUp} valor={formatCurrency(aReceber.aberto)} sub={aReceber.vencido > 0 ? `${formatCurrency(aReceber.vencido)} vencido` : undefined} />
       </div>
 
       {/* Fluxo de caixa */}
@@ -373,22 +356,22 @@ export default function Financeiro() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
       >
-        <div style={{ padding: '16px 24px', borderBottom: '1px solid #222' }}>
-          <span style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>Lançamentos</span>
-        </div>
         <div className="list-header" style={{
           display: 'grid',
-          minWidth: '560px', gridTemplateColumns: '1fr 120px 100px 110px',
-          padding: '10px 24px',
+          minWidth: '600px', gridTemplateColumns: '22px minmax(200px, 1fr) 150px 96px 120px', gap: '12px', alignItems: 'center',
+          padding: '10px 20px',
           borderBottom: '1px solid #1A1A1A',
           fontSize: '10px', fontWeight: 600, color: '#444',
           textTransform: 'uppercase', letterSpacing: '0.1em',
           background: 'rgba(0,0,0,0.2)',
         }}>
-          <span>Descrição</span>
+          <span className="celula-check">
+            <Checkbox label="Selecionar todos os lançamentos" checked={selecao.todos} indeterminate={selecao.alguns} onChange={selecao.alternarTodos} disabled={movimentos.length === 0} />
+          </span>
+          <span>Lançamentos</span>
           <span>Categoria</span>
           <span>Data</span>
-          <span>Valor</span>
+          <span style={{ textAlign: 'right' }}>Valor</span>
         </div>
         {movimentos.length === 0 ? (
           <div style={{ padding: '48px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
@@ -397,37 +380,42 @@ export default function Financeiro() {
         ) : movimentos.map((m, i) => (
           <div
             key={m.id}
-            className="list-row"
+            className={`list-row clicavel${selecao.tem(m.id) ? ' selecionada' : ''}`}
             onClick={() => setLancamentoSelecionado(m)}
             style={{
               display: 'grid',
-              minWidth: '560px', gridTemplateColumns: '1fr 120px 100px 110px',
-              padding: '13px 24px',
+              minWidth: '600px', gridTemplateColumns: '22px minmax(200px, 1fr) 150px 96px 120px', gap: '12px',
+              padding: '12px 20px',
               borderBottom: i < movimentos.length - 1 ? '1px solid #1A1A1A' : 'none',
               alignItems: 'center',
-              cursor: 'pointer',
             }}
           >
+            <span className="celula-check">
+              <Checkbox label={`Selecionar ${m.descricao}`} checked={selecao.tem(m.id)} onChange={v => selecao.alternar(m.id, v)} />
+            </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
               {m.tipo === 'entrada'
                 ? <ArrowUpRight size={13} style={{ color: '#FFFFFF', flexShrink: 0 }} />
                 : <ArrowDownRight size={13} style={{ color: '#555', flexShrink: 0 }} />
               }
-              <span style={{
-                fontSize: '13px', color: m.tipo === 'entrada' ? '#FFFFFF' : '#A3A3A3', fontWeight: m.tipo === 'entrada' ? 500 : 400,
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>
+              <span className="texto-cortado" style={{ fontSize: '13px', color: m.tipo === 'entrada' ? '#FFFFFF' : '#A3A3A3', fontWeight: m.tipo === 'entrada' ? 500 : 400 }}>
                 {m.descricao}
               </span>
             </div>
-            <span style={{ fontSize: '12px', color: '#555', textTransform: 'capitalize' }}>{m.categoria}</span>
+            <span className="texto-cortado" style={{ fontSize: '12px', color: '#555' }}>{CATEGORIA_LABEL[m.categoria] ?? m.categoria}</span>
             <span style={{ fontSize: '12px', color: '#444' }}>{formatDate(m.data)}</span>
-            <span style={{ fontSize: '14px', fontWeight: 600, color: m.tipo === 'entrada' ? '#FFFFFF' : '#555', fontFamily: 'DM Sans, sans-serif' }}>
+            <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: m.tipo === 'entrada' ? '#FFFFFF' : '#777', textAlign: 'right' }}>
               {m.tipo === 'saida' ? '−' : '+'}{formatCurrency(m.valor)}
             </span>
           </div>
         ))}
       </motion.div>
+
+      <BarraSelecao quantidade={selecao.quantidade} onLimpar={selecao.limpar}>
+        <ItemSelecao rotulo="Entradas" valor={formatCurrency(entradasMarcadas)} />
+        <ItemSelecao rotulo="Saídas" valor={formatCurrency(saidasMarcadas)} />
+        <ItemSelecao rotulo="Saldo" valor={formatCurrency(entradasMarcadas - saidasMarcadas)} />
+      </BarraSelecao>
 
       {/* Modal saída */}
       {showModal && (

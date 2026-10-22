@@ -1,81 +1,126 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import type { LucideIcon } from 'lucide-react'
 import {
-  ShoppingCart, Wallet, Percent, Users, Package, Scissors, Calendar, AlertTriangle, Printer,
+  ShoppingCart, Wallet, Percent, Users, Package, Scissors, Calendar, AlertTriangle, Printer, Lock,
+  Receipt, TrendingUp, UserCheck,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { COLUNAS_PRODUTO } from '../lib/produtos'
 import { formatCurrency, formatDate, formatDateTime } from '../lib/utils'
-import { type Periodo, rangeFor } from '../lib/periodo'
+import { intervaloMes, rotuloIntervalo, type Intervalo } from '../lib/periodo'
+import { carregarNomesUsuarios } from '../lib/usuarios'
+import { RELATORIOS } from '../lib/permissoes'
+import { usePermissoes } from '../hooks/usePermissoes'
+import { usePerfil } from '../hooks/usePerfil'
+import { useAuth } from '../hooks/useAuth'
+import FiltroPeriodo from '../components/ui/FiltroPeriodo'
+import StatCard from '../components/ui/StatCard'
+import { PAGAMENTO_LABEL } from '../components/VendaDetalheModal'
+import type { RelatorioId } from '../types'
 
-const CATEGORIAS_PRODUTO = ['bebidas', 'pomadas', 'petiscos', 'outros']
-const STATUS_COMISSAO = ['pendente', 'aprovada', 'paga', 'cancelada']
-const STATUS_AGENDA = ['pendente', 'confirmado', 'em_atendimento', 'concluido', 'cancelado', 'nao_compareceu']
+const ICONES: Record<RelatorioId, LucideIcon> = {
+  vendas: ShoppingCart, caixa: Wallet, comissoes: Percent, clientes: Users,
+  produtos: Package, profissionais: Scissors, agenda: Calendar,
+}
 
-type Aba = 'vendas' | 'caixa' | 'comissoes' | 'clientes' | 'produtos' | 'profissionais' | 'agenda'
-
-const ABAS: { id: Aba; label: string; icon: typeof ShoppingCart }[] = [
-  { id: 'vendas',        label: 'Vendas',        icon: ShoppingCart },
-  { id: 'caixa',         label: 'Caixa',         icon: Wallet },
-  { id: 'comissoes',     label: 'Comissões',     icon: Percent },
-  { id: 'clientes',      label: 'Clientes',      icon: Users },
-  { id: 'produtos',      label: 'Produtos',      icon: Package },
-  { id: 'profissionais', label: 'Profissionais', icon: Scissors },
-  { id: 'agenda',        label: 'Agenda',        icon: Calendar },
+const CATEGORIAS_PRODUTO: { id: string; label: string }[] = [
+  { id: 'bebidas', label: 'Bebidas' }, { id: 'pomadas', label: 'Pomadas' },
+  { id: 'petiscos', label: 'Petiscos' }, { id: 'outros', label: 'Outros' },
 ]
+const STATUS_AGENDA: { id: string; label: string }[] = [
+  { id: 'pendente', label: 'Pendente' }, { id: 'confirmado', label: 'Confirmado' },
+  { id: 'em_atendimento', label: 'Em atendimento' }, { id: 'concluido', label: 'Concluído' },
+  { id: 'cancelado', label: 'Cancelado' }, { id: 'nao_compareceu', label: 'Não compareceu' },
+]
+const MOVIMENTO_LABEL: Record<string, string> = {
+  entrada: 'Entrada', saida: 'Saída', ajuste: 'Ajuste', perda: 'Perda',
+  devolucao: 'Devolução', venda: 'Venda', inventario: 'Inventário',
+}
 
 interface LinhaVal { nome: string; total: number; qtd: number }
 
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="card">
-      <span style={{ fontSize: '11px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</span>
-      <p style={{ fontSize: '22px', fontWeight: 700, color: '#FFFFFF', marginTop: '10px', fontFamily: 'DM Sans, sans-serif' }}>{value}</p>
-    </div>
-  )
+function Titulo({ children }: { children: string }) {
+  return <p style={{ fontSize: '11px', fontWeight: 600, color: '#777', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '24px 0 8px' }}>{children}</p>
 }
 
-function Tabela({ colunas, linhas, vazio }: { colunas: string[]; linhas: (string | number)[][]; vazio: string }) {
+/**
+ * Tabela de relatório: 1ª coluna é o nome, as demais são números
+ * (alinhados à direita). total: linha de totalização no fim.
+ */
+function Tabela({ colunas, linhas, vazio, total }: {
+  colunas: string[]
+  linhas: (string | number)[][]
+  vazio: string
+  total?: (string | number)[]
+}) {
+  const grade = `minmax(180px, 1fr) repeat(${colunas.length - 1}, minmax(84px, 130px))`
+  const larguraMin = `${200 + (colunas.length - 1) * 100}px`
+  const celula = (v: string | number, j: number, destaque: boolean) => (
+    <span key={j} className={j > 0 ? 'valor-num' : 'texto-cortado'} style={{
+      color: j === 0 || destaque ? '#FFFFFF' : '#A3A3A3', fontWeight: j === 0 || destaque ? 500 : 400,
+      textAlign: j > 0 ? 'right' : 'left', minWidth: 0,
+    }}>
+      {j > 0 && <b className="mobile-only-label">{colunas[j]}: </b>}{v}
+    </span>
+  )
   return (
     <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
       <div className="list-header" style={{
-        display: 'grid', minWidth: `${230 + (colunas.length - 1) * 120}px`, gridTemplateColumns: `1fr repeat(${colunas.length - 1}, 120px)`,
-        padding: '10px 24px', borderBottom: '1px solid #222',
+        display: 'grid', minWidth: larguraMin, gridTemplateColumns: grade, gap: '12px',
+        padding: '10px 20px', borderBottom: '1px solid #222',
         fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
         background: 'rgba(0,0,0,0.2)',
       }}>
-        {colunas.map(c => <span key={c}>{c}</span>)}
+        {colunas.map((c, j) => <span key={c + j} style={{ textAlign: j > 0 ? 'right' : 'left' }}>{c}</span>)}
       </div>
       {linhas.length === 0 ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: '#444', fontSize: '13px' }}>{vazio}</div>
-      ) : linhas.map((l, i) => (
-        <div key={i} className="list-row" style={{
-          display: 'grid', minWidth: `${230 + (colunas.length - 1) * 120}px`, gridTemplateColumns: `1fr repeat(${colunas.length - 1}, 120px)`,
-          padding: '11px 24px', alignItems: 'center',
-          borderBottom: i < linhas.length - 1 ? '1px solid #1A1A1A' : 'none',
-          fontSize: '13px', color: '#A3A3A3',
-        }}>
-          {l.map((v, j) => (
-            <span key={j} style={{ color: j === 0 ? '#FFFFFF' : '#A3A3A3', fontWeight: j === 0 ? 500 : 400 }}>
-              {j > 0 && <b className="mobile-only-label">{colunas[j]}: </b>}{v}
-            </span>
+        <div style={{ padding: '36px', textAlign: 'center', color: '#444', fontSize: '13px' }}>{vazio}</div>
+      ) : (
+        <>
+          {linhas.map((l, i) => (
+            <div key={i} className="list-row" style={{
+              display: 'grid', minWidth: larguraMin, gridTemplateColumns: grade, gap: '12px',
+              padding: '10px 20px', alignItems: 'center',
+              borderBottom: i < linhas.length - 1 || total ? '1px solid #1A1A1A' : 'none',
+              fontSize: '13px',
+            }}>
+              {l.map((v, j) => celula(v, j, false))}
+            </div>
           ))}
-        </div>
-      ))}
+          {total && (
+            <div className="list-row list-total" style={{
+              display: 'grid', minWidth: larguraMin, gridTemplateColumns: grade, gap: '12px',
+              padding: '11px 20px', alignItems: 'center', fontSize: '13px',
+            }}>
+              {total.map((v, j) => celula(v, j, true))}
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }
 
 export default function Relatorios() {
-  const [aba, setAba] = useState<Aba>('vendas')
-  const [periodo, setPeriodo] = useState<Periodo>('mes')
-  const [ref, setRef] = useState(new Date())
-  const [custom, setCustom] = useState({ inicio: rangeFor('mes', new Date(), { inicio: '', fim: '' })[0], fim: rangeFor('mes', new Date(), { inicio: '', fim: '' })[1] })
+  const { podeVerRelatorio, verVendasOutros } = usePermissoes()
+  const { profissionalId: meuProfissional } = usePerfil()
+  const { user } = useAuth()
+  // Quem não vê as vendas dos outros vê só os próprios números (o banco já
+  // limita as vendas; aqui também filtra itens/agenda/comissões do
+  // profissional dele, já que uma venda pode ter itens de outros).
+  const restrito = !verVendasOutros
+  const abas = RELATORIOS.filter(r => podeVerRelatorio(r.id))
+
+  const [abaEscolhida, setAbaEscolhida] = useState<RelatorioId>('vendas')
+  const aba = abas.some(a => a.id === abaEscolhida) ? abaEscolhida : abas[0]?.id
+  const [periodo, setPeriodo] = useState<Intervalo>(() => intervaloMes())
+  const { inicio, fim } = periodo
   const [loading, setLoading] = useState(true)
 
   const [itensVenda, setItensVenda] = useState<any[]>([])
   const [sessoesCaixa, setSessoesCaixa] = useState<any[]>([])
-  const [usuariosMap, setUsuariosMap] = useState<Record<string, string>>({})
+  const [nomesUsuarios, setNomesUsuarios] = useState<Record<string, string>>({})
   const [comissoesPeriodo, setComissoesPeriodo] = useState<any[]>([])
   const [clientes, setClientes] = useState<any[]>([])
   const [produtos, setProdutos] = useState<any[]>([])
@@ -86,12 +131,9 @@ export default function Relatorios() {
   // Filtros específicos por aba
   const [filtroProfissionalId, setFiltroProfissionalId] = useState('')
   const [filtroFormaPagamento, setFiltroFormaPagamento] = useState('')
-  const [filtroStatusComissao, setFiltroStatusComissao] = useState('')
   const [filtroCategoria, setFiltroCategoria] = useState('')
   const [filtroStatusAgenda, setFiltroStatusAgenda] = useState('')
   const [buscaCliente, setBuscaCliente] = useState('')
-
-  const [inicio, fim] = rangeFor(periodo, ref, custom)
 
   const carregar = useCallback(async () => {
     setLoading(true)
@@ -99,7 +141,7 @@ export default function Relatorios() {
     const fimTS = `${fim}T23:59:59`
 
     const [
-      { data: itens },
+      itensFiltrados,
       { data: sessoes },
       { data: comissoes },
       { data: cli },
@@ -107,65 +149,75 @@ export default function Relatorios() {
       { data: movs },
       { data: agend },
       { data: profs },
+      nomes,
     ] = await Promise.all([
-      supabase.from('itens_comanda').select('tipo, nome, referencia_id, preco_unitario, quantidade, profissional_id, profissional:profissionais(nome), comanda:comandas(id, data, status, forma_pagamento, cliente_id, cliente_nome)'),
-      supabase.from('sessoes_caixa').select('*').order('aberto_em', { ascending: false }),
-      supabase.from('comissoes').select('*, profissional:profissionais(nome)').gte('created_at', inicioTS).lte('created_at', fimTS),
+      supabase.from('itens_comanda')
+        .select('tipo, nome, referencia_id, preco_unitario, quantidade, profissional_id, profissional:profissionais(nome), comanda:comandas!inner(id, data, status, forma_pagamento, cliente_id, cliente_nome)')
+        .eq('comanda.status', 'fechada').gte('comanda.data', inicio).lte('comanda.data', fim),
+      supabase.from('sessoes_caixa').select('*').gte('aberto_em', inicioTS).lte('aberto_em', fimTS).order('aberto_em', { ascending: false }),
+      supabase.from('comissoes').select('*, profissional:profissionais(nome)').neq('status', 'cancelada').gte('created_at', inicioTS).lte('created_at', fimTS),
       supabase.from('clientes').select('*'),
       supabase.from('produtos').select(COLUNAS_PRODUTO),
       supabase.from('movimentacoes_estoque').select('*, produto:produtos(nome)').gte('created_at', inicioTS).lte('created_at', fimTS).order('created_at', { ascending: false }).limit(100),
       supabase.from('agendamentos').select('status, profissional_id, profissional:profissionais(nome), servico:servicos(nome)').gte('data_hora', inicioTS).lte('data_hora', fimTS),
       supabase.from('profissionais').select('id, nome').order('nome'),
+      carregarNomesUsuarios(),
     ])
 
+    // Se o filtro pela venda (comandas!inner) não for aceito, busca sem ele
+    // e filtra aqui — o relatório nunca fica vazio por causa disso.
+    let itens = itensFiltrados.data
+    if (itensFiltrados.error) {
+      const r = await supabase.from('itens_comanda')
+        .select('tipo, nome, referencia_id, preco_unitario, quantidade, profissional_id, profissional:profissionais(nome), comanda:comandas(id, data, status, forma_pagamento, cliente_id, cliente_nome)')
+      itens = r.data
+    }
     setItensVenda((itens ?? []).filter((i: any) => i.comanda?.status === 'fechada' && i.comanda?.data >= inicio && i.comanda?.data <= fim))
-    setSessoesCaixa((sessoes ?? []).filter((s: any) => s.aberto_em.slice(0, 10) >= inicio && s.aberto_em.slice(0, 10) <= fim))
+    setSessoesCaixa((sessoes ?? []) as any[])
     setComissoesPeriodo((comissoes ?? []) as any[])
     setClientes((cli ?? []) as any[])
     setProdutos((prod ?? []) as any[])
     setMovimentacoes((movs ?? []) as any[])
     setAgendamentos((agend ?? []) as any[])
     setProfissionais((profs ?? []) as { id: string; nome: string }[])
-
-    // listar_usuarios é só da gestão; aqui basta id → e-mail
-    const usuarios = await supabase.rpc('listar_usuarios_basico')
-    if (usuarios.data) {
-      const map: Record<string, string> = {}
-      ;(usuarios.data as any[]).forEach(u => { map[u.usuario_id] = u.email })
-      setUsuariosMap(map)
-    }
-
+    setNomesUsuarios(nomes)
     setLoading(false)
   }, [inicio, fim])
 
   useEffect(() => { carregar() }, [carregar])
 
+  // ── Escopo: restrito vê só o que é dele ───────────────────
+  const soMeu = restrito && !!meuProfissional
+  const profFiltro = soMeu ? meuProfissional : filtroProfissionalId
+
   // ── Filtros aplicados ──────────────────────────────────────
   const itensVendaFiltrados = itensVenda.filter((i: any) =>
-    (!filtroProfissionalId || i.profissional_id === filtroProfissionalId) &&
+    (!profFiltro || i.profissional_id === profFiltro) &&
     (!filtroFormaPagamento || i.comanda?.forma_pagamento === filtroFormaPagamento)
   )
   const comissoesFiltradas = comissoesPeriodo.filter((c: any) =>
-    (!filtroProfissionalId || c.profissional_id === filtroProfissionalId) &&
-    (!filtroStatusComissao || c.status === filtroStatusComissao)
+    (restrito ? (c.profissional_id === meuProfissional && !!meuProfissional) || c.usuario_id === user?.id : true) &&
+    (!filtroProfissionalId || restrito || c.profissional_id === filtroProfissionalId)
   )
   const produtosFiltrados = produtos.filter((p: any) => !filtroCategoria || p.categoria === filtroCategoria)
   const agendamentosFiltrados = agendamentos.filter((a: any) =>
-    (!filtroProfissionalId || a.profissional_id === filtroProfissionalId) &&
+    (!profFiltro || a.profissional_id === profFiltro) &&
     (!filtroStatusAgenda || a.status === filtroStatusAgenda)
   )
   const formasPagamentoDisponiveis = [...new Set(itensVenda.map((i: any) => i.comanda?.forma_pagamento).filter(Boolean))] as string[]
+  const nomeForma = (f: string) => PAGAMENTO_LABEL[f] ?? f
 
   // ── Agregações de vendas ──────────────────────────────────
-  const comandaMap = new Map<string, { total: number; forma_pagamento: string; cliente_id: string; cliente_nome: string }>()
+  const comandaMap = new Map<string, { total: number; forma_pagamento: string; cliente_nome: string }>()
   const porServico: Record<string, LinhaVal> = {}
   const porProduto: Record<string, LinhaVal> = {}
-  const porProfissional: Record<string, LinhaVal> = {}
+  // Por profissional: faturamento dos itens dele e atendimentos = vendas distintas em que atendeu.
+  const porProfissional: Record<string, { nome: string; total: number; vendas: Set<string>; servicos: number }> = {}
   itensVendaFiltrados.forEach((i: any) => {
     const valor = i.preco_unitario * i.quantidade
     const cId = i.comanda?.id
     if (cId) {
-      const ex = comandaMap.get(cId) ?? { total: 0, forma_pagamento: i.comanda.forma_pagamento ?? '—', cliente_id: i.comanda.cliente_id, cliente_nome: i.comanda.cliente_nome ?? 'Balcão' }
+      const ex = comandaMap.get(cId) ?? { total: 0, forma_pagamento: i.comanda.forma_pagamento ?? '—', cliente_nome: i.comanda.cliente_nome ?? 'Balcão' }
       ex.total += valor
       comandaMap.set(cId, ex)
     }
@@ -173,10 +225,12 @@ export default function Relatorios() {
     if (!alvo[i.nome]) alvo[i.nome] = { nome: i.nome, total: 0, qtd: 0 }
     alvo[i.nome].total += valor
     alvo[i.nome].qtd += i.quantidade
-    if (i.profissional?.nome) {
-      if (!porProfissional[i.profissional.nome]) porProfissional[i.profissional.nome] = { nome: i.profissional.nome, total: 0, qtd: 0 }
-      porProfissional[i.profissional.nome].total += valor
-      porProfissional[i.profissional.nome].qtd += i.tipo === 'servico' ? 1 : 0
+    if (i.profissional_id) {
+      const chave = i.profissional_id as string
+      if (!porProfissional[chave]) porProfissional[chave] = { nome: i.profissional?.nome ?? '—', total: 0, vendas: new Set(), servicos: 0 }
+      porProfissional[chave].total += valor
+      if (cId) porProfissional[chave].vendas.add(cId)
+      if (i.tipo === 'servico') porProfissional[chave].servicos += i.quantidade
     }
   })
   const totalVendido = [...comandaMap.values()].reduce((s, c) => s + c.total, 0)
@@ -185,48 +239,70 @@ export default function Relatorios() {
   const porFormaPagamento: Record<string, LinhaVal> = {}
   const porCliente: Record<string, LinhaVal> = {}
   comandaMap.forEach(c => {
-    if (!porFormaPagamento[c.forma_pagamento]) porFormaPagamento[c.forma_pagamento] = { nome: c.forma_pagamento, total: 0, qtd: 0 }
+    if (!porFormaPagamento[c.forma_pagamento]) porFormaPagamento[c.forma_pagamento] = { nome: nomeForma(c.forma_pagamento), total: 0, qtd: 0 }
     porFormaPagamento[c.forma_pagamento].total += c.total
     porFormaPagamento[c.forma_pagamento].qtd += 1
     if (!porCliente[c.cliente_nome]) porCliente[c.cliente_nome] = { nome: c.cliente_nome, total: 0, qtd: 0 }
     porCliente[c.cliente_nome].total += c.total
     porCliente[c.cliente_nome].qtd += 1
   })
-  const top = (rec: Record<string, LinhaVal>, n = 10) => Object.values(rec).sort((a, b) => b.total - a.total).slice(0, n)
+  const ordenar = (rec: Record<string, LinhaVal>) => Object.values(rec).sort((a, b) => b.total - a.total)
+  const soma = (l: LinhaVal[]) => ({ total: l.reduce((s, x) => s + x.total, 0), qtd: l.reduce((s, x) => s + x.qtd, 0) })
 
   // ── Caixa ──────────────────────────────────────────────────
+  const totalInicial = sessoesCaixa.reduce((s, x) => s + Number(x.valor_inicial ?? 0), 0)
+  const totalEsperado = sessoesCaixa.reduce((s, x) => s + Number(x.saldo_esperado ?? 0), 0)
+  const totalInformado = sessoesCaixa.reduce((s, x) => s + Number(x.valor_informado ?? 0), 0)
   const totalEntradasCaixa = sessoesCaixa.reduce((s, x) => s + (x.saldo_esperado != null ? (x.saldo_esperado - x.valor_inicial) : 0), 0)
   const totalDiferencas = sessoesCaixa.reduce((s, x) => s + (x.diferenca ?? 0), 0)
 
-  // ── Comissões ────────────────────────────────────────────
-  const comissaoPorProf: Record<string, { nome: string; gerado: number; pendente: number; aprovada: number; paga: number }> = {}
+  // ── Comissões (só as que valem: tiradas da venda não entram) ─
+  const comissaoPorPessoa: Record<string, { nome: string; vendas: Set<string>; base: number; comissao: number }> = {}
   comissoesFiltradas.forEach((c: any) => {
-    const nome = c.profissional?.nome ?? '—'
-    if (!comissaoPorProf[nome]) comissaoPorProf[nome] = { nome, gerado: 0, pendente: 0, aprovada: 0, paga: 0 }
-    comissaoPorProf[nome].gerado += c.valor_comissao
-    if (c.status === 'pendente') comissaoPorProf[nome].pendente += c.valor_comissao
-    if (c.status === 'aprovada') comissaoPorProf[nome].aprovada += c.valor_comissao
-    if (c.status === 'paga') comissaoPorProf[nome].paga += c.valor_comissao
+    const chave = c.profissional_id ? `p:${c.profissional_id}` : `u:${c.usuario_id}`
+    const nome = c.profissional?.nome ?? (c.usuario_id ? `${nomesUsuarios[c.usuario_id] ?? 'Usuário'} (venda)` : '—')
+    if (!comissaoPorPessoa[chave]) comissaoPorPessoa[chave] = { nome, vendas: new Set(), base: 0, comissao: 0 }
+    comissaoPorPessoa[chave].base += Number(c.valor_base)
+    comissaoPorPessoa[chave].comissao += Number(c.valor_comissao)
+    if (c.comanda_id) comissaoPorPessoa[chave].vendas.add(c.comanda_id)
   })
+  const linhasComissao = Object.values(comissaoPorPessoa).sort((a, b) => b.comissao - a.comissao)
+  const totalComissoes = linhasComissao.reduce((s, c) => s + c.comissao, 0)
+  const totalBaseComissoes = linhasComissao.reduce((s, c) => s + c.base, 0)
+  const vendasComComissao = new Set(comissoesFiltradas.map((c: any) => c.comanda_id).filter(Boolean)).size
 
   // ── Clientes ─────────────────────────────────────────────
   const novosClientes = clientes.filter(c => c.created_at.slice(0, 10) >= inicio && c.created_at.slice(0, 10) <= fim).length
   const clientesAtivos = clientes.filter(c => c.ativo).length
   const clientesInativos = clientes.filter(c => !c.ativo).length
-  const porClienteFiltrado = Object.values(porCliente).filter(c => c.nome.toLowerCase().includes(buscaCliente.toLowerCase()))
+  const porClienteFiltrado = ordenar(porCliente).filter(c => c.nome.toLowerCase().includes(buscaCliente.toLowerCase()))
 
   // ── Produtos ─────────────────────────────────────────────
   const estoqueBaixo = produtosFiltrados.filter(p => p.estoque_atual <= p.estoque_minimo && p.ativo)
   const idsVendidos = new Set(itensVenda.filter((i: any) => i.tipo === 'produto').map((i: any) => i.referencia_id))
   const produtosSemVenda = produtosFiltrados.filter(p => p.ativo && !idsVendidos.has(p.id))
+  const categoriaDoProduto = new Map(produtos.map((p: any) => [p.nome, p.categoria]))
+  const vendidosFiltrados = ordenar(porProduto).filter(l => !filtroCategoria || categoriaDoProduto.get(l.nome) === filtroCategoria)
 
-  // ── Profissionais (combina vendas + comissao) ───────────
-  const profissionaisNomes = new Set([...Object.keys(porProfissional), ...Object.keys(comissaoPorProf)])
-  const relatorioProfissionais = [...profissionaisNomes].map(nome => {
-    const venda = porProfissional[nome] ?? { total: 0, qtd: 0 }
-    const com = comissaoPorProf[nome] ?? { gerado: 0 }
-    return { nome, atendimentos: venda.qtd, faturamento: venda.total, comissao: com.gerado, ticketMedio: venda.qtd > 0 ? venda.total / venda.qtd : 0 }
-  }).sort((a, b) => b.faturamento - a.faturamento)
+  // ── Funcionários (vendas + comissão de cada profissional) ─
+  const comissaoPorProfissional: Record<string, number> = {}
+  comissoesFiltradas.forEach((c: any) => {
+    if (c.profissional_id) comissaoPorProfissional[c.profissional_id] = (comissaoPorProfissional[c.profissional_id] ?? 0) + Number(c.valor_comissao)
+  })
+  const idsFuncionarios = new Set([...Object.keys(porProfissional), ...Object.keys(comissaoPorProfissional)])
+  const relatorioProfissionais = [...idsFuncionarios].map(id => {
+    const v = porProfissional[id]
+    const nome = v?.nome ?? profissionais.find(p => p.id === id)?.nome ?? '—'
+    const atendimentos = v?.vendas.size ?? 0
+    const faturamento = v?.total ?? 0
+    return { id, nome, atendimentos, servicos: v?.servicos ?? 0, faturamento, comissao: comissaoPorProfissional[id] ?? 0, ticketMedio: atendimentos > 0 ? faturamento / atendimentos : 0 }
+  })
+    .filter(p => !profFiltro || p.id === profFiltro)
+    .sort((a, b) => b.faturamento - a.faturamento)
+  const totFunc = relatorioProfissionais.reduce((s, p) => ({
+    atendimentos: s.atendimentos + p.atendimentos, servicos: s.servicos + p.servicos,
+    faturamento: s.faturamento + p.faturamento, comissao: s.comissao + p.comissao,
+  }), { atendimentos: 0, servicos: 0, faturamento: 0, comissao: 0 })
 
   // ── Agenda ───────────────────────────────────────────────
   const totalAgend = agendamentosFiltrados.length
@@ -243,126 +319,88 @@ export default function Relatorios() {
     if (a.status === 'concluido') agendaPorProf[nome].concluidos += 1
     if (a.status === 'cancelado' || a.status === 'nao_compareceu') agendaPorProf[nome].cancelados += 1
   })
+  const linhasAgenda = Object.values(agendaPorProf).sort((a, b) => b.total - a.total)
+
+  const mostraFiltroProf = !restrito && (aba === 'vendas' || aba === 'comissoes' || aba === 'profissionais' || aba === 'agenda')
+  const tituloAba = useMemo(() => RELATORIOS.find(r => r.id === aba)?.label ?? '', [aba])
+
+  if (abas.length === 0) {
+    return (
+      <div className="page" style={{ textAlign: 'center', paddingTop: '80px' }}>
+        <Lock size={22} style={{ color: '#555', marginBottom: '14px' }} />
+        <h2 style={{ fontSize: '18px', color: '#FFFFFF', marginBottom: '10px' }}>Nenhum relatório liberado</h2>
+        <p style={{ fontSize: '13px', color: '#A3A3A3' }}>Peça ao gerente ou administrador para liberar os relatórios em Usuários → Permissões.</p>
+      </div>
+    )
+  }
 
   return (
     <div className="page">
       <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
         <div>
           <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Relatórios</h1>
-          <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>{inicio} até {fim}</p>
+          <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
+            {tituloAba} · {rotuloIntervalo(periodo)}{soMeu ? ' · só os seus números' : restrito ? ' · só as vendas registradas por você' : ''}
+          </p>
         </div>
-        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-          {(['mes', 'trimestre', 'ano', 'personalizado'] as Periodo[]).map(p => (
-            <button
-              key={p}
-              onClick={() => setPeriodo(p)}
-              style={{
-                padding: '6px 14px', borderRadius: '99px', fontFamily: 'inherit',
-                border: periodo === p ? '1px solid #FFFFFF' : '1px solid #2A2A2A',
-                background: periodo === p ? 'rgba(255,255,255,0.08)' : 'transparent',
-                color: periodo === p ? '#FFFFFF' : '#555',
-                fontSize: '12px', cursor: 'pointer', textTransform: 'capitalize',
-              }}
-            >
-              {p}
-            </button>
-          ))}
-          <button className="btn btn-secondary btn-sm no-print" onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '6px' }}>
+        <div className="no-print" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <FiltroPeriodo valor={periodo} onChange={v => v && setPeriodo(v)} />
+          <button className="btn btn-secondary btn-sm" onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '6px', minHeight: '36px' }}>
             <Printer size={13} /> Imprimir / PDF
           </button>
         </div>
       </div>
 
-      {periodo === 'personalizado' && (
-        <div className="no-print" style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-          <div className="field">
-            <label className="label">De</label>
-            <input className="input" type="date" value={custom.inicio} onChange={e => setCustom(c => ({ ...c, inicio: e.target.value }))} />
-          </div>
-          <div className="field">
-            <label className="label">Até</label>
-            <input className="input" type="date" value={custom.fim} onChange={e => setCustom(c => ({ ...c, fim: e.target.value }))} />
-          </div>
-        </div>
-      )}
-      {periodo !== 'personalizado' && (
-        <div className="no-print" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-          <button className="btn btn-secondary btn-sm" onClick={() => setRef(d => {
-            const n = new Date(d)
-            if (periodo === 'mes') n.setMonth(n.getMonth() - 1)
-            else if (periodo === 'trimestre') n.setMonth(n.getMonth() - 3)
-            else n.setFullYear(n.getFullYear() - 1)
-            return n
-          })}>← Anterior</button>
-          <button className="btn btn-secondary btn-sm" onClick={() => setRef(new Date())}>Hoje</button>
-          <button className="btn btn-secondary btn-sm" onClick={() => setRef(d => {
-            const n = new Date(d)
-            if (periodo === 'mes') n.setMonth(n.getMonth() + 1)
-            else if (periodo === 'trimestre') n.setMonth(n.getMonth() + 3)
-            else n.setFullYear(n.getFullYear() + 1)
-            return n
-          })}>Próximo →</button>
-        </div>
-      )}
-
       <RelatoriosEstilos />
 
-      <div className="no-print" style={{ display: 'flex', gap: '2px', padding: '4px', background: '#1A1A1A', border: '1px solid #252525', borderRadius: '9px', width: 'fit-content', marginBottom: '16px', flexWrap: 'wrap' }}>
-        {ABAS.map(a => {
-          const Icon = a.icon
+      <div className="no-print pilulas" role="tablist" style={{ marginBottom: '14px' }}>
+        {abas.map(a => {
+          const Icon = ICONES[a.id]
           return (
             <button
               key={a.id}
-              onClick={() => setAba(a.id)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-                padding: '7px 14px', borderRadius: '7px',
-                border: aba === a.id ? '1px solid #FFFFFF' : '1px solid transparent',
-                background: aba === a.id ? 'rgba(255,255,255,0.07)' : 'transparent',
-                color: aba === a.id ? '#FFFFFF' : '#555',
-                fontSize: '13px', fontWeight: aba === a.id ? 600 : 400,
-                cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'inherit',
-              }}
+              role="tab"
+              aria-selected={aba === a.id}
+              className={`pilula${aba === a.id ? ' ativa' : ''}`}
+              onClick={() => setAbaEscolhida(a.id)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
             >
-              <Icon size={13} /> {a.label}
+              <Icon size={12} /> {a.label}
             </button>
           )
         })}
       </div>
 
       {/* Filtros específicos da aba */}
-      <div className="no-print" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
-        {(aba === 'vendas' || aba === 'comissoes' || aba === 'profissionais' || aba === 'agenda') && (
-          <select className="input" style={{ width: '200px' }} value={filtroProfissionalId} onChange={e => setFiltroProfissionalId(e.target.value)}>
+      <div className="no-print barra-filtros">
+        {mostraFiltroProf && (
+          <select className="filtro-select" aria-label="Profissional" value={filtroProfissionalId} onChange={e => setFiltroProfissionalId(e.target.value)}>
             <option value="">Todos os profissionais</option>
             {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
           </select>
         )}
         {aba === 'vendas' && (
-          <select className="input" style={{ width: '200px' }} value={filtroFormaPagamento} onChange={e => setFiltroFormaPagamento(e.target.value)}>
+          <select className="filtro-select" aria-label="Forma de pagamento" value={filtroFormaPagamento} onChange={e => setFiltroFormaPagamento(e.target.value)}>
             <option value="">Todas as formas de pagamento</option>
-            {formasPagamentoDisponiveis.map(f => <option key={f} value={f}>{f}</option>)}
-          </select>
-        )}
-        {aba === 'comissoes' && (
-          <select className="input" style={{ width: '200px' }} value={filtroStatusComissao} onChange={e => setFiltroStatusComissao(e.target.value)}>
-            <option value="">Todos os status</option>
-            {STATUS_COMISSAO.map(s => <option key={s} value={s}>{s}</option>)}
+            {formasPagamentoDisponiveis.map(f => <option key={f} value={f}>{nomeForma(f)}</option>)}
           </select>
         )}
         {aba === 'clientes' && (
-          <input className="input" style={{ width: '240px' }} placeholder="Buscar cliente..." value={buscaCliente} onChange={e => setBuscaCliente(e.target.value)} />
+          <div className="filtro-busca">
+            <Users size={13} />
+            <input placeholder="Buscar cliente..." value={buscaCliente} onChange={e => setBuscaCliente(e.target.value)} />
+          </div>
         )}
         {aba === 'produtos' && (
-          <select className="input" style={{ width: '200px' }} value={filtroCategoria} onChange={e => setFiltroCategoria(e.target.value)}>
+          <select className="filtro-select" aria-label="Categoria" value={filtroCategoria} onChange={e => setFiltroCategoria(e.target.value)}>
             <option value="">Todas as categorias</option>
-            {CATEGORIAS_PRODUTO.map(c => <option key={c} value={c}>{c}</option>)}
+            {CATEGORIAS_PRODUTO.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
           </select>
         )}
         {aba === 'agenda' && (
-          <select className="input" style={{ width: '200px' }} value={filtroStatusAgenda} onChange={e => setFiltroStatusAgenda(e.target.value)}>
+          <select className="filtro-select" aria-label="Status" value={filtroStatusAgenda} onChange={e => setFiltroStatusAgenda(e.target.value)}>
             <option value="">Todos os status</option>
-            {STATUS_AGENDA.map(s => <option key={s} value={s}>{s}</option>)}
+            {STATUS_AGENDA.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
           </select>
         )}
       </div>
@@ -373,35 +411,53 @@ export default function Relatorios() {
         <AnimatePresence mode="wait">
           <motion.div id="area-impressao" key={aba} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
 
-            {aba === 'vendas' && (
-              <>
-                <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px' }}>
-                  <Stat label="Total vendido" value={formatCurrency(totalVendido)} />
-                  <Stat label="Nº de vendas" value={String(numVendas)} />
-                  <Stat label="Ticket médio" value={formatCurrency(ticketMedio)} />
-                </div>
-                <p style={{ fontSize: '12px', color: '#555', margin: '20px 0 8px' }}>Por forma de pagamento</p>
-                <Tabela colunas={['Forma', 'Vendas', 'Total']} vazio="Sem vendas no período." linhas={top(porFormaPagamento).map(f => [f.nome, f.qtd, formatCurrency(f.total)])} />
-                <p style={{ fontSize: '12px', color: '#555', margin: '20px 0 8px' }}>Por profissional</p>
-                <Tabela colunas={['Profissional', 'Atendimentos', 'Faturamento']} vazio="Sem vendas no período." linhas={top(porProfissional).map(f => [f.nome, f.qtd, formatCurrency(f.total)])} />
-                <p style={{ fontSize: '12px', color: '#555', margin: '20px 0 8px' }}>Top serviços</p>
-                <Tabela colunas={['Serviço', 'Qtd', 'Total']} vazio="Sem vendas no período." linhas={top(porServico).map(f => [f.nome, f.qtd, formatCurrency(f.total)])} />
-                <p style={{ fontSize: '12px', color: '#555', margin: '20px 0 8px' }}>Top produtos</p>
-                <Tabela colunas={['Produto', 'Qtd', 'Total']} vazio="Sem vendas no período." linhas={top(porProduto).map(f => [f.nome, f.qtd, formatCurrency(f.total)])} />
-                <p style={{ fontSize: '12px', color: '#555', margin: '20px 0 8px' }}>Top clientes</p>
-                <Tabela colunas={['Cliente', 'Compras', 'Total gasto']} vazio="Sem vendas no período." linhas={top(porCliente).map(f => [f.nome, f.qtd, formatCurrency(f.total)])} />
-              </>
-            )}
+            {aba === 'vendas' && (() => {
+              const formas = ordenar(porFormaPagamento)
+              const profs = Object.values(porProfissional).sort((a, b) => b.total - a.total)
+              const servs = ordenar(porServico)
+              const prods = ordenar(porProduto)
+              const clis = ordenar(porCliente)
+              return (
+                <>
+                  <div className="stat-grid-auto">
+                    <StatCard rotulo="Total vendido" icone={TrendingUp} valor={formatCurrency(totalVendido)} />
+                    <StatCard rotulo="Vendas" icone={Receipt} valor={String(numVendas)} />
+                    <StatCard rotulo="Ticket médio" icone={ShoppingCart} valor={formatCurrency(ticketMedio)} />
+                    <StatCard rotulo="Serviços / Produtos" icone={Scissors} valor={`${soma(servs).qtd} / ${soma(prods).qtd}`} sub={`${formatCurrency(soma(servs).total)} · ${formatCurrency(soma(prods).total)}`} />
+                  </div>
+                  <Titulo>Por forma de pagamento</Titulo>
+                  <Tabela colunas={['Forma', 'Vendas', 'Total']} vazio="Sem vendas no período."
+                    linhas={formas.map(f => [f.nome, f.qtd, formatCurrency(f.total)])}
+                    total={['Total', soma(formas).qtd, formatCurrency(soma(formas).total)]} />
+                  <Titulo>Por profissional</Titulo>
+                  <Tabela colunas={['Profissional', 'Atendimentos', 'Faturamento']} vazio="Sem vendas no período."
+                    linhas={profs.map(p => [p.nome, p.vendas.size, formatCurrency(p.total)])}
+                    total={['Total', profs.reduce((s, p) => s + p.vendas.size, 0), formatCurrency(profs.reduce((s, p) => s + p.total, 0))]} />
+                  <Titulo>Serviços</Titulo>
+                  <Tabela colunas={['Serviço', 'Qtd', 'Total']} vazio="Sem serviços no período."
+                    linhas={servs.map(f => [f.nome, f.qtd, formatCurrency(f.total)])}
+                    total={['Total', soma(servs).qtd, formatCurrency(soma(servs).total)]} />
+                  <Titulo>Produtos</Titulo>
+                  <Tabela colunas={['Produto', 'Qtd', 'Total']} vazio="Sem produtos no período."
+                    linhas={prods.map(f => [f.nome, f.qtd, formatCurrency(f.total)])}
+                    total={['Total', soma(prods).qtd, formatCurrency(soma(prods).total)]} />
+                  <Titulo>Top 15 clientes</Titulo>
+                  <Tabela colunas={['Cliente', 'Compras', 'Total gasto']} vazio="Sem vendas no período."
+                    linhas={clis.slice(0, 15).map(f => [f.nome, f.qtd, formatCurrency(f.total)])}
+                    total={[clis.length > 15 ? `Total (${clis.length} clientes)` : 'Total', soma(clis).qtd, formatCurrency(soma(clis).total)]} />
+                </>
+              )
+            })()}
 
             {aba === 'caixa' && (
               <>
-                <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px' }}>
-                  <Stat label="Sessões no período" value={String(sessoesCaixa.length)} />
-                  <Stat label="Movimentado (entradas líquidas)" value={formatCurrency(totalEntradasCaixa)} />
-                  <Stat label="Soma das diferenças" value={formatCurrency(totalDiferencas)} />
+                <div className="stat-grid-auto">
+                  <StatCard rotulo="Sessões" icone={Wallet} valor={String(sessoesCaixa.length)} />
+                  <StatCard rotulo="Entradas líquidas" icone={TrendingUp} valor={formatCurrency(totalEntradasCaixa)} />
+                  <StatCard rotulo="Soma das diferenças" icone={AlertTriangle} valor={formatCurrency(totalDiferencas)} />
                 </div>
                 {sessoesCaixa.some(s => Math.abs(s.diferenca ?? 0) > 0) && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid #333', borderRadius: '8px', marginBottom: '16px', fontSize: '12px', color: '#A3A3A3' }}>
+                  <div className="aviso-info" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
                     <AlertTriangle size={13} /> Há sessões fechadas com diferença entre o valor esperado e o contado.
                   </div>
                 )}
@@ -409,88 +465,109 @@ export default function Relatorios() {
                   colunas={['Operador', 'Aberto em', 'Inicial', 'Esperado', 'Informado', 'Diferença', 'Status']}
                   vazio="Nenhuma sessão de caixa no período."
                   linhas={sessoesCaixa.map(s => [
-                    usuariosMap[s.usuario_id] ?? s.usuario_id.slice(0, 8),
+                    nomesUsuarios[s.usuario_id] ?? s.usuario_id.slice(0, 8),
                     formatDateTime(s.aberto_em),
                     formatCurrency(s.valor_inicial),
                     s.saldo_esperado != null ? formatCurrency(s.saldo_esperado) : '—',
                     s.valor_informado != null ? formatCurrency(s.valor_informado) : '—',
                     s.diferenca != null ? formatCurrency(s.diferenca) : '—',
-                    s.status,
+                    s.status === 'aberto' ? 'Aberto' : 'Fechado',
                   ])}
+                  total={['Total', `${sessoesCaixa.length} sessões`, formatCurrency(totalInicial), formatCurrency(totalEsperado), formatCurrency(totalInformado), formatCurrency(totalDiferencas), '']}
                 />
               </>
             )}
 
             {aba === 'comissoes' && (
               <>
-                <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px' }}>
-                  <Stat label="Total gerado" value={formatCurrency(Object.values(comissaoPorProf).reduce((s, c) => s + c.gerado, 0))} />
-                  <Stat label="Pago" value={formatCurrency(Object.values(comissaoPorProf).reduce((s, c) => s + c.paga, 0))} />
-                  <Stat label="Pendente + Aprovada" value={formatCurrency(Object.values(comissaoPorProf).reduce((s, c) => s + c.pendente + c.aprovada, 0))} />
+                <div className="stat-grid-auto">
+                  <StatCard rotulo="Comissões" icone={Percent} valor={formatCurrency(totalComissoes)} />
+                  <StatCard rotulo="Vendas com comissão" icone={Receipt} valor={String(vendasComComissao)} />
+                  <StatCard rotulo="Base de cálculo" icone={Wallet} valor={formatCurrency(totalBaseComissoes)} />
                 </div>
                 <Tabela
-                  colunas={['Profissional', 'Gerado', 'Pendente', 'Aprovada', 'Paga']}
-                  vazio="Nenhuma comissão no período (ou seu papel não tem acesso a esse dado)."
-                  linhas={Object.values(comissaoPorProf).sort((a, b) => b.gerado - a.gerado).map(c => [c.nome, formatCurrency(c.gerado), formatCurrency(c.pendente), formatCurrency(c.aprovada), formatCurrency(c.paga)])}
+                  colunas={['Quem', 'Vendas', 'Base', 'Comissão']}
+                  vazio="Nenhuma comissão no período."
+                  linhas={linhasComissao.map(c => [c.nome, c.vendas.size, formatCurrency(c.base), formatCurrency(c.comissao)])}
+                  total={['Total', vendasComComissao, formatCurrency(totalBaseComissoes), formatCurrency(totalComissoes)]}
                 />
               </>
             )}
 
             {aba === 'clientes' && (
               <>
-                <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '20px' }}>
-                  <Stat label="Novos no período" value={String(novosClientes)} />
-                  <Stat label="Ativos" value={String(clientesAtivos)} />
-                  <Stat label="Inativos" value={String(clientesInativos)} />
-                  <Stat label="Ticket médio geral" value={formatCurrency(ticketMedio)} />
+                <div className="stat-grid-auto">
+                  <StatCard rotulo="Novos no período" icone={Users} valor={String(novosClientes)} />
+                  <StatCard rotulo="Ativos" icone={UserCheck} valor={String(clientesAtivos)} />
+                  <StatCard rotulo="Inativos" icone={Users} valor={String(clientesInativos)} />
+                  <StatCard rotulo="Ticket médio" icone={ShoppingCart} valor={formatCurrency(ticketMedio)} />
                 </div>
-                <p style={{ fontSize: '12px', color: '#555', margin: '20px 0 8px' }}>Clientes que mais gastam no período</p>
+                <Titulo>Clientes que mais gastam no período</Titulo>
                 <Tabela
                   colunas={['Cliente', 'Compras', 'Total gasto']}
                   vazio={buscaCliente ? 'Nenhum cliente encontrado.' : 'Sem vendas no período.'}
-                  linhas={porClienteFiltrado.sort((a, b) => b.total - a.total).slice(0, 15).map(f => [f.nome, f.qtd, formatCurrency(f.total)])}
+                  linhas={porClienteFiltrado.slice(0, 30).map(f => [f.nome, f.qtd, formatCurrency(f.total)])}
+                  total={[porClienteFiltrado.length > 30 ? `Total (${porClienteFiltrado.length} clientes)` : 'Total', soma(porClienteFiltrado).qtd, formatCurrency(soma(porClienteFiltrado).total)]}
                 />
               </>
             )}
 
             {aba === 'produtos' && (
               <>
-                <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px' }}>
-                  <Stat label="Estoque baixo" value={String(estoqueBaixo.length)} />
-                  <Stat label="Sem venda no período" value={String(produtosSemVenda.length)} />
-                  <Stat label="Movimentações no período" value={String(movimentacoes.length)} />
+                <div className="stat-grid-auto">
+                  <StatCard rotulo="Vendidos (un.)" icone={Package} valor={String(soma(vendidosFiltrados).qtd)} sub={formatCurrency(soma(vendidosFiltrados).total)} />
+                  <StatCard rotulo="Estoque baixo" icone={AlertTriangle} valor={String(estoqueBaixo.length)} />
+                  <StatCard rotulo="Sem venda no período" icone={Package} valor={String(produtosSemVenda.length)} />
+                  <StatCard rotulo="Movimentações" icone={TrendingUp} valor={String(movimentacoes.length)} />
                 </div>
-                <p style={{ fontSize: '12px', color: '#555', margin: '20px 0 8px' }}>Mais vendidos</p>
-                <Tabela colunas={['Produto', 'Qtd', 'Total']} vazio="Sem vendas no período." linhas={top(porProduto).map(f => [f.nome, f.qtd, formatCurrency(f.total)])} />
-                <p style={{ fontSize: '12px', color: '#555', margin: '20px 0 8px' }}>Estoque baixo</p>
-                <Tabela colunas={['Produto', 'Atual', 'Mínimo']} vazio="Nenhum produto abaixo do mínimo." linhas={estoqueBaixo.map(p => [p.nome, p.estoque_atual, p.estoque_minimo])} />
-                <p style={{ fontSize: '12px', color: '#555', margin: '20px 0 8px' }}>Sem venda no período</p>
-                <Tabela colunas={['Produto', 'Estoque atual', '']} vazio="Todos os produtos ativos venderam no período." linhas={produtosSemVenda.map(p => [p.nome, p.estoque_atual, ''])} />
-                <p style={{ fontSize: '12px', color: '#555', margin: '20px 0 8px' }}>Movimentações recentes</p>
-                <Tabela colunas={['Produto', 'Tipo', 'Qtd', 'Quando']} vazio="Nenhuma movimentação no período." linhas={movimentacoes.slice(0, 20).map((m: any) => [m.produto?.nome ?? '—', m.tipo, m.quantidade, formatDate(m.created_at)])} />
+                <Titulo>Mais vendidos</Titulo>
+                <Tabela colunas={['Produto', 'Qtd', 'Total']} vazio="Sem vendas no período."
+                  linhas={vendidosFiltrados.map(f => [f.nome, f.qtd, formatCurrency(f.total)])}
+                  total={['Total', soma(vendidosFiltrados).qtd, formatCurrency(soma(vendidosFiltrados).total)]} />
+                <Titulo>Estoque baixo</Titulo>
+                <Tabela colunas={['Produto', 'Atual', 'Mínimo']} vazio="Nenhum produto abaixo do mínimo."
+                  linhas={estoqueBaixo.map(p => [p.nome, p.estoque_atual, p.estoque_minimo])}
+                  total={[`${estoqueBaixo.length} produtos`, estoqueBaixo.reduce((s, p) => s + Number(p.estoque_atual), 0), estoqueBaixo.reduce((s, p) => s + Number(p.estoque_minimo), 0)]} />
+                <Titulo>Sem venda no período</Titulo>
+                <Tabela colunas={['Produto', 'Estoque atual']} vazio="Todos os produtos ativos venderam no período."
+                  linhas={produtosSemVenda.map(p => [p.nome, p.estoque_atual])}
+                  total={[`${produtosSemVenda.length} produtos`, produtosSemVenda.reduce((s, p) => s + Number(p.estoque_atual), 0)]} />
+                <Titulo>Movimentações recentes</Titulo>
+                <Tabela colunas={['Produto', 'Tipo', 'Qtd', 'Quando']} vazio="Nenhuma movimentação no período."
+                  linhas={movimentacoes.slice(0, 20).map((m: any) => [m.produto?.nome ?? '—', MOVIMENTO_LABEL[m.tipo] ?? m.tipo, m.quantidade, formatDate(m.created_at)])} />
               </>
             )}
 
             {aba === 'profissionais' && (
-              <Tabela
-                colunas={['Profissional', 'Atendimentos', 'Faturamento', 'Comissão', 'Ticket médio']}
-                vazio="Sem dados no período."
-                linhas={relatorioProfissionais.map(p => [p.nome, p.atendimentos, formatCurrency(p.faturamento), formatCurrency(p.comissao), formatCurrency(p.ticketMedio)])}
-              />
+              <>
+                <div className="stat-grid-auto">
+                  <StatCard rotulo="Faturamento" icone={TrendingUp} valor={formatCurrency(totFunc.faturamento)} />
+                  <StatCard rotulo="Comissão" icone={Percent} valor={formatCurrency(totFunc.comissao)} />
+                  <StatCard rotulo="Atendimentos" icone={UserCheck} valor={String(totFunc.atendimentos)} sub={`${totFunc.servicos} serviços`} />
+                  <StatCard rotulo="Ticket médio" icone={Receipt} valor={formatCurrency(totFunc.atendimentos > 0 ? totFunc.faturamento / totFunc.atendimentos : 0)} />
+                </div>
+                <Tabela
+                  colunas={['Profissional', 'Atendimentos', 'Serviços', 'Faturamento', 'Comissão', 'Ticket médio']}
+                  vazio="Sem dados no período."
+                  linhas={relatorioProfissionais.map(p => [p.nome, p.atendimentos, p.servicos, formatCurrency(p.faturamento), formatCurrency(p.comissao), formatCurrency(p.ticketMedio)])}
+                  total={['Total', totFunc.atendimentos, totFunc.servicos, formatCurrency(totFunc.faturamento), formatCurrency(totFunc.comissao), formatCurrency(totFunc.atendimentos > 0 ? totFunc.faturamento / totFunc.atendimentos : 0)]}
+                />
+              </>
             )}
 
             {aba === 'agenda' && (
               <>
-                <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '20px' }}>
-                  <Stat label="Agendamentos" value={String(totalAgend)} />
-                  <Stat label="Concluídos" value={String(concluidos)} />
-                  <Stat label="Cancelados / Faltas" value={String(cancelados + naoCompareceu)} />
-                  <Stat label="Taxa de comparecimento" value={`${taxaComparecimento.toFixed(0)}%`} />
+                <div className="stat-grid-auto">
+                  <StatCard rotulo="Agendamentos" icone={Calendar} valor={String(totalAgend)} />
+                  <StatCard rotulo="Concluídos" icone={UserCheck} valor={String(concluidos)} />
+                  <StatCard rotulo="Cancelados / Faltas" icone={AlertTriangle} valor={String(cancelados + naoCompareceu)} />
+                  <StatCard rotulo="Comparecimento" icone={TrendingUp} valor={`${taxaComparecimento.toFixed(0)}%`} />
                 </div>
                 <Tabela
                   colunas={['Profissional', 'Total', 'Concluídos', 'Cancelados/Faltas']}
                   vazio="Sem agendamentos no período."
-                  linhas={Object.values(agendaPorProf).sort((a, b) => b.total - a.total).map(p => [p.nome, p.total, p.concluidos, p.cancelados])}
+                  linhas={linhasAgenda.map(p => [p.nome, p.total, p.concluidos, p.cancelados])}
+                  total={['Total', totalAgend, concluidos, cancelados + naoCompareceu]}
                 />
               </>
             )}

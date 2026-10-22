@@ -83,6 +83,8 @@ export interface Agendamento {
   cliente?: Cliente
   profissional?: Profissional
   servico?: Servico
+  /** Vendas geradas a partir deste agendamento (comandas.agendamento_id). */
+  vendas?: { id: string; status: ComandaStatus }[]
 }
 
 export interface ItemComanda {
@@ -105,6 +107,7 @@ export interface Comanda {
   itens: ItemComanda[]
   total: number
   forma_pagamento?: PagamentoMetodo
+  agendamento_id?: string | null
   created_at: string
 }
 
@@ -212,6 +215,7 @@ export interface Comissao {
   status: ComissaoStatus
   created_at: string
   profissional?: Profissional
+  comanda?: { id: string; data: string; cliente_nome?: string | null; total: number } | null
 }
 
 export interface MovimentacaoEstoque {
@@ -332,6 +336,9 @@ export type CardDashboardId =
   | 'faturamento_mes' | 'despesas_mes' | 'lucro_estimado' | 'a_receber' | 'a_pagar' | 'saldo_caixa'
   | 'top_servicos' | 'top_profissionais' | 'agenda_hoje'
 
+/** Abas da tela Relatórios (cada uma pode ser liberada separadamente). */
+export type RelatorioId = 'vendas' | 'caixa' | 'comissoes' | 'clientes' | 'produtos' | 'profissionais' | 'agenda'
+
 export interface PermissaoTela {
   ver: boolean
   editar: boolean
@@ -351,6 +358,9 @@ export interface PermissoesUsuario {
   /** Cards que aparecem no Dashboard (ids de CARDS_DASHBOARD). */
   dashboard_cards: CardDashboardId[]
   dashboard_personalizado: boolean
+  /** Relatórios liberados. Ausente = banco ainda sem a migração de relatórios (todos liberados). */
+  relatorios?: RelatorioId[]
+  relatorios_personalizado?: boolean
   telas: Record<TelaId, PermissaoTela>
   /** Só em permissoes_usuario(): quem está logado pode alterar esse usuário. */
   pode_configurar?: boolean

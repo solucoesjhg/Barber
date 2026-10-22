@@ -1,17 +1,100 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Search, X, Phone, Truck, Pencil } from 'lucide-react'
+import { Plus, Search, X, Phone, Truck, Pencil, Power } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { initials } from '../lib/utils'
+import { formatCurrency, formatDate, initials } from '../lib/utils'
+import { dataLocalISO } from '../lib/periodo'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
 import { usePermissoes } from '../hooks/usePermissoes'
-import type { Fornecedor } from '../types'
+import ModalDetalhe, { Info, InfoGrade, SecaoDetalhe } from '../components/ui/ModalDetalhe'
+import type { ContaPagar, Fornecedor } from '../types'
 
 const FORM_INICIAL = { nome: '', nome_fantasia: '', documento: '', telefone: '', email: '', endereco: '', observacoes: '' }
+const COLUNAS = 'minmax(220px, 1fr) 150px minmax(160px, 220px) 70px 36px'
+
+/** Card do fornecedor: dados, contato e as contas a pagar dele. */
+function FornecedorDetalhe({ fornecedor: f, podeEditar, verContas, onClose, onEditar, onAlternarAtivo }: {
+  fornecedor: Fornecedor
+  podeEditar: boolean
+  verContas: boolean
+  onClose: () => void
+  onEditar: () => void
+  onAlternarAtivo: () => void
+}) {
+  const [contas, setContas] = useState<ContaPagar[] | null>(null)
+
+  useEffect(() => {
+    if (!verContas) return
+    supabase.from('contas_pagar').select('id, descricao, valor, valor_pago, status, data_vencimento, numero_parcela, total_parcelas')
+      .eq('fornecedor_id', f.id).order('data_vencimento', { ascending: false }).limit(50)
+      .then(({ data }) => setContas((data ?? []) as ContaPagar[]))
+  }, [f.id, verContas])
+
+  const abertas = (contas ?? []).filter(c => c.status === 'aberta' || c.status === 'parcial')
+  const totalAberto = abertas.reduce((s, c) => s + Number(c.valor) - Number(c.valor_pago), 0)
+  const hoje = dataLocalISO()
+
+  return (
+    <ModalDetalhe
+      largura={500}
+      icone={initials(f.nome)}
+      titulo={f.nome}
+      subtitulo={<>
+        {f.nome_fantasia && <span>{f.nome_fantasia}</span>}
+        <span className={`status-pill${f.ativo ? '' : ' inativo'}`}>{f.ativo ? 'Ativo' : 'Inativo'}</span>
+      </>}
+      onClose={onClose}
+      acoes={podeEditar ? (
+        <>
+          <button className="btn btn-secondary" onClick={onAlternarAtivo}><Power size={13} /> {f.ativo ? 'Desativar' : 'Ativar'}</button>
+          <button className="btn btn-primary" onClick={onEditar}><Pencil size={13} /> Editar</button>
+        </>
+      ) : undefined}
+    >
+      <InfoGrade>
+        <Info rotulo="CNPJ / CPF">{f.documento}</Info>
+        <Info rotulo="Telefone">{f.telefone}</Info>
+        <Info rotulo="E-mail" largo>{f.email}</Info>
+        <Info rotulo="Endereço" largo>{f.endereco}</Info>
+        <Info rotulo="Observações" largo>{f.observacoes}</Info>
+        <Info rotulo="Cadastrado em">{formatDate(f.created_at)}</Info>
+      </InfoGrade>
+
+      {verContas && (
+        <SecaoDetalhe titulo={contas && abertas.length > 0 ? `Contas a pagar · ${formatCurrency(totalAberto)} em aberto` : 'Contas a pagar'}>
+          {contas === null ? (
+            <p style={{ fontSize: '12px', color: '#555' }}>Carregando...</p>
+          ) : contas.length === 0 ? (
+            <p style={{ fontSize: '12px', color: '#555' }}>Nenhuma conta lançada para este fornecedor.</p>
+          ) : (
+            <div className="detalhe-lista">
+              {contas.slice(0, 6).map(c => {
+                const aberta = c.status === 'aberta' || c.status === 'parcial'
+                const vencida = aberta && c.data_vencimento < hoje
+                return (
+                  <div key={c.id} className="detalhe-lista-item">
+                    <span className="texto-cortado" style={{ flex: 1, color: '#FFFFFF' }}>{c.descricao}</span>
+                    <span style={{ color: vencida ? '#FFFFFF' : '#666', flexShrink: 0 }}>{formatDate(c.data_vencimento)}</span>
+                    <span className={c.status === 'paga' ? 'badge badge-done' : vencida || c.status === 'cancelada' ? 'badge badge-canceled' : 'badge badge-pending'}>
+                      {vencida ? 'Vencida' : c.status === 'paga' ? 'Paga' : c.status === 'parcial' ? 'Parcial' : c.status === 'cancelada' ? 'Cancelada' : 'Aberta'}
+                    </span>
+                    <span className="valor-num" style={{ width: '92px', textAlign: 'right', flexShrink: 0 }}>{formatCurrency(Number(c.valor))}</span>
+                  </div>
+                )
+              })}
+              {contas.length > 6 && <p className="subtexto">Mais {contas.length - 6} em Contas a Pagar.</p>}
+            </div>
+          )}
+        </SecaoDetalhe>
+      )}
+    </ModalDetalhe>
+  )
+}
 
 export default function Fornecedores() {
-  const { podeEditar: podeEditarTela } = usePermissoes()
+  const { podeEditar: podeEditarTela, podeVer } = usePermissoes()
   const podeEditar = podeEditarTela('fornecedores')
+  const [abertoId, setAbertoId] = useState<string | null>(null)
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -130,7 +213,7 @@ export default function Fornecedores() {
             <X size={13} />
           </button>
         )}
-        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#666', cursor: 'pointer', flexShrink: 0, paddingLeft: '10px', borderLeft: '1px solid #252525' }}>
+        <label className="check-rotulo" style={{ flexShrink: 0, paddingLeft: '10px', borderLeft: '1px solid #252525' }}>
           <input type="checkbox" checked={mostrarInativos} onChange={e => setMostrarInativos(e.target.checked)} />
           Mostrar inativos
         </label>
@@ -140,8 +223,8 @@ export default function Fornecedores() {
       <div className="card desktop-row" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="list-header" style={{
           display: 'grid',
-          minWidth: '740px', gridTemplateColumns: '1fr 160px 220px 90px 40px',
-          padding: '10px 24px',
+          minWidth: '640px', gridTemplateColumns: COLUNAS, gap: '12px', alignItems: 'center',
+          padding: '10px 20px',
           borderBottom: '1px solid #222',
           fontSize: '10px', fontWeight: 600, color: '#444',
           textTransform: 'uppercase', letterSpacing: '0.1em',
@@ -165,22 +248,23 @@ export default function Fornecedores() {
         ) : filtered.map((f, i) => (
           <motion.div
             key={f.id}
-            className="list-row"
+            className="list-row clicavel"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: i * 0.03 }}
+            transition={{ delay: Math.min(i, 20) * 0.02 }}
+            onClick={() => setAbertoId(f.id)}
             style={{
               display: 'grid',
-              minWidth: '740px', gridTemplateColumns: '1fr 160px 220px 90px 40px',
-              padding: '14px 24px',
+              minWidth: '640px', gridTemplateColumns: COLUNAS, gap: '12px',
+              padding: '11px 20px',
               borderBottom: i < filtered.length - 1 ? '1px solid #1F1F1F' : 'none',
               alignItems: 'center',
             }}
             whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
               <div style={{
-                width: '32px', height: '32px',
+                width: '30px', height: '30px',
                 borderRadius: '50%',
                 background: '#262626',
                 border: '1px solid #333',
@@ -190,34 +274,27 @@ export default function Fornecedores() {
               }}>
                 {initials(f.nome)}
               </div>
-              <div>
-                <span style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{f.nome}</span>
-                {f.nome_fantasia && <p style={{ fontSize: '11px', color: '#555' }}>{f.nome_fantasia}</p>}
+              <div style={{ minWidth: 0 }}>
+                <p className="texto-cortado" style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{f.nome}</p>
+                {f.nome_fantasia && <p className="subtexto texto-cortado">{f.nome_fantasia}</p>}
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#A3A3A3' }}>
-              {f.telefone ? <><Phone size={11} style={{ color: '#444' }} /> {f.telefone}</> : <span style={{ color: '#333' }}>—</span>}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#A3A3A3', minWidth: 0 }}>
+              {f.telefone ? <><Phone size={11} style={{ color: '#444', flexShrink: 0 }} /> <span className="texto-cortado">{f.telefone}</span></> : <span style={{ color: '#333' }}>—</span>}
             </div>
-            <div style={{ fontSize: '13px', color: '#555' }}>
+            <div className="texto-cortado" style={{ fontSize: '12px', color: '#555' }}>
               {f.email ?? <span style={{ color: '#333' }}>—</span>}
             </div>
-            <div>
-              <button
-                onClick={() => { if (podeEditar) toggleAtivo(f.id, f.ativo) }}
-                disabled={!podeEditar}
-                style={{
-                  fontSize: '10px', padding: '3px 9px', borderRadius: '99px',
-                  border: f.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
-                  background: 'transparent',
-                  color: f.ativo ? '#A3A3A3' : '#444',
-                  cursor: podeEditar ? 'pointer' : 'default',
-                }}
-              >
-                {f.ativo ? 'Ativo' : 'Inativo'}
-              </button>
-            </div>
+            <button
+              className={`status-pill${f.ativo ? '' : ' inativo'}`}
+              onClick={e => { e.stopPropagation(); if (podeEditar) toggleAtivo(f.id, f.ativo) }}
+              disabled={!podeEditar}
+              title={podeEditar ? (f.ativo ? 'Clique para desativar' : 'Clique para ativar') : undefined}
+            >
+              {f.ativo ? 'Ativo' : 'Inativo'}
+            </button>
             {podeEditar ? (
-              <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicao(f)}>
+              <button className="btn btn-icon" title="Editar" onClick={e => { e.stopPropagation(); abrirEdicao(f) }} style={{ width: '30px', height: '30px', justifySelf: 'end' }}>
                 <Pencil size={12} />
               </button>
             ) : <span />}
@@ -234,7 +311,9 @@ export default function Fornecedores() {
               className="card entity-card"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
+              transition={{ delay: Math.min(i, 20) * 0.04 }}
+              onClick={() => setAbertoId(f.id)}
+              style={{ cursor: 'pointer' }}
             >
               <div className="entity-header" style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
                 <div className="entity-avatar" style={{
@@ -254,11 +333,7 @@ export default function Fornecedores() {
                       fontSize: '15px', fontWeight: 600, color: '#FFFFFF', fontFamily: 'DM Sans, sans-serif',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
                     }}>{f.nome}</h3>
-                    <span style={{
-                      fontSize: '10px', padding: '2px 8px', borderRadius: '99px', flexShrink: 0,
-                      border: f.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
-                      color: f.ativo ? '#A3A3A3' : '#444',
-                    }}>
+                    <span className={`status-pill${f.ativo ? '' : ' inativo'}`} style={{ flexShrink: 0 }}>
                       {f.ativo ? 'Ativo' : 'Inativo'}
                     </span>
                   </div>
@@ -280,10 +355,10 @@ export default function Fornecedores() {
               <div className="entity-footer" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
                 {podeEditar && (
                   <div style={{ display: 'flex', gap: '6px' }}>
-                    <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicao(f)}>
+                    <button className="btn btn-icon" title="Editar" onClick={e => { e.stopPropagation(); abrirEdicao(f) }}>
                       <Pencil size={12} />
                     </button>
-                    <button className="btn btn-secondary btn-sm" onClick={() => toggleAtivo(f.id, f.ativo)}>
+                    <button className="btn btn-secondary btn-sm" onClick={e => { e.stopPropagation(); toggleAtivo(f.id, f.ativo) }}>
                       {f.ativo ? 'Desativar' : 'Ativar'}
                     </button>
                   </div>
@@ -298,6 +373,25 @@ export default function Fornecedores() {
           Nenhum fornecedor encontrado.
         </div>
       )}
+
+      {/* Card do fornecedor */}
+      <AnimatePresence>
+        {abertoId && (() => {
+          const f = fornecedores.find(x => x.id === abertoId)
+          if (!f) return null
+          return (
+            <FornecedorDetalhe
+              key={f.id}
+              fornecedor={f}
+              podeEditar={podeEditar}
+              verContas={podeVer('contas_pagar')}
+              onClose={() => setAbertoId(null)}
+              onEditar={() => { setAbertoId(null); abrirEdicao(f) }}
+              onAlternarAtivo={() => toggleAtivo(f.id, f.ativo)}
+            />
+          )
+        })()}
+      </AnimatePresence>
 
       {/* Modal */}
       <AnimatePresence>

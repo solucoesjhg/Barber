@@ -3,7 +3,8 @@ import { motion } from 'framer-motion'
 import { TrendingUp, TrendingDown, Minus, Printer } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
-import { type Periodo, toISO, rangeFor, periodoAnterior } from '../lib/periodo'
+import { intervaloMes, periodoAnterior, rotuloIntervalo, type Intervalo } from '../lib/periodo'
+import FiltroPeriodo from '../components/ui/FiltroPeriodo'
 
 interface DreData {
   receita_servicos: number
@@ -42,9 +43,7 @@ function Linha({ label, value, bold, indent, pct, delta }: { label: string; valu
 }
 
 export default function DRE() {
-  const [periodo, setPeriodo] = useState<Periodo>('mes')
-  const [ref, setRef] = useState(new Date())
-  const [custom, setCustom] = useState({ inicio: toISO(new Date(new Date().getFullYear(), new Date().getMonth(), 1)), fim: toISO(new Date()) })
+  const [periodo, setPeriodo] = useState<Intervalo>(() => intervaloMes())
   const [dre, setDre] = useState<DreData | null>(null)
   const [dreAnterior, setDreAnterior] = useState<DreData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -53,7 +52,7 @@ export default function DRE() {
   const carregar = useCallback(async () => {
     setLoading(true); setError('')
     try {
-      const [inicio, fim] = rangeFor(periodo, ref, custom)
+      const { inicio, fim } = periodo
       const [anteriorInicio, anteriorFim] = periodoAnterior(inicio, fim)
 
       const [{ data: atual, error: errAtual }, { data: anterior, error: errAnterior }] = await Promise.all([
@@ -75,7 +74,7 @@ export default function DRE() {
     } finally {
       setLoading(false)
     }
-  }, [periodo, ref, custom])
+  }, [periodo])
 
   useEffect(() => { carregar() }, [carregar])
 
@@ -85,70 +84,22 @@ export default function DRE() {
     return ((atual - anterior) / Math.abs(anterior)) * 100
   }
 
-  const [inicio, fim] = rangeFor(periodo, ref, custom)
-
   return (
     <div className="page">
       <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
         <div>
           <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>DRE Gerencial</h1>
-          <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>{inicio} até {fim}</p>
+          <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>{rotuloIntervalo(periodo)} · comparado ao período anterior</p>
         </div>
-        <div className="no-print" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-          {(['mes', 'trimestre', 'ano', 'personalizado'] as Periodo[]).map(p => (
-            <button
-              key={p}
-              onClick={() => setPeriodo(p)}
-              style={{
-                padding: '6px 14px', borderRadius: '99px', fontFamily: 'inherit',
-                border: periodo === p ? '1px solid #FFFFFF' : '1px solid #2A2A2A',
-                background: periodo === p ? 'rgba(255,255,255,0.08)' : 'transparent',
-                color: periodo === p ? '#FFFFFF' : '#555',
-                fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s', textTransform: 'capitalize',
-              }}
-            >
-              {p}
-            </button>
-          ))}
-          <button className="btn btn-secondary btn-sm" onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '6px' }}>
+        <div className="no-print" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <FiltroPeriodo valor={periodo} onChange={v => v && setPeriodo(v)} />
+          <button className="btn btn-secondary btn-sm" onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '6px', minHeight: '36px' }}>
             <Printer size={13} /> Imprimir / PDF
           </button>
         </div>
       </div>
 
       <DreEstilos />
-
-      {periodo === 'personalizado' && (
-        <div className="no-print" style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
-          <div className="field">
-            <label className="label">De</label>
-            <input className="input" type="date" value={custom.inicio} onChange={e => setCustom(c => ({ ...c, inicio: e.target.value }))} />
-          </div>
-          <div className="field">
-            <label className="label">Até</label>
-            <input className="input" type="date" value={custom.fim} onChange={e => setCustom(c => ({ ...c, fim: e.target.value }))} />
-          </div>
-        </div>
-      )}
-      {periodo !== 'personalizado' && (
-        <div className="no-print" style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-          <button className="btn btn-secondary btn-sm" onClick={() => setRef(d => {
-            const n = new Date(d)
-            if (periodo === 'mes') n.setMonth(n.getMonth() - 1)
-            else if (periodo === 'trimestre') n.setMonth(n.getMonth() - 3)
-            else n.setFullYear(n.getFullYear() - 1)
-            return n
-          })}>← Anterior</button>
-          <button className="btn btn-secondary btn-sm" onClick={() => setRef(new Date())}>Hoje</button>
-          <button className="btn btn-secondary btn-sm" onClick={() => setRef(d => {
-            const n = new Date(d)
-            if (periodo === 'mes') n.setMonth(n.getMonth() + 1)
-            else if (periodo === 'trimestre') n.setMonth(n.getMonth() + 3)
-            else n.setFullYear(n.getFullYear() + 1)
-            return n
-          })}>Próximo →</button>
-        </div>
-      )}
 
       {loading ? (
         <div className="card" style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Carregando...</div>

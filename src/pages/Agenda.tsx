@@ -1,27 +1,27 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ChevronLeft, ChevronRight, Plus, X, Clock,
-  Check, Trash2, List, CalendarDays, CalendarRange,
+  Check, Trash2, List, CalendarDays, CalendarRange, ShoppingCart, Play,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
+import { dataLocalISO } from '../lib/periodo'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
 import { usePermissoes } from '../hooks/usePermissoes'
+import AgendamentoDetalheModal, { STATUS_AGENDA, vendaDoAgendamento } from '../components/AgendamentoDetalheModal'
+import VendaDetalheModal from '../components/VendaDetalheModal'
 import type { Agendamento, AgendamentoStatus, Cliente, Profissional, Servico } from '../types'
 
 /* ── Types ──────────────────────────────────────────────── */
 type ViewMode = 'lista' | 'semanal' | 'mensal'
 
 /* ── Constants ──────────────────────────────────────────── */
-const STATUS_CFG: Record<AgendamentoStatus, { label: string; cls: string }> = {
-  pendente:       { label: 'Pendente',        cls: 'badge badge-pending'   },
-  confirmado:     { label: 'Confirmado',      cls: 'badge badge-confirmed' },
-  em_atendimento: { label: 'Em atendimento',  cls: 'badge badge-confirmed' },
-  concluido:      { label: 'Concluído',       cls: 'badge badge-done'      },
-  cancelado:      { label: 'Cancelado',       cls: 'badge badge-canceled'  },
-  nao_compareceu: { label: 'Não compareceu',  cls: 'badge badge-canceled'  },
-}
+const STATUS_CFG = STATUS_AGENDA
+
+// vendas: a venda gerada a partir do agendamento (comandas.agendamento_id).
+const SELECT_AGENDA = '*, cliente:clientes(*), profissional:profissionais(*), servico:servicos(*), vendas:comandas(id, status)'
 
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 8) // 8–20
 const HOUR_H = 64 // px per hour in weekly grid
@@ -34,7 +34,8 @@ const MONTH_NAMES = [
 ]
 
 /* ── Date helpers ───────────────────────────────────────── */
-const toKey = (d: Date) => d.toISOString().split('T')[0]
+// Data local (toISOString usa UTC: depois das 21h "hoje" virava amanhã).
+const toKey = (d: Date) => dataLocalISO(d)
 
 function startOfWeekMon(d: Date): Date {
   const r = new Date(d)
@@ -110,15 +111,19 @@ function ViewBtn({
 ══════════════════════════════════════════════════════════ */
 function ListaView({
   selectedDate, setSelectedDate, agenda, updateStatus,
-  onOpenModal, setFormDate, podeEditar,
+  onOpenModal, setFormDate, podeEditar, podeVender, verTodasVendas, onAbrir, onGerarVenda,
 }: {
   podeEditar: boolean
+  podeVender: boolean
+  verTodasVendas: boolean
   selectedDate: Date
   setSelectedDate: (d: Date) => void
   agenda: Agendamento[]
   updateStatus: (id: string, s: AgendamentoStatus) => void
   onOpenModal: () => void
   setFormDate: (k: string) => void
+  onAbrir: (id: string) => void
+  onGerarVenda: (id: string) => void
 }) {
   const dateKey  = toKey(selectedDate)
   const todayKey = toKey(new Date())
@@ -209,60 +214,80 @@ function ListaView({
                 .toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
             : ''
           const cfg = STATUS_CFG[ag.status]
+          const temVenda = !!vendaDoAgendamento(ag)
+          // Concluído sem venda visível só é certeza pra quem vê as vendas de todos
+          // (senão pode ser venda registrada por outro usuário).
+          const gerarVenda = podeVender && !temVenda && (ag.status === 'em_atendimento' || (ag.status === 'concluido' && verTodasVendas))
+          const parar = (fn: () => void) => (e: React.MouseEvent) => { e.stopPropagation(); fn() }
           return (
             <motion.div
               key={ag.id}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
+              transition={{ delay: Math.min(i, 12) * 0.04 }}
               className="agenda-item"
+              onClick={() => onAbrir(ag.id)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={e => { if (e.key === 'Enter') onAbrir(ag.id) }}
               style={{
-                display: 'flex', gap: '20px', padding: '18px 24px',
+                display: 'flex', gap: '18px', padding: '14px 20px',
                 borderBottom: i < filtrado.length - 1 ? '1px solid #1F1F1F' : 'none',
-                alignItems: 'flex-start',
+                alignItems: 'flex-start', cursor: 'pointer',
               }}
+              whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
             >
-              <div style={{ width: '70px', flexShrink: 0, paddingTop: '2px' }}>
+              <div style={{ width: '64px', flexShrink: 0, paddingTop: '2px' }}>
                 <p style={{ fontSize: '14px', fontWeight: 700, color: '#FFFFFF', fontVariantNumeric: 'tabular-nums' }}>{hora}</p>
                 {fim && <p style={{ fontSize: '11px', color: '#444', marginTop: '2px' }}>até {fim}</p>}
               </div>
               <div style={{ width: '2px', background: '#2A2A2A', borderRadius: '1px', alignSelf: 'stretch', flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="agenda-item-title" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-                  <p style={{ fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>{ag.cliente?.nome ?? 'Sem cliente'}</p>
+                <div className="agenda-item-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                  <p className="texto-cortado" style={{ fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>{ag.cliente?.nome ?? 'Sem cliente'}</p>
                   <span className={cfg.cls}>{cfg.label}</span>
+                  {temVenda && <span className="badge badge-done" title="Venda registrada para este atendimento">Venda</span>}
                 </div>
-                <p style={{ fontSize: '12px', color: '#555' }}>
-                  {ag.servico?.nome}{ag.servico?.preco ? ` · ${formatCurrency(ag.servico.preco)}` : ''}
+                <p className="texto-cortado" style={{ fontSize: '12px', color: '#555' }}>
+                  {ag.servico?.nome}{ag.servico?.preco ? ` · ${formatCurrency(ag.valor ?? ag.servico.preco)}` : ''}
                   {ag.profissional ? ` · ${ag.profissional.nome}` : ''}
                 </p>
                 {ag.observacoes && (
-                  <p style={{ fontSize: '12px', color: '#444', marginTop: '4px', fontStyle: 'italic' }}>"{ag.observacoes}"</p>
+                  <p className="texto-cortado" style={{ fontSize: '12px', color: '#444', marginTop: '3px', fontStyle: 'italic' }}>"{ag.observacoes}"</p>
                 )}
               </div>
-              {podeEditar && <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
-                {ag.status === 'pendente' && (
-                  <button className="btn btn-icon" title="Confirmar" onClick={() => updateStatus(ag.id, 'confirmado')}>
+              {(podeEditar || gerarVenda) && <div style={{ display: 'flex', gap: '6px', flexShrink: 0, alignItems: 'center' }}>
+                {gerarVenda && (
+                  <button
+                    className={ag.status === 'em_atendimento' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
+                    title="Abre Vendas com o cliente, o serviço e o profissional deste atendimento"
+                    onClick={parar(() => onGerarVenda(ag.id))}
+                  >
+                    <ShoppingCart size={12} /> Gerar venda
+                  </button>
+                )}
+                {podeEditar && ag.status === 'pendente' && (
+                  <button className="btn btn-icon" title="Confirmar" onClick={parar(() => updateStatus(ag.id, 'confirmado'))}>
                     <Check size={13} />
                   </button>
                 )}
-                {ag.status === 'confirmado' && (
-                  <button className="btn btn-icon" title="Iniciar atendimento" onClick={() => updateStatus(ag.id, 'em_atendimento')}>
+                {podeEditar && ag.status === 'confirmado' && (
+                  <button className="btn btn-icon" title="Iniciar atendimento" onClick={parar(() => updateStatus(ag.id, 'em_atendimento'))}>
+                    <Play size={12} />
+                  </button>
+                )}
+                {podeEditar && ag.status === 'em_atendimento' && (
+                  <button className="btn btn-icon" title="Concluir sem venda" onClick={parar(() => updateStatus(ag.id, 'concluido'))}>
                     <Check size={13} />
                   </button>
                 )}
-                {ag.status === 'em_atendimento' && (
-                  <button className="btn btn-icon" title="Concluir" onClick={() => updateStatus(ag.id, 'concluido')}>
-                    <Check size={13} />
-                  </button>
-                )}
-                {(ag.status === 'pendente' || ag.status === 'confirmado') && (
-                  <button className="btn btn-icon" title="Não compareceu" onClick={() => updateStatus(ag.id, 'nao_compareceu')}>
+                {podeEditar && (ag.status === 'pendente' || ag.status === 'confirmado') && (
+                  <button className="btn btn-icon" title="Não compareceu" onClick={parar(() => updateStatus(ag.id, 'nao_compareceu'))}>
                     <Clock size={13} />
                   </button>
                 )}
-                {ag.status !== 'concluido' && ag.status !== 'cancelado' && (
-                  <button className="btn btn-icon" title="Cancelar" onClick={() => updateStatus(ag.id, 'cancelado')}>
+                {podeEditar && ag.status !== 'concluido' && ag.status !== 'cancelado' && ag.status !== 'nao_compareceu' && (
+                  <button className="btn btn-icon" title="Cancelar" onClick={parar(() => { if (window.confirm('Cancelar este agendamento?')) updateStatus(ag.id, 'cancelado') })}>
                     <Trash2 size={13} />
                   </button>
                 )}
@@ -279,13 +304,14 @@ function ListaView({
    SEMANAL VIEW — time grid
 ══════════════════════════════════════════════════════════ */
 function SemanalView({
-  baseDate, setBaseDate, agenda, filterProfId, onDayClick,
+  baseDate, setBaseDate, agenda, filterProfId, onDayClick, onAbrir,
 }: {
   baseDate: Date
   setBaseDate: (d: Date) => void
   agenda: Agendamento[]
   filterProfId: string
   onDayClick: (d: Date) => void
+  onAbrir: (id: string) => void
 }) {
   const weekDays = getWeekDays(baseDate)
   const todayKey = toKey(new Date())
@@ -431,7 +457,11 @@ function SemanalView({
                     return (
                       <div
                         key={ag.id}
-                        title={`${ag.cliente?.nome} — ${ag.servico?.nome}`}
+                        title={`${ag.cliente?.nome ?? 'Sem cliente'} — ${ag.servico?.nome ?? ''}`}
+                        onClick={() => onAbrir(ag.id)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={e => { if (e.key === 'Enter') onAbrir(ag.id) }}
                         style={{
                           position: 'absolute',
                           top: `${top}px`,
@@ -444,8 +474,9 @@ function SemanalView({
                           borderRadius: '5px',
                           padding: '4px 7px',
                           overflow: 'hidden',
-                          cursor: 'default',
+                          cursor: 'pointer',
                           zIndex: 1,
+                          opacity: ag.status === 'cancelado' || ag.status === 'nao_compareceu' ? 0.5 : 1,
                         }}
                       >
                         <p style={{
@@ -488,7 +519,7 @@ function SemanalView({
    MENSAL VIEW — month calendar
 ══════════════════════════════════════════════════════════ */
 function MensalView({
-  baseDate, setBaseDate, agenda, filterProfId, onDayClick, selectedDate,
+  baseDate, setBaseDate, agenda, filterProfId, onDayClick, selectedDate, onAbrir,
 }: {
   baseDate: Date
   setBaseDate: (d: Date) => void
@@ -496,6 +527,7 @@ function MensalView({
   filterProfId: string
   onDayClick: (d: Date) => void
   selectedDate: Date
+  onAbrir: (id: string) => void
 }) {
   const year  = baseDate.getFullYear()
   const month = baseDate.getMonth()
@@ -601,14 +633,21 @@ function MensalView({
                   {ags.slice(0, maxShow).map(ag => {
                     const hora = new Date(ag.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
                     return (
-                      <div key={ag.id} style={{
-                        fontSize: '10px', color: '#A3A3A3',
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid #2A2A2A',
-                        borderRadius: '3px',
-                        padding: '1px 5px',
-                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                      }}>
+                      <div
+                        key={ag.id}
+                        role="button"
+                        title={`${hora} · ${ag.cliente?.nome ?? 'Sem cliente'} — ${ag.servico?.nome ?? ''}`}
+                        onClick={e => { e.stopPropagation(); onAbrir(ag.id) }}
+                        style={{
+                          fontSize: '10px', color: '#A3A3A3',
+                          background: 'rgba(255,255,255,0.06)',
+                          border: '1px solid #2A2A2A',
+                          borderRadius: '3px',
+                          padding: '1px 5px',
+                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                          cursor: 'pointer',
+                        }}
+                      >
                         <span style={{ color: '#555', marginRight: '4px' }}>{hora}</span>
                         {ag.cliente?.nome ?? ag.servico?.nome}
                       </div>
@@ -635,8 +674,12 @@ function MensalView({
    MAIN COMPONENT
 ══════════════════════════════════════════════════════════ */
 export default function Agenda() {
-  const { podeEditar: podeEditarTela } = usePermissoes()
+  const { podeEditar: podeEditarTela, verVendasOutros } = usePermissoes()
   const podeEditar = podeEditarTela('agenda')
+  const podeVender = podeEditarTela('pdv')
+  const navigate = useNavigate()
+  const [agAbertoId, setAgAbertoId] = useState<string | null>(null)
+  const [vendaAbertaId, setVendaAbertaId] = useState<string | null>(null)
   const [viewMode, setViewMode]     = useState<ViewMode>('lista')
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [calBase, setCalBase]       = useState(new Date()) // week/month navigation base
@@ -670,7 +713,7 @@ export default function Agenda() {
     }
     supabase
       .from('agendamentos')
-      .select('*, cliente:clientes(*), profissional:profissionais(*), servico:servicos(*)')
+      .select(SELECT_AGENDA)
       .gte('data_hora', `${inicio}T00:00:00`)
       .lte('data_hora', `${fim}T23:59:59`)
       .order('data_hora')
@@ -727,12 +770,21 @@ export default function Agenda() {
     setSaving(false)
     supabase
       .from('agendamentos')
-      .select('*, cliente:clientes(*), profissional:profissionais(*), servico:servicos(*)')
+      .select(SELECT_AGENDA)
       .gte('data_hora', `${form.data}T00:00:00`)
       .lte('data_hora', `${form.data}T23:59:59`)
       .order('data_hora')
       .then(({ data }) => { if (data) setAgenda(data as Agendamento[]) })
   }
+
+  // Abre Vendas já com o cliente, o serviço e o profissional do atendimento;
+  // ao finalizar, a venda fica ligada ao agendamento e ele vira concluído.
+  function gerarVenda(id: string) {
+    setAgAbertoId(null)
+    navigate(`/vendas?agendamento=${id}`)
+  }
+
+  const agAberto = agAbertoId ? agenda.find(a => a.id === agAbertoId) ?? null : null
 
   async function updateStatus(id: string, status: AgendamentoStatus) {
     const anterior = agenda.find(a => a.id === id)?.status
@@ -861,8 +913,12 @@ export default function Agenda() {
               agenda={agenda}
               updateStatus={updateStatus}
               podeEditar={podeEditar}
+              podeVender={podeVender}
+              verTodasVendas={verVendasOutros}
               onOpenModal={() => setShowModal(true)}
               setFormDate={k => setForm(f => ({ ...f, data: k }))}
+              onAbrir={setAgAbertoId}
+              onGerarVenda={gerarVenda}
             />
           )}
           {viewMode === 'semanal' && (
@@ -872,6 +928,7 @@ export default function Agenda() {
               agenda={agenda}
               filterProfId={filterProfId}
               onDayClick={handleDayClick}
+              onAbrir={setAgAbertoId}
             />
           )}
           {viewMode === 'mensal' && (
@@ -882,9 +939,34 @@ export default function Agenda() {
               filterProfId={filterProfId}
               onDayClick={handleDayClick}
               selectedDate={selectedDate}
+              onAbrir={setAgAbertoId}
             />
           )}
         </motion.div>
+      </AnimatePresence>
+
+      {/* Card do agendamento */}
+      <AnimatePresence>
+        {agAberto && (
+          <AgendamentoDetalheModal
+            key={agAberto.id}
+            agendamento={agAberto}
+            podeEditar={podeEditar}
+            podeVender={podeVender}
+            verTodasVendas={verVendasOutros}
+            onClose={() => setAgAbertoId(null)}
+            onStatus={s => updateStatus(agAberto.id, s)}
+            onObservacaoSalva={texto => setAgenda(prev => prev.map(a => a.id === agAberto.id ? { ...a, observacoes: texto || undefined } : a))}
+            onGerarVenda={() => gerarVenda(agAberto.id)}
+            onVerVenda={comandaId => { setAgAbertoId(null); setVendaAbertaId(comandaId) }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {vendaAbertaId && (
+          <VendaDetalheModal comandaId={vendaAbertaId} onClose={() => setVendaAbertaId(null)} />
+        )}
       </AnimatePresence>
 
       {/* Modal */}
