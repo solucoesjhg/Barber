@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { formatCurrency, formatDate } from '../lib/utils'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
 import { usePermissoes } from '../hooks/usePermissoes'
+import { carregarSaldosContas, type SaldoConta } from '../lib/contasFinanceiras'
 import type { ContaReceber, Cliente, CategoriaFinanceira, FormaPagamentoCadastro } from '../types'
 
 type Filtro = 'todas' | 'aberta' | 'vencida' | 'paga'
@@ -38,6 +39,8 @@ export default function ContasReceber() {
   const [contaBaixa, setContaBaixa] = useState<ContaReceber | null>(null)
   const [valorBaixa, setValorBaixa] = useState('')
   const [formaBaixa, setFormaBaixa] = useState('')
+  const [contasFin, setContasFin] = useState<SaldoConta[]>([])
+  const [contaFinBaixa, setContaFinBaixa] = useState('')
 
   const carregar = useCallback(() => {
     setLoading(true)
@@ -54,6 +57,15 @@ export default function ContasReceber() {
     supabase.from('formas_pagamento').select('*').eq('ativo', true).order('nome')
       .then(({ data }) => { if (data) setFormasPagamento(data as FormaPagamentoCadastro[]) })
   }, [carregar])
+
+  // Ao abrir a baixa: contas com saldo atual, já na padrão.
+  useEffect(() => {
+    if (!contaBaixa) return
+    carregarSaldosContas().then(lista => {
+      setContasFin(lista)
+      setContaFinBaixa((lista.find(c => c.padrao) ?? lista[0])?.conta_id ?? '')
+    })
+  }, [contaBaixa])
 
   // Contas sintéticas (que agrupam outras) não recebem lançamento direto — só as analíticas (de detalhe).
   const idsSinteticas = new Set(categorias.map(c => c.categoria_pai_id).filter(Boolean))
@@ -89,12 +101,16 @@ export default function ContasReceber() {
   }
 
   async function confirmarBaixa() {
-    if (!contaBaixa) return
+    if (!contaBaixa || saving) return
+    const valor = Number(valorBaixa)
+    if (!valor || valor <= 0) { setError('Informe um valor maior que zero.'); return }
+    if (!contaFinBaixa) { setError('Escolha em qual conta o dinheiro entra.'); return }
     setSaving(true); setError('')
     const { error: err } = await supabase.rpc('baixar_conta_receber', {
       p_conta_id: contaBaixa.id,
-      p_valor_pago: Number(valorBaixa),
+      p_valor_pago: valor,
       p_forma_pagamento_id: formaBaixa || null,
+      p_conta_financeira_id: contaFinBaixa,
     })
     setSaving(false)
     if (err) { setError(err.message); return }
@@ -296,7 +312,14 @@ export default function ContasReceber() {
                     {formasPagamento.map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
                   </select>
                 </div>
-                {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
+                <div className="field">
+                  <label className="label">Entra na conta</label>
+                  <select className="input" value={contaFinBaixa} onChange={e => setContaFinBaixa(e.target.value)}>
+                    {contasFin.length === 0 && <option value="">Carregando...</option>}
+                    {contasFin.map(c => <option key={c.conta_id} value={c.conta_id}>{c.nome} · saldo {formatCurrency(c.saldo)}</option>)}
+                  </select>
+                </div>
+                {error &&<p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
                   <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setContaBaixa(null)}>Cancelar (Esc)</button>
                   <button className="btn btn-primary" style={{ flex: 1 }} onClick={confirmarBaixa} disabled={saving}>

@@ -4,6 +4,7 @@ import { Plus, Trash2, X, Package, Check, RotateCcw } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency, formatDate } from '../lib/utils'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
+import { confirmarSaldoSuficiente } from '../lib/contasFinanceiras'
 import type { ContaFinanceira, Fornecedor, Produto, ProdutoCategoria } from '../types'
 
 // Sugestão padrão de preço à vista: 80% de lucro em cima do valor pago
@@ -145,7 +146,12 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
   async function handleSalvar() {
     if (itensValidos.length === 0) { setError('Adicione ao menos um item com nome, quantidade e valor pago.'); return }
     if (aVista && !contaFinanceiraId) { setError('Selecione a conta que vai pagar essa entrada.'); return }
+    if (saving) return
     setSaving(true); setError('')
+    // Mesmo total que o banco lança: peças + frete + despesas − desconto.
+    if (aVista && !(await confirmarSaldoSuficiente(contaFinanceiraId, totalPago + totalExtra))) {
+      setSaving(false); return
+    }
     const { data, error: err } = await supabase.rpc('registrar_entrada_produtos', {
       p_itens: itensValidos.map(i => ({
         produto_id: i.produtoId,

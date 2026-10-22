@@ -6,7 +6,7 @@ import { formatCurrency, formatDate } from '../lib/utils'
 import ScannerCamera from '../components/ScannerCamera'
 import VendaDetalheModal from '../components/VendaDetalheModal'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
-import { useAuth } from '../hooks/useAuth'
+import { usePerfil } from '../hooks/usePerfil'
 import { usePermissoes } from '../hooks/usePermissoes'
 import { COLUNAS_PRODUTO } from '../lib/produtos'
 import type { Comanda, ItemComanda, PagamentoMetodo, Produto, Profissional, Servico } from '../types'
@@ -22,28 +22,46 @@ const STATUS_LABEL: Record<string, string> = { fechada: 'Fechada', cancelada: 'C
 
 function uid() { return Math.random().toString(36).slice(2) }
 
+type VendaLista = Comanda & {
+  itens?: { profissional_id: string | null; preco_unitario: number; quantidade: number }[]
+}
+
 type ItemCatalogo =
   | { tipo: 'servico'; dado: Servico }
   | { tipo: 'produto'; dado: Produto }
 
 export default function PDV() {
-  const { user } = useAuth()
   const { podeEditar, verVendasOutros } = usePermissoes()
+  const { profissionalId: meuProfissional } = usePerfil()
   const podeVender = podeEditar('pdv')
+  // Barbeiro com login próprio: vê as vendas em que atendeu (o banco
+  // devolve só essas) e quanto foi nos itens dele.
+  const modoProfissional = !verVendasOutros && !!meuProfissional
   const [modo, setModo] = useState<'lista' | 'nova'>('lista')
-  const [vendas, setVendas] = useState<Comanda[]>([])
+  const [vendas, setVendas] = useState<VendaLista[]>([])
   const [loadingVendas, setLoadingVendas] = useState(true)
   const [vendaSelecionadaId, setVendaSelecionadaId] = useState<string | null>(null)
   const [emailPorUsuario, setEmailPorUsuario] = useState<Record<string, string>>({})
 
+  // O banco já só devolve as vendas que o usuário pode ver: todas (ver
+  // vendas de outros), as que ele registrou e as que têm item dele.
   const carregarVendas = useCallback(() => {
     setLoadingVendas(true)
-    let query = supabase.from('comandas').select('*').order('created_at', { ascending: false }).limit(100)
-    // O banco já só devolve as vendas que o usuário pode ver; o filtro
-    // aqui deixa a lista coerente com o subtítulo.
-    if (!verVendasOutros && user) query = query.eq('usuario_id', user.id)
-    query.then(({ data }) => { setVendas((data ?? []) as Comanda[]); setLoadingVendas(false) })
-  }, [verVendasOutros, user])
+    supabase.from('comandas').select('*, itens:itens_comanda(profissional_id, preco_unitario, quantidade)')
+      .order('created_at', { ascending: false }).limit(100)
+      .then(({ data }) => { setVendas((data ?? []) as VendaLista[]); setLoadingVendas(false) })
+  }, [])
+
+  const valorMeusItens = (v: VendaLista) => (v.itens ?? [])
+    .filter(i => i.profissional_id === meuProfissional)
+    .reduce((s, i) => s + i.preco_unitario * i.quantidade, 0)
+
+  const inicioMes = useMemo(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+  }, [])
+  const vendasDoMes = vendas.filter(v => v.status === 'fechada' && v.data >= inicioMes)
+  const totalMeusItensMes = vendasDoMes.reduce((s, v) => s + valorMeusItens(v), 0)
 
   useEffect(() => {
     carregarVendas()
@@ -136,7 +154,8 @@ export default function PDV() {
 
   function addServico(s: Servico) {
     setCart(prev => {
-      const ex = prev.find(i => i.tipo === 'servico' && i.referencia_id === s.id)
+      // Mesmo serviço com outro profissional vira outra linha (comissões separadas).
+      const ex = prev.find(i => i.tipo === 'servico' && i.referencia_id === s.id && (i.profissional_id ?? '') === profissionalId)
       if (ex) return prev.map(i => i.id === ex.id ? { ...i, quantidade: i.quantidade + 1 } : i)
       return [...prev, { id: uid(), tipo: 'servico', referencia_id: s.id, nome: s.nome, quantidade: 1, preco_unitario: s.preco, profissional_id: profissionalId || undefined }]
     })
@@ -160,7 +179,30 @@ export default function PDV() {
     setCart(prev => prev.filter(i => i.id !== id))
   }
 
+  function mudarProfissionalItem(id: string, profId: string) {
+    setCart(prev => prev.map(i => i.id === id ? { ...i, profissional_id: profId || undefined } : i))
+  }
+
+  // O profissional do topo vale para os próximos itens e preenche os
+  // que ainda estão sem profissional.
+  function mudarProfissionalPadrao(profId: string) {
+    setProfissionalId(profId)
+    if (profId) setCart(prev => prev.map(i => i.profissional_id ? i : { ...i, profissional_id: profId }))
+  }
+
+  const servicosSemProfissional = cart.filter(i => i.tipo === 'servico' && !i.profissional_id)
+
+  function abrirPagamento() {
+    if (servicosSemProfissional.length > 0) {
+      setError(`Escolha o profissional de: ${servicosSemProfissional.map(i => i.nome).join(', ')}.`)
+      return
+    }
+    setError('')
+    setShowPayModal(true)
+  }
+
   async function finalizarVenda() {
+    if (saving) return
     setSaving(true); setError('')
     const { error: err } = await supabase.rpc('finalizar_venda', {
       p_cliente_nome: clienteNome || null,
@@ -197,7 +239,11 @@ export default function PDV() {
         <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
           <div>
             <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Vendas</h1>
-            <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>{verVendasOutros ? 'Histórico de vendas da loja' : 'Suas vendas'}</p>
+            <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
+              {verVendasOutros ? 'Histórico de vendas da loja'
+                : modoProfissional ? `Vendas em que você atendeu · neste mês ${vendasDoMes.length} ${vendasDoMes.length === 1 ? 'venda' : 'vendas'}, ${formatCurrency(totalMeusItensMes)} nos seus itens`
+                : 'Vendas registradas por você'}
+            </p>
           </div>
           {podeVender && (
             <button className="btn btn-primary" onClick={() => setModo('nova')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -213,7 +259,7 @@ export default function PDV() {
             fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
             background: 'rgba(0,0,0,0.2)',
           }}>
-            <span>Cliente</span><span>Vendedor</span><span>Pagamento</span><span>Status</span><span>Total</span>
+            <span>Cliente</span><span>{modoProfissional ? 'Seus itens' : 'Registrada por'}</span><span>Pagamento</span><span>Status</span><span>Total</span>
           </div>
 
           {loadingVendas ? (
@@ -236,7 +282,9 @@ export default function PDV() {
                 <span style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{v.cliente_nome ?? 'Balcão'}</span>
                 <p style={{ fontSize: '11px', color: '#555' }}>{formatDate(v.data)}</p>
               </div>
-              <span style={{ fontSize: '12px', color: '#A3A3A3' }}>{nomeUsuarioVenda(v.usuario_id)}</span>
+              {modoProfissional
+                ? <span style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>{formatCurrency(valorMeusItens(v))}</span>
+                : <span style={{ fontSize: '12px', color: '#A3A3A3' }}>{nomeUsuarioVenda(v.usuario_id)}</span>}
               <span style={{ fontSize: '12px', color: '#A3A3A3' }}>{PAGAMENTOS.find(p => p.id === v.forma_pagamento)?.label ?? '—'}</span>
               <span className={v.status === 'fechada' ? 'badge badge-done' : v.status === 'cancelada' ? 'badge badge-canceled' : 'badge badge-pending'}>
                 {STATUS_LABEL[v.status] ?? v.status}
@@ -261,7 +309,7 @@ export default function PDV() {
                   <div style={{ minWidth: 0 }}>
                     <p className="entity-title" style={{ fontSize: '14px', color: '#FFFFFF', fontWeight: 600 }}>{v.cliente_nome ?? 'Balcão'}</p>
                     <p className="entity-subtle" style={{ fontSize: '11px', color: '#555', marginTop: '2px' }}>
-                      {formatDate(v.data)} · {nomeUsuarioVenda(v.usuario_id)}
+                      {formatDate(v.data)} · {modoProfissional ? `seus itens ${formatCurrency(valorMeusItens(v))}` : nomeUsuarioVenda(v.usuario_id)}
                     </p>
                   </div>
                   <span className={v.status === 'fechada' ? 'badge badge-done' : v.status === 'cancelada' ? 'badge badge-canceled' : 'badge badge-pending'}>
@@ -280,7 +328,7 @@ export default function PDV() {
 
         <AnimatePresence>
           {vendaSelecionadaId && (
-            <VendaDetalheModal comandaId={vendaSelecionadaId} onClose={() => setVendaSelecionadaId(null)} />
+            <VendaDetalheModal comandaId={vendaSelecionadaId} onClose={() => setVendaSelecionadaId(null)} destacarProfissionalId={meuProfissional} />
           )}
         </AnimatePresence>
       </div>
@@ -420,9 +468,9 @@ export default function PDV() {
               className="input"
               style={{ marginTop: '8px', fontSize: '13px' }}
               value={profissionalId}
-              onChange={e => setProfissionalId(e.target.value)}
+              onChange={e => mudarProfissionalPadrao(e.target.value)}
             >
-              <option value="">Profissional (comissão)</option>
+              <option value="">Profissional que atendeu</option>
               {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
             </select>
           )}
@@ -452,6 +500,21 @@ export default function PDV() {
                     {item.nome}
                   </p>
                   <p style={{ fontSize: '11px', color: '#555', marginTop: '2px' }}>{formatCurrency(item.preco_unitario)}</p>
+                  {profissionais.length > 0 && (
+                    <select
+                      aria-label={`Profissional de ${item.nome}`}
+                      value={item.profissional_id ?? ''}
+                      onChange={e => mudarProfissionalItem(item.id, e.target.value)}
+                      style={{
+                        marginTop: '6px', width: '100%', fontSize: '11px', padding: '4px 6px', borderRadius: '6px',
+                        background: '#111', color: item.profissional_id ? '#A3A3A3' : '#FFFFFF', fontFamily: 'inherit',
+                        border: item.tipo === 'servico' && !item.profissional_id ? '1px dashed #A3A3A3' : '1px solid #2A2A2A',
+                      }}
+                    >
+                      <option value="">{item.tipo === 'servico' ? 'Escolha o profissional *' : 'Sem profissional'}</option>
+                      {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                    </select>
+                  )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <button
@@ -483,7 +546,8 @@ export default function PDV() {
               {formatCurrency(total)}
             </span>
           </div>
-          <button className="btn btn-primary btn-full" onClick={() => setShowPayModal(true)} disabled={cart.length === 0}>
+          {error && !showPayModal && <p style={{ fontSize: '12px', color: '#A3A3A3', marginBottom: '10px' }}>{error}</p>}
+          <button className="btn btn-primary btn-full" onClick={abrirPagamento} disabled={cart.length === 0}>
             Finalizar Venda
           </button>
         </div>
