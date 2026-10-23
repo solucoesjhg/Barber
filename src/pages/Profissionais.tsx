@@ -1,19 +1,86 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, X, Scissors, Percent, Pencil, Power } from 'lucide-react'
+import { Plus, Scissors, Percent, Pencil, Power } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { formatCurrency, initials } from '../lib/utils'
-import { useModalKeyboard } from '../hooks/useModalKeyboard'
+import { formatCurrency, formatDate, initials } from '../lib/utils'
 import { usePermissoes } from '../hooks/usePermissoes'
+import ModalDetalhe, { Info, InfoGrade, SecaoDetalhe } from '../components/ui/ModalDetalhe'
+import ModalFormulario, { Campo, FormGrade } from '../components/ui/ModalFormulario'
 import type { Profissional } from '../types'
 
 const FORM_INICIAL = { nome: '', especialidade: '', comissao_percentual: '50', telefone: '', email: '', documento: '', valor_fixo: '' }
+
+type ServicoDoProfissional = { id: string; nome: string; ativo: boolean }
+
+/** Card do profissional: dados do cadastro e os serviços que ele faz. */
+function ProfissionalDetalhe({ profissional: p, podeEditar, onClose, onEditar, onAlternarAtivo }: {
+  profissional: Profissional
+  podeEditar: boolean
+  onClose: () => void
+  onEditar: () => void
+  onAlternarAtivo: () => void
+}) {
+  const [servicos, setServicos] = useState<ServicoDoProfissional[] | null>(null)
+
+  useEffect(() => {
+    supabase.from('profissional_servicos').select('servico:servicos(id, nome, ativo)').eq('profissional_id', p.id)
+      .then(({ data }) => {
+        const lista = ((data ?? []) as unknown as { servico: ServicoDoProfissional | null }[])
+          .map(l => l.servico).filter((s): s is ServicoDoProfissional => !!s)
+          .sort((a, b) => Number(b.ativo) - Number(a.ativo) || a.nome.localeCompare(b.nome))
+        setServicos(lista)
+      })
+  }, [p.id])
+
+  return (
+    <ModalDetalhe
+      largura={500}
+      icone={initials(p.nome)}
+      titulo={p.nome}
+      subtitulo={<>
+        {p.especialidade && <span>{p.especialidade}</span>}
+        <span className={`status-pill${p.ativo ? '' : ' inativo'}`}>{p.ativo ? 'Ativo' : 'Inativo'}</span>
+      </>}
+      onClose={onClose}
+      acoes={podeEditar ? (
+        <>
+          <button className="btn btn-secondary" onClick={onAlternarAtivo}><Power size={13} /> {p.ativo ? 'Desativar' : 'Ativar'}</button>
+          <button className="btn btn-primary" onClick={onEditar}><Pencil size={13} /> Editar</button>
+        </>
+      ) : undefined}
+    >
+      <InfoGrade>
+        <Info rotulo="Comissão">{`${p.comissao_percentual}%`}</Info>
+        <Info rotulo="Valor fixo">{p.valor_fixo ? formatCurrency(p.valor_fixo) : undefined}</Info>
+        <Info rotulo="Telefone">{p.telefone}</Info>
+        <Info rotulo="Documento (CPF)">{p.documento}</Info>
+        <Info rotulo="E-mail" largo>{p.email}</Info>
+        <Info rotulo="Cadastrado em">{formatDate(p.created_at)}</Info>
+      </InfoGrade>
+
+      <SecaoDetalhe titulo={servicos ? `Serviços que realiza (${servicos.length})` : 'Serviços que realiza'}>
+        {servicos === null ? (
+          <p style={{ fontSize: '12px', color: '#555' }}>Carregando...</p>
+        ) : servicos.length === 0 ? (
+          <p style={{ fontSize: '12px', color: '#555' }}>Nenhum serviço vinculado. O vínculo é feito no cadastro do serviço.</p>
+        ) : (
+          <div className="chip-lista">
+            {servicos.map(s => (
+              <span key={s.id} className={`chip${s.ativo ? '' : ' fraco'}`} title={s.ativo ? undefined : 'Serviço inativo'}>{s.nome}</span>
+            ))}
+          </div>
+        )}
+      </SecaoDetalhe>
+    </ModalDetalhe>
+  )
+}
 
 export default function Profissionais() {
   const { podeEditar: podeEditarTela } = usePermissoes()
   const podeEditar = podeEditarTela('profissionais')
   const [profissionais, setProfissionais] = useState<Profissional[]>([])
   const [loading, setLoading] = useState(true)
+  const [abertoId, setAbertoId] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState(FORM_INICIAL)
@@ -24,6 +91,8 @@ export default function Profissionais() {
     supabase.from('profissionais').select('*').order('nome')
       .then(({ data }) => { setProfissionais((data ?? []) as Profissional[]); setLoading(false) })
   }, [])
+
+  const profissionalAberto = abertoId ? profissionais.find(p => p.id === abertoId) ?? null : null
 
   async function handleSave() {
     if (!form.nome.trim() || !form.especialidade.trim()) {
@@ -80,8 +149,6 @@ export default function Profissionais() {
     await supabase.from('profissionais').update({ ativo: !ativo }).eq('id', id)
   }
 
-  const modalRef = useModalKeyboard(showModal, fecharModal, handleSave)
-
   return (
     <div className="page">
       <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
@@ -109,10 +176,11 @@ export default function Profissionais() {
         {profissionais.map((p, i) => (
           <motion.div
             key={p.id}
-            className="card"
+            className="card clicavel"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: p.ativo ? 1 : 0.6, y: 0 }}
             transition={{ delay: Math.min(i, 12) * 0.04 }}
+            onClick={() => setAbertoId(p.id)}
             style={{ padding: '14px 16px' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -145,14 +213,14 @@ export default function Profissionais() {
               <span className={`status-pill${p.ativo ? '' : ' inativo'}`} style={{ flexShrink: 0 }}>{p.ativo ? 'Ativo' : 'Inativo'}</span>
               {podeEditar && (
                 <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
-                  <button className="btn btn-icon" title="Editar" aria-label={`Editar ${p.nome}`} onClick={() => abrirEdicao(p)} style={{ width: '28px', height: '28px' }}>
+                  <button className="btn btn-icon" title="Editar" aria-label={`Editar ${p.nome}`} onClick={e => { e.stopPropagation(); abrirEdicao(p) }} style={{ width: '28px', height: '28px' }}>
                     <Pencil size={12} />
                   </button>
                   <button
                     className="btn btn-icon"
                     title={p.ativo ? 'Desativar' : 'Ativar'}
                     aria-label={`${p.ativo ? 'Desativar' : 'Ativar'} ${p.nome}`}
-                    onClick={() => toggleAtivo(p.id, p.ativo)}
+                    onClick={e => { e.stopPropagation(); toggleAtivo(p.id, p.ativo) }}
                     style={{ width: '28px', height: '28px' }}
                   >
                     <Power size={12} />
@@ -170,67 +238,57 @@ export default function Profissionais() {
       </div>
       )}
 
-      {/* Modal */}
+      {/* Card do profissional */}
+      <AnimatePresence>
+        {profissionalAberto && (
+          <ProfissionalDetalhe
+            key={profissionalAberto.id}
+            profissional={profissionalAberto}
+            podeEditar={podeEditar}
+            onClose={() => setAbertoId(null)}
+            onEditar={() => { setAbertoId(null); abrirEdicao(profissionalAberto) }}
+            onAlternarAtivo={() => toggleAtivo(profissionalAberto.id, profissionalAberto.ativo)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Cadastro / edição */}
       <AnimatePresence>
         {showModal && (
-          <motion.div
-            className="modal-overlay"
-            style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          <ModalFormulario
+            icone={<Scissors size={18} />}
+            titulo={editId ? 'Editar Profissional' : 'Novo Profissional'}
+            descricao={editId ? profissionais.find(p => p.id === editId)?.nome : 'Os serviços que ele faz são marcados no cadastro de cada serviço.'}
+            onClose={fecharModal}
+            onSalvar={handleSave}
+            salvando={saving}
+            rotuloSalvar={editId ? 'Salvar' : 'Cadastrar'}
+            erro={error}
           >
-            <motion.div
-              ref={modalRef}
-              className="card"
-              style={{ width: '100%', maxWidth: '460px', padding: '28px', maxHeight: '85vh', overflowY: 'auto' }}
-              initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>{editId ? 'Editar Profissional' : 'Novo Profissional'}</h2>
-                <button className="btn btn-icon" onClick={fecharModal}><X size={14} /></button>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div className="field">
-                  <label className="label">Nome *</label>
-                  <input className="input" placeholder="Nome completo" value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} />
-                </div>
-                <div className="field">
-                  <label className="label">Especialidade *</label>
-                  <input className="input" placeholder="Ex: Cabelo e Barba" value={form.especialidade} onChange={e => setForm(f => ({ ...f, especialidade: e.target.value }))} />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div className="field">
-                    <label className="label">Comissão (%)</label>
-                    <input className="input" type="number" min={0} max={100} value={form.comissao_percentual} onChange={e => setForm(f => ({ ...f, comissao_percentual: e.target.value }))} />
-                  </div>
-                  <div className="field">
-                    <label className="label">Valor fixo (R$)</label>
-                    <input className="input" type="number" min={0} step={0.01} placeholder="opcional" value={form.valor_fixo} onChange={e => setForm(f => ({ ...f, valor_fixo: e.target.value }))} />
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div className="field">
-                    <label className="label">Telefone</label>
-                    <input className="input" placeholder="(11) 99999-9999" value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} />
-                  </div>
-                  <div className="field">
-                    <label className="label">E-mail</label>
-                    <input className="input" type="email" placeholder="email@exemplo.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
-                  </div>
-                </div>
-                <div className="field">
-                  <label className="label">Documento (CPF)</label>
-                  <input className="input" placeholder="000.000.000-00" value={form.documento} onChange={e => setForm(f => ({ ...f, documento: e.target.value }))} />
-                </div>
-                {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
-                <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={fecharModal}>Cancelar (Esc)</button>
-                  <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSave} disabled={saving}>
-                    {saving ? 'Salvando...' : `${editId ? 'Salvar' : 'Cadastrar'} (F10)`}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
+            <FormGrade>
+              <Campo rotulo="Nome *" span={2}>
+                <input className="input" placeholder="Nome completo" value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="Especialidade *">
+                <input className="input" placeholder="Ex: Cabelo e Barba" value={form.especialidade} onChange={e => setForm(f => ({ ...f, especialidade: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="Comissão (%)">
+                <input className="input" type="number" min={0} max={100} value={form.comissao_percentual} onChange={e => setForm(f => ({ ...f, comissao_percentual: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="Valor fixo (R$)">
+                <input className="input" type="number" min={0} step={0.01} placeholder="opcional" value={form.valor_fixo} onChange={e => setForm(f => ({ ...f, valor_fixo: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="Documento (CPF)">
+                <input className="input" placeholder="000.000.000-00" value={form.documento} onChange={e => setForm(f => ({ ...f, documento: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="Telefone">
+                <input className="input" placeholder="(11) 99999-9999" value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="E-mail" span={2}>
+                <input className="input" type="email" placeholder="email@exemplo.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+              </Campo>
+            </FormGrade>
+          </ModalFormulario>
         )}
       </AnimatePresence>
     </div>

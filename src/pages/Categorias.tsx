@@ -1,15 +1,109 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, X, Tags, Wallet, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Tags, Wallet, Pencil, Trash2, Power } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { useModalKeyboard } from '../hooks/useModalKeyboard'
+import { formatDate } from '../lib/utils'
 import { usePermissoes } from '../hooks/usePermissoes'
+import ModalDetalhe, { Info, InfoGrade, SecaoDetalhe } from '../components/ui/ModalDetalhe'
+import ModalFormulario, { Campo, FormGrade } from '../components/ui/ModalFormulario'
 import type { CategoriaFinanceira, CategoriaFinanceiraTipo, FormaPagamentoCadastro } from '../types'
 
 type Secao = 'categorias' | 'formas'
 
 const CAT_FORM_INICIAL = { nome: '', tipo: 'despesa' as CategoriaFinanceiraTipo, categoria_pai_id: '' }
 const FORMA_FORM_INICIAL = { nome: '' }
+
+/** Botões do rodapé dos cards de categoria e forma de pagamento. */
+function AcoesCadastro({ ativo, onExcluir, onAlternarAtivo, onEditar }: {
+  ativo: boolean
+  onExcluir: () => void
+  onAlternarAtivo: () => void
+  onEditar: () => void
+}) {
+  return (
+    <>
+      <button className="btn btn-secondary" onClick={onExcluir}><Trash2 size={13} /> Excluir</button>
+      <button className="btn btn-secondary" onClick={onAlternarAtivo}><Power size={13} /> {ativo ? 'Desativar' : 'Ativar'}</button>
+      <button className="btn btn-primary" onClick={onEditar}><Pencil size={13} /> Editar</button>
+    </>
+  )
+}
+
+/** Card da categoria: tipo, onde ela fica no plano de contas e as subcategorias. */
+function CategoriaDetalhe({ categoria: c, categorias, podeEditar, onClose, onEditar, onAlternarAtivo, onExcluir }: {
+  categoria: CategoriaFinanceira
+  categorias: CategoriaFinanceira[]
+  podeEditar: boolean
+  onClose: () => void
+  onEditar: () => void
+  onAlternarAtivo: () => void
+  onExcluir: () => void
+}) {
+  const pai = c.categoria_pai_id ? categorias.find(x => x.id === c.categoria_pai_id) : undefined
+  const filhas = categorias.filter(x => x.categoria_pai_id === c.id)
+  const tipo = c.tipo === 'receita' ? 'Receita' : 'Despesa'
+
+  return (
+    <ModalDetalhe
+      largura={540}
+      icone={<Tags size={18} />}
+      titulo={c.nome}
+      subtitulo={<>
+        <span>{pai ? `${tipo} · dentro de ${pai.nome}` : tipo}</span>
+        <span className={`status-pill${c.ativo ? '' : ' inativo'}`}>{c.ativo ? 'Ativa' : 'Inativa'}</span>
+      </>}
+      onClose={onClose}
+      acoes={podeEditar ? <AcoesCadastro ativo={c.ativo} onExcluir={onExcluir} onAlternarAtivo={onAlternarAtivo} onEditar={onEditar} /> : undefined}
+    >
+      <InfoGrade>
+        <Info rotulo="Tipo">{tipo}</Info>
+        <Info rotulo="Nível">{filhas.length > 0 ? 'Sintética (agrupa outras)' : 'Analítica (recebe lançamentos)'}</Info>
+        <Info rotulo="Agrupada em">{pai?.nome}</Info>
+        <Info rotulo="Cadastrada em">{formatDate(c.created_at)}</Info>
+      </InfoGrade>
+
+      {!pai && (
+        <SecaoDetalhe titulo={`Subcategorias (${filhas.length})`}>
+          {filhas.length === 0 ? (
+            <p style={{ fontSize: '12px', color: '#555' }}>Nenhuma. Os lançamentos vão direto nesta categoria.</p>
+          ) : (
+            <div className="chip-lista">
+              {filhas.map(f => (
+                <span key={f.id} className={`chip${f.ativo ? '' : ' fraco'}`} title={f.ativo ? undefined : 'Inativa'}>{f.nome}</span>
+              ))}
+            </div>
+          )}
+        </SecaoDetalhe>
+      )}
+    </ModalDetalhe>
+  )
+}
+
+/** Card da forma de pagamento. */
+function FormaDetalhe({ forma: f, podeEditar, onClose, onEditar, onAlternarAtivo, onExcluir }: {
+  forma: FormaPagamentoCadastro
+  podeEditar: boolean
+  onClose: () => void
+  onEditar: () => void
+  onAlternarAtivo: () => void
+  onExcluir: () => void
+}) {
+  return (
+    <ModalDetalhe
+      largura={540}
+      icone={<Wallet size={18} />}
+      titulo={f.nome}
+      subtitulo={<span className={`status-pill${f.ativo ? '' : ' inativo'}`}>{f.ativo ? 'Ativa' : 'Inativa'}</span>}
+      onClose={onClose}
+      acoes={podeEditar ? <AcoesCadastro ativo={f.ativo} onExcluir={onExcluir} onAlternarAtivo={onAlternarAtivo} onEditar={onEditar} /> : undefined}
+    >
+      <InfoGrade>
+        <Info rotulo="Situação">{f.ativo ? 'Aparece para escolher na baixa das contas' : 'Não aparece para escolher'}</Info>
+        <Info rotulo="Cadastrada em">{formatDate(f.created_at)}</Info>
+      </InfoGrade>
+    </ModalDetalhe>
+  )
+}
 
 export default function Categorias() {
   const { podeEditar: podeEditarTela } = usePermissoes()
@@ -20,11 +114,13 @@ export default function Categorias() {
   const [showCatModal, setShowCatModal] = useState(false)
   const [catEditando, setCatEditando] = useState<CategoriaFinanceira | null>(null)
   const [catForm, setCatForm] = useState(CAT_FORM_INICIAL)
+  const [catAbertaId, setCatAbertaId] = useState<string | null>(null)
 
   const [formas, setFormas] = useState<FormaPagamentoCadastro[]>([])
   const [showFormaModal, setShowFormaModal] = useState(false)
   const [formaEditando, setFormaEditando] = useState<FormaPagamentoCadastro | null>(null)
   const [formaForm, setFormaForm] = useState(FORMA_FORM_INICIAL)
+  const [formaAbertaId, setFormaAbertaId] = useState<string | null>(null)
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -40,12 +136,16 @@ export default function Categorias() {
 
   useEffect(() => { carregar() }, [])
 
+  const catAberta = catAbertaId ? categorias.find(c => c.id === catAbertaId) ?? null : null
+  const formaAberta = formaAbertaId ? formas.find(f => f.id === formaAbertaId) ?? null : null
+
   function abrirNovaCategoria() {
     setCatEditando(null); setCatForm(CAT_FORM_INICIAL); setError(''); setShowCatModal(true)
   }
   function abrirEditarCategoria(c: CategoriaFinanceira) {
     setCatEditando(c); setCatForm({ nome: c.nome, tipo: c.tipo, categoria_pai_id: c.categoria_pai_id ?? '' }); setError(''); setShowCatModal(true)
   }
+  function fecharCategoria() { setShowCatModal(false); setError('') }
 
   async function salvarCategoria() {
     if (!catForm.nome.trim()) { setError('Nome é obrigatório.'); return }
@@ -67,6 +167,7 @@ export default function Categorias() {
 
   async function excluirCategoria(c: CategoriaFinanceira) {
     if (!window.confirm(`Excluir a categoria "${c.nome}"? Contas que já usam essa categoria continuam existindo, só perdem o vínculo.`)) return
+    setCatAbertaId(null)
     const { error: err } = await supabase.from('categorias_financeiras').delete().eq('id', c.id)
     if (err) { setError(err.message); return }
     carregar()
@@ -78,6 +179,7 @@ export default function Categorias() {
   function abrirEditarForma(f: FormaPagamentoCadastro) {
     setFormaEditando(f); setFormaForm({ nome: f.nome }); setError(''); setShowFormaModal(true)
   }
+  function fecharForma() { setShowFormaModal(false); setError('') }
 
   async function salvarForma() {
     if (!formaForm.nome.trim()) { setError('Nome é obrigatório.'); return }
@@ -98,6 +200,7 @@ export default function Categorias() {
 
   async function excluirForma(f: FormaPagamentoCadastro) {
     if (!window.confirm(`Excluir a forma de pagamento "${f.nome}"? Contas que já usam ela continuam existindo, só perdem o vínculo.`)) return
+    setFormaAbertaId(null)
     const { error: err } = await supabase.from('formas_pagamento').delete().eq('id', f.id)
     if (err) { setError(err.message); return }
     carregar()
@@ -105,9 +208,6 @@ export default function Categorias() {
 
   const receitas = categorias.filter(c => c.tipo === 'receita')
   const despesas = categorias.filter(c => c.tipo === 'despesa')
-
-  const modalCatRef = useModalKeyboard(showCatModal, () => setShowCatModal(false), salvarCategoria)
-  const modalFormaRef = useModalKeyboard(showFormaModal, () => setShowFormaModal(false), salvarForma)
 
   return (
     <div className="page">
@@ -149,7 +249,7 @@ export default function Categorias() {
         ))}
       </div>
 
-      {error && <p style={{ fontSize: '12px', color: '#666', marginBottom: '16px' }}>{error}</p>}
+      {error && !showCatModal && !showFormaModal && <p style={{ fontSize: '12px', color: '#666', marginBottom: '16px' }}>{error}</p>}
 
       <AnimatePresence mode="wait">
         {secao === 'categorias' ? (
@@ -159,9 +259,9 @@ export default function Categorias() {
             ) : (
               <>
                 <p style={{ fontSize: '12px', color: '#555', margin: '0 0 8px' }}>Receitas</p>
-                <ListaCategorias itens={receitas} onEditar={abrirEditarCategoria} podeEditar={podeEditar} onToggle={toggleAtivoCategoria} onExcluir={excluirCategoria} vazio="Nenhuma categoria de receita." />
+                <ListaCategorias itens={receitas} onAbrir={c => setCatAbertaId(c.id)} onEditar={abrirEditarCategoria} podeEditar={podeEditar} onToggle={toggleAtivoCategoria} onExcluir={excluirCategoria} vazio="Nenhuma categoria de receita." />
                 <p style={{ fontSize: '12px', color: '#555', margin: '20px 0 8px' }}>Despesas</p>
-                <ListaCategorias itens={despesas} onEditar={abrirEditarCategoria} podeEditar={podeEditar} onToggle={toggleAtivoCategoria} onExcluir={excluirCategoria} vazio="Nenhuma categoria de despesa." />
+                <ListaCategorias itens={despesas} onAbrir={c => setCatAbertaId(c.id)} onEditar={abrirEditarCategoria} podeEditar={podeEditar} onToggle={toggleAtivoCategoria} onExcluir={excluirCategoria} vazio="Nenhuma categoria de despesa." />
               </>
             )}
           </motion.div>
@@ -183,29 +283,28 @@ export default function Categorias() {
               ) : formas.map((f, i) => (
                 <motion.div
                   key={f.id}
-                  className="list-row"
+                  className="list-row clicavel"
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
+                  onClick={() => setFormaAbertaId(f.id)}
                   style={{
                     display: 'grid', minWidth: '450px', gridTemplateColumns: '1fr 90px 130px',
                     padding: '12px 24px', alignItems: 'center',
                     borderBottom: i < formas.length - 1 ? '1px solid #1F1F1F' : 'none',
                   }}
+                  whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
                 >
                   <span style={{ fontSize: '13px', color: '#FFFFFF' }}>{f.nome}</span>
                   <button
-                    onClick={() => { if (podeEditar) toggleAtivoForma(f) }}
+                    className={`status-pill${f.ativo ? '' : ' inativo'}`}
+                    onClick={e => { e.stopPropagation(); if (podeEditar) toggleAtivoForma(f) }}
                     disabled={!podeEditar}
-                    style={{
-                      fontSize: '10px', padding: '3px 9px', borderRadius: '99px', width: 'fit-content',
-                      border: f.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
-                      background: 'transparent', color: f.ativo ? '#A3A3A3' : '#444', cursor: podeEditar ? 'pointer' : 'default',
-                    }}
+                    title={podeEditar ? (f.ativo ? 'Clique para desativar' : 'Clique para ativar') : undefined}
                   >
                     {f.ativo ? 'Ativa' : 'Inativa'}
                   </button>
                   <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                    {podeEditar && <button className="btn btn-icon" title="Editar" onClick={() => abrirEditarForma(f)}><Pencil size={12} /></button>}
-                    {podeEditar && <button className="btn btn-icon" title="Excluir" onClick={() => excluirForma(f)}><Trash2 size={12} /></button>}
+                    {podeEditar && <button className="btn btn-icon" title="Editar" onClick={e => { e.stopPropagation(); abrirEditarForma(f) }}><Pencil size={12} /></button>}
+                    {podeEditar && <button className="btn btn-icon" title="Excluir" onClick={e => { e.stopPropagation(); excluirForma(f) }}><Trash2 size={12} /></button>}
                   </div>
                 </motion.div>
               ))}
@@ -214,86 +313,96 @@ export default function Categorias() {
         )}
       </AnimatePresence>
 
-      {/* Modal categoria */}
+      {/* Cards de visualização */}
       <AnimatePresence>
-        {showCatModal && (
-          <motion.div
-            className="modal-overlay"
-            style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          >
-            <motion.div ref={modalCatRef} className="card" style={{ width: '100%', maxWidth: '400px', padding: '28px' }}
-              initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>{catEditando ? 'Editar Categoria' : 'Nova Categoria'}</h2>
-                <button className="btn btn-icon" onClick={() => setShowCatModal(false)}><X size={14} /></button>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div className="field">
-                  <label className="label">Nome *</label>
-                  <input className="input" placeholder="Ex: Marketing" value={catForm.nome} onChange={e => setCatForm(f => ({ ...f, nome: e.target.value }))} />
-                </div>
-                <div className="field">
-                  <label className="label">Tipo</label>
-                  <select className="input" value={catForm.tipo} onChange={e => setCatForm(f => ({ ...f, tipo: e.target.value as CategoriaFinanceiraTipo, categoria_pai_id: '' }))}>
-                    <option value="receita">Receita</option>
-                    <option value="despesa">Despesa</option>
-                  </select>
-                </div>
-                <div className="field">
-                  <label className="label">Conta sintética (agrupadora)</label>
-                  <select className="input" value={catForm.categoria_pai_id} onChange={e => setCatForm(f => ({ ...f, categoria_pai_id: e.target.value }))}>
-                    <option value="">Nenhuma — esta é uma conta de detalhe (analítica)</option>
-                    {categorias
-                      .filter(c => c.tipo === catForm.tipo && !c.categoria_pai_id && c.id !== catEditando?.id)
-                      .map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                  </select>
-                  <p style={{ fontSize: '11px', color: '#555', marginTop: '6px' }}>
-                    Deixe em branco para uma conta sintética (agrupa outras no DRE) ou vincule a uma para criar uma conta analítica (recebe lançamentos).
-                  </p>
-                </div>
-                {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
-                <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowCatModal(false)}>Cancelar (Esc)</button>
-                  <button className="btn btn-primary" style={{ flex: 1 }} onClick={salvarCategoria} disabled={saving}>
-                    {saving ? 'Salvando...' : `${catEditando ? 'Salvar' : 'Cadastrar'} (F10)`}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
+        {catAberta && (
+          <CategoriaDetalhe
+            key={catAberta.id}
+            categoria={catAberta}
+            categorias={categorias}
+            podeEditar={podeEditar}
+            onClose={() => setCatAbertaId(null)}
+            onEditar={() => { setCatAbertaId(null); abrirEditarCategoria(catAberta) }}
+            onAlternarAtivo={() => toggleAtivoCategoria(catAberta)}
+            onExcluir={() => excluirCategoria(catAberta)}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {formaAberta && (
+          <FormaDetalhe
+            key={formaAberta.id}
+            forma={formaAberta}
+            podeEditar={podeEditar}
+            onClose={() => setFormaAbertaId(null)}
+            onEditar={() => { setFormaAbertaId(null); abrirEditarForma(formaAberta) }}
+            onAlternarAtivo={() => toggleAtivoForma(formaAberta)}
+            onExcluir={() => excluirForma(formaAberta)}
+          />
         )}
       </AnimatePresence>
 
-      {/* Modal forma de pagamento */}
+      {/* Cadastro / edição de categoria */}
+      <AnimatePresence>
+        {showCatModal && (
+          <ModalFormulario
+            tamanho="pequeno"
+            icone={<Tags size={18} />}
+            titulo={catEditando ? 'Editar Categoria' : 'Nova Categoria'}
+            descricao={catEditando?.nome}
+            onClose={fecharCategoria}
+            onSalvar={salvarCategoria}
+            salvando={saving}
+            rotuloSalvar={catEditando ? 'Salvar' : 'Cadastrar'}
+            erro={error}
+          >
+            <FormGrade colunas={2}>
+              <Campo rotulo="Nome *">
+                <input className="input" placeholder="Ex: Marketing" value={catForm.nome} onChange={e => setCatForm(f => ({ ...f, nome: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="Tipo">
+                <select className="input" value={catForm.tipo} onChange={e => setCatForm(f => ({ ...f, tipo: e.target.value as CategoriaFinanceiraTipo, categoria_pai_id: '' }))}>
+                  <option value="receita">Receita</option>
+                  <option value="despesa">Despesa</option>
+                </select>
+              </Campo>
+              <Campo
+                rotulo="Conta sintética (agrupadora)"
+                span="total"
+                ajuda="Deixe em branco para uma conta sintética (agrupa outras no DRE) ou vincule a uma para criar uma conta analítica (recebe lançamentos)."
+              >
+                <select className="input" value={catForm.categoria_pai_id} onChange={e => setCatForm(f => ({ ...f, categoria_pai_id: e.target.value }))}>
+                  <option value="">Nenhuma — esta é uma conta de detalhe (analítica)</option>
+                  {categorias
+                    .filter(c => c.tipo === catForm.tipo && !c.categoria_pai_id && c.id !== catEditando?.id)
+                    .map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                </select>
+              </Campo>
+            </FormGrade>
+          </ModalFormulario>
+        )}
+      </AnimatePresence>
+
+      {/* Cadastro / edição de forma de pagamento */}
       <AnimatePresence>
         {showFormaModal && (
-          <motion.div
-            className="modal-overlay"
-            style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          <ModalFormulario
+            tamanho="pequeno"
+            icone={<Wallet size={18} />}
+            titulo={formaEditando ? 'Editar Forma de Pagamento' : 'Nova Forma de Pagamento'}
+            descricao={formaEditando ? formaEditando.nome : 'Aparece para escolher na baixa das contas a pagar e a receber.'}
+            onClose={fecharForma}
+            onSalvar={salvarForma}
+            salvando={saving}
+            rotuloSalvar={formaEditando ? 'Salvar' : 'Cadastrar'}
+            erro={error}
           >
-            <motion.div ref={modalFormaRef} className="card" style={{ width: '100%', maxWidth: '380px', padding: '28px' }}
-              initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>{formaEditando ? 'Editar Forma de Pagamento' : 'Nova Forma de Pagamento'}</h2>
-                <button className="btn btn-icon" onClick={() => setShowFormaModal(false)}><X size={14} /></button>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div className="field">
-                  <label className="label">Nome *</label>
-                  <input className="input" placeholder="Ex: Vale-refeição" value={formaForm.nome} onChange={e => setFormaForm({ nome: e.target.value })} />
-                </div>
-                {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
-                <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowFormaModal(false)}>Cancelar (Esc)</button>
-                  <button className="btn btn-primary" style={{ flex: 1 }} onClick={salvarForma} disabled={saving}>
-                    {saving ? 'Salvando...' : `${formaEditando ? 'Salvar' : 'Cadastrar'} (F10)`}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
+            <FormGrade colunas={2}>
+              <Campo rotulo="Nome *" span="total">
+                <input className="input" placeholder="Ex: Vale-refeição" value={formaForm.nome} onChange={e => setFormaForm({ nome: e.target.value })} />
+              </Campo>
+            </FormGrade>
+          </ModalFormulario>
         )}
       </AnimatePresence>
     </div>
@@ -311,9 +420,10 @@ function ordenarHierarquia(itens: CategoriaFinanceira[]): { c: CategoriaFinancei
   return resultado
 }
 
-function ListaCategorias({ itens, podeEditar, onEditar, onToggle, onExcluir, vazio }: {
+function ListaCategorias({ itens, podeEditar, onAbrir, onEditar, onToggle, onExcluir, vazio }: {
   itens: CategoriaFinanceira[]
   podeEditar: boolean
+  onAbrir: (c: CategoriaFinanceira) => void
   onEditar: (c: CategoriaFinanceira) => void
   onToggle: (c: CategoriaFinanceira) => void
   onExcluir: (c: CategoriaFinanceira) => void
@@ -327,31 +437,30 @@ function ListaCategorias({ itens, podeEditar, onEditar, onToggle, onExcluir, vaz
       ) : linhas.map(({ c, nivel }, i) => (
         <motion.div
           key={c.id}
-          className="list-row"
+          className="list-row clicavel"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
+          onClick={() => onAbrir(c)}
           style={{
             display: 'grid', minWidth: '450px', gridTemplateColumns: '1fr 90px 130px',
             padding: '12px 24px', alignItems: 'center',
             borderBottom: i < linhas.length - 1 ? '1px solid #1F1F1F' : 'none',
           }}
+          whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <span style={{ fontSize: '13px', color: nivel > 0 ? '#A3A3A3' : '#FFFFFF', fontWeight: nivel > 0 ? 400 : 600, paddingLeft: nivel > 0 ? '18px' : 0 }}>
             {nivel > 0 && '↳ '}{c.nome}
           </span>
           <button
-            onClick={() => { if (podeEditar) onToggle(c) }}
+            className={`status-pill${c.ativo ? '' : ' inativo'}`}
+            onClick={e => { e.stopPropagation(); if (podeEditar) onToggle(c) }}
             disabled={!podeEditar}
-            style={{
-              fontSize: '10px', padding: '3px 9px', borderRadius: '99px', width: 'fit-content',
-              border: c.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
-              background: 'transparent', color: c.ativo ? '#A3A3A3' : '#444', cursor: podeEditar ? 'pointer' : 'default',
-            }}
+            title={podeEditar ? (c.ativo ? 'Clique para desativar' : 'Clique para ativar') : undefined}
           >
             {c.ativo ? 'Ativa' : 'Inativa'}
           </button>
           <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-            {podeEditar && <button className="btn btn-icon" title="Editar" onClick={() => onEditar(c)}><Pencil size={12} /></button>}
-            {podeEditar && <button className="btn btn-icon" title="Excluir" onClick={() => onExcluir(c)}><Trash2 size={12} /></button>}
+            {podeEditar && <button className="btn btn-icon" title="Editar" onClick={e => { e.stopPropagation(); onEditar(c) }}><Pencil size={12} /></button>}
+            {podeEditar && <button className="btn btn-icon" title="Excluir" onClick={e => { e.stopPropagation(); onExcluir(c) }}><Trash2 size={12} /></button>}
           </div>
         </motion.div>
       ))}

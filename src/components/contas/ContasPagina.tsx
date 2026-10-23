@@ -12,6 +12,7 @@ import FiltroPeriodo from '../ui/FiltroPeriodo'
 import Checkbox from '../ui/Checkbox'
 import BarraSelecao, { ItemSelecao } from '../ui/BarraSelecao'
 import ModalDetalhe, { Info, InfoGrade, SecaoDetalhe } from '../ui/ModalDetalhe'
+import ModalFormulario, { Campo, FormGrade } from '../ui/ModalFormulario'
 import type { CategoriaFinanceira, ContaPagar, ContaReceber, FormaPagamentoCadastro } from '../../types'
 
 export type TipoConta = 'pagar' | 'receber'
@@ -194,7 +195,6 @@ export default function ContasPagina({ tipo }: { tipo: TipoConta }) {
     carregar()
   }
 
-  const modalRef = useModalKeyboard(showModal, () => setShowModal(false), handleSave)
   const modalBaixaRef = useModalKeyboard(!!contaBaixa, () => setContaBaixa(null), confirmarBaixa)
 
   const colunas = '22px minmax(200px, 1fr) minmax(110px, 170px) 100px 110px 84px 76px'
@@ -384,72 +384,56 @@ export default function ContasPagina({ tipo }: { tipo: TipoConta }) {
 
       {/* Modal: Nova Conta */}
       <AnimatePresence>
-        {showModal && (
-          <motion.div
-            className="modal-overlay"
-            style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          >
-            <motion.div ref={modalRef} className="card" style={{ width: '100%', maxWidth: '460px', padding: '28px', maxHeight: '85vh', overflowY: 'auto' }}
-              initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>{cfg.novoTitulo}</h2>
-                <button className="btn btn-icon" onClick={() => setShowModal(false)}><X size={14} /></button>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div className="field">
-                  <label className="label">Descrição *</label>
+        {showModal && (() => {
+          const parcelas = Math.max(1, Math.floor(Number(form.total_parcelas) || 1))
+          const valor = Number(form.valor) || 0
+          return (
+            <ModalFormulario
+              icone={<Icone size={18} />}
+              titulo={cfg.novoTitulo}
+              descricao="Com mais de uma parcela, o valor é dividido em partes iguais, com vencimento a cada mês."
+              onClose={() => setShowModal(false)}
+              onSalvar={handleSave}
+              salvando={saving}
+              rotuloSalvar="Cadastrar"
+              erro={error}
+            >
+              <FormGrade>
+                <Campo rotulo="Descrição *" span={2}>
                   <input className="input" placeholder={cfg.placeholder} value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))} />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div className="field">
-                    <label className="label">{cfg.pessoaRotulo}</label>
-                    <select className="input" value={form.pessoa_id} onChange={e => setForm(f => ({ ...f, pessoa_id: e.target.value }))}>
-                      <option value="">Nenhum</option>
-                      {pessoas.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-                    </select>
-                  </div>
-                  <div className="field">
-                    <label className="label">Categoria</label>
-                    <select className="input" value={form.categoria_id} onChange={e => setForm(f => ({ ...f, categoria_id: e.target.value }))}>
-                      <option value="">Nenhuma</option>
-                      {categoriasSelecionaveis.map(c => (
-                        <option key={c.id} value={c.id}>
-                          {c.categoria_pai_id ? `${nomeCategoriaPai(c.categoria_pai_id)} › ${c.nome}` : c.nome}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-                  <div className="field">
-                    <label className="label">Valor total *</label>
-                    <input className="input" type="number" min={0} step={0.01} placeholder="0,00" value={form.valor} onChange={e => setForm(f => ({ ...f, valor: e.target.value }))} />
-                  </div>
-                  <div className="field">
-                    <label className="label">1º Vencimento</label>
-                    <input className="input" type="date" value={form.data_vencimento} onChange={e => setForm(f => ({ ...f, data_vencimento: e.target.value }))} />
-                  </div>
-                  <div className="field">
-                    <label className="label">Parcelas</label>
-                    <input className="input" type="number" min={1} max={36} value={form.total_parcelas} onChange={e => setForm(f => ({ ...f, total_parcelas: e.target.value }))} />
-                  </div>
-                </div>
-                <div className="field">
-                  <label className="label">Observação</label>
+                </Campo>
+                <Campo rotulo="Valor total *">
+                  <input className="input" type="number" min={0} step={0.01} placeholder="0,00" value={form.valor} onChange={e => setForm(f => ({ ...f, valor: e.target.value }))} />
+                </Campo>
+                <Campo rotulo={cfg.pessoaRotulo}>
+                  <select className="input" value={form.pessoa_id} onChange={e => setForm(f => ({ ...f, pessoa_id: e.target.value }))}>
+                    <option value="">Nenhum</option>
+                    {pessoas.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                  </select>
+                </Campo>
+                <Campo rotulo="Categoria">
+                  <select className="input" value={form.categoria_id} onChange={e => setForm(f => ({ ...f, categoria_id: e.target.value }))}>
+                    <option value="">Nenhuma</option>
+                    {categoriasSelecionaveis.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.categoria_pai_id ? `${nomeCategoriaPai(c.categoria_pai_id)} › ${c.nome}` : c.nome}
+                      </option>
+                    ))}
+                  </select>
+                </Campo>
+                <Campo rotulo="1º Vencimento">
+                  <input className="input" type="date" value={form.data_vencimento} onChange={e => setForm(f => ({ ...f, data_vencimento: e.target.value }))} />
+                </Campo>
+                <Campo rotulo="Parcelas" ajuda={parcelas > 1 && valor > 0 ? `${parcelas}x de ${formatCurrency(valor / parcelas)}` : undefined}>
+                  <input className="input" type="number" min={1} max={36} value={form.total_parcelas} onChange={e => setForm(f => ({ ...f, total_parcelas: e.target.value }))} />
+                </Campo>
+                <Campo rotulo="Observação" span={2}>
                   <input className="input" placeholder="opcional" value={form.observacao} onChange={e => setForm(f => ({ ...f, observacao: e.target.value }))} />
-                </div>
-                {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
-                <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancelar (Esc)</button>
-                  <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSave} disabled={saving}>
-                    {saving ? 'Salvando...' : 'Cadastrar (F10)'}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
+                </Campo>
+              </FormGrade>
+            </ModalFormulario>
+          )
+        })()}
       </AnimatePresence>
 
       {/* Modal: Baixa */}

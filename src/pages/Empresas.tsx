@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, X, Building2, Copy, Check, ChevronRight } from 'lucide-react'
+import { Plus, Building2, Copy, Check, ChevronRight } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatDate } from '../lib/utils'
-import { useModalKeyboard } from '../hooks/useModalKeyboard'
+import ModalFormulario, { Campo, FormGrade, SecaoForm } from '../components/ui/ModalFormulario'
 import type { Empresa } from '../types'
 
 const FORM_INICIAL = { nome: '', cnpj: '', telefone: '', email: '', admin_nome: '', admin_email: '', admin_senha: '' }
@@ -68,8 +68,6 @@ export default function Empresas() {
     setEmpresas(prev => prev.map(e => e.id === id ? { ...e, ativo: !ativo } : e))
     await supabase.from('empresas').update({ ativo: !ativo }).eq('id', id)
   }
-
-  const modalRef = useModalKeyboard(showModal, () => setShowModal(false), handleSave)
 
   return (
     <div className="page">
@@ -157,64 +155,42 @@ export default function Empresas() {
 
       <AnimatePresence>
         {showModal && (
-          <motion.div
-            className="modal-overlay"
-            style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          <ModalFormulario
+            icone={<Building2 size={18} />}
+            titulo="Nova Loja"
+            descricao="A loja já nasce com configurações, categorias financeiras e formas de pagamento padrão."
+            onClose={() => setShowModal(false)}
+            onSalvar={handleSave}
+            salvando={saving}
+            rotuloSalvar="Cadastrar"
+            erro={error}
           >
-            <motion.div ref={modalRef} className="card" style={{ width: '100%', maxWidth: '460px', padding: '28px', maxHeight: 'calc(100dvh - 40px)', overflowY: 'auto' }}
-              initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>Nova Loja</h2>
-                <button className="btn btn-icon" onClick={() => setShowModal(false)}><X size={14} /></button>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div className="field">
-                  <label className="label">Nome da loja *</label>
-                  <input className="input" placeholder="Ex: Barbearia do João" value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} />
-                </div>
-                <div className="form-grid-2">
-                  <div className="field">
-                    <label className="label">CNPJ</label>
-                    <input className="input" placeholder="opcional" value={form.cnpj} onChange={e => setForm(f => ({ ...f, cnpj: e.target.value }))} />
-                  </div>
-                  <div className="field">
-                    <label className="label">Telefone</label>
-                    <input className="input" placeholder="opcional" value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} />
-                  </div>
-                </div>
-                <div className="field">
-                  <label className="label">E-mail de contato</label>
-                  <input className="input" type="email" placeholder="opcional" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
-                </div>
-                <div className="secao-separador">
-                  <p className="secao-titulo">Administrador da loja</p>
-                  <p className="perm-ajuda">Opcional. Ele entra com este e-mail e senha e cadastra o resto da equipe pelo sistema.</p>
-                </div>
-                <div className="field">
-                  <label className="label">Nome</label>
-                  <input className="input" placeholder="Ex: João Silva" value={form.admin_nome} onChange={e => setForm(f => ({ ...f, admin_nome: e.target.value }))} />
-                </div>
-                <div className="form-grid-2">
-                  <div className="field">
-                    <label className="label">E-mail de acesso</label>
-                    <input className="input" type="email" autoComplete="off" placeholder="dono@loja.com" value={form.admin_email} onChange={e => setForm(f => ({ ...f, admin_email: e.target.value }))} />
-                  </div>
-                  <div className="field">
-                    <label className="label">Senha inicial</label>
-                    <input className="input" type="password" autoComplete="new-password" placeholder="Mín. 6 caracteres" value={form.admin_senha} onChange={e => setForm(f => ({ ...f, admin_senha: e.target.value }))} />
-                  </div>
-                </div>
-                {error && <p className="aviso-erro">{error}</p>}
-                <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancelar (Esc)</button>
-                  <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSave} disabled={saving}>
-                    {saving ? 'Salvando...' : 'Cadastrar (F10)'}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
+            <FormGrade>
+              <SecaoForm titulo="Loja" />
+              <Campo rotulo="Nome da loja *" span={2}>
+                <input className="input" placeholder="Ex: Barbearia do João" value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="CNPJ">
+                <input className="input" placeholder="opcional" value={form.cnpj} onChange={e => setForm(f => ({ ...f, cnpj: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="Telefone">
+                <input className="input" placeholder="opcional" value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="E-mail de contato" span={2}>
+                <input className="input" type="email" placeholder="opcional" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+              </Campo>
+              <SecaoForm titulo="Administrador da loja" ajuda="Opcional. Ele entra com este e-mail e senha e cadastra o resto da equipe pelo sistema." />
+              <Campo rotulo="Nome">
+                <input className="input" placeholder="Ex: João Silva" value={form.admin_nome} onChange={e => setForm(f => ({ ...f, admin_nome: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="E-mail de acesso">
+                <input className="input" type="email" autoComplete="off" placeholder="dono@loja.com" value={form.admin_email} onChange={e => setForm(f => ({ ...f, admin_email: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="Senha inicial">
+                <input className="input" type="password" autoComplete="new-password" placeholder="Mín. 6 caracteres" value={form.admin_senha} onChange={e => setForm(f => ({ ...f, admin_senha: e.target.value }))} />
+              </Campo>
+            </FormGrade>
+          </ModalFormulario>
         )}
       </AnimatePresence>
     </div>

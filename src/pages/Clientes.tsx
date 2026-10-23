@@ -1,21 +1,112 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Search, X, Phone, Pencil } from 'lucide-react'
+import { Plus, Search, X, Phone, Pencil, Power, UserRound } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { formatDate, initials } from '../lib/utils'
-import { useModalKeyboard } from '../hooks/useModalKeyboard'
+import { formatDate, formatTime, initials } from '../lib/utils'
 import { usePermissoes } from '../hooks/usePermissoes'
-import type { Cliente } from '../types'
+import ModalDetalhe, { Info, InfoGrade, SecaoDetalhe } from '../components/ui/ModalDetalhe'
+import ModalFormulario, { Campo, FormGrade } from '../components/ui/ModalFormulario'
+import { STATUS_AGENDA } from '../components/AgendamentoDetalheModal'
+import type { Agendamento, Cliente } from '../types'
 
 const FORM_INICIAL = { nome: '', telefone: '', email: '', cpf: '', data_nascimento: '', endereco: '', observacoes: '' }
 
+/** Idade a partir de "AAAA-MM-DD" (sem passar por fuso). */
+function idadeDe(nascimento?: string): number | null {
+  if (!nascimento) return null
+  const [ano, mes, dia] = nascimento.split('-').map(Number)
+  if (!ano || !mes || !dia) return null
+  const hoje = new Date()
+  let idade = hoje.getFullYear() - ano
+  if (hoje.getMonth() + 1 < mes || (hoje.getMonth() + 1 === mes && hoje.getDate() < dia)) idade--
+  return idade >= 0 && idade < 130 ? idade : null
+}
+
+/** Card do cliente: dados do cadastro e os últimos atendimentos. */
+function ClienteDetalhe({ cliente: c, podeEditar, verAgenda, onClose, onEditar, onAlternarAtivo }: {
+  cliente: Cliente
+  podeEditar: boolean
+  verAgenda: boolean
+  onClose: () => void
+  onEditar: () => void
+  onAlternarAtivo: () => void
+}) {
+  const [atendimentos, setAtendimentos] = useState<Agendamento[] | null>(null)
+
+  useEffect(() => {
+    if (!verAgenda) return
+    supabase.from('agendamentos')
+      .select('id, data_hora, status, servico:servicos(nome), profissional:profissionais(nome)')
+      .eq('cliente_id', c.id).order('data_hora', { ascending: false }).limit(5)
+      .then(({ data }) => setAtendimentos((data ?? []) as unknown as Agendamento[]))
+  }, [c.id, verAgenda])
+
+  const idade = idadeDe(c.data_nascimento)
+
+  return (
+    <ModalDetalhe
+      largura={520}
+      icone={initials(c.nome)}
+      titulo={c.nome}
+      subtitulo={<>
+        <span>{c.telefone}</span>
+        <span className={`status-pill${c.ativo ? '' : ' inativo'}`}>{c.ativo ? 'Ativo' : 'Inativo'}</span>
+      </>}
+      onClose={onClose}
+      acoes={podeEditar ? (
+        <>
+          <button className="btn btn-secondary" onClick={onAlternarAtivo}><Power size={13} /> {c.ativo ? 'Desativar' : 'Ativar'}</button>
+          <button className="btn btn-primary" onClick={onEditar}><Pencil size={13} /> Editar</button>
+        </>
+      ) : undefined}
+    >
+      <InfoGrade>
+        <Info rotulo="Telefone">{c.telefone}</Info>
+        <Info rotulo="CPF">{c.cpf}</Info>
+        <Info rotulo="E-mail" largo>{c.email}</Info>
+        <Info rotulo="Nascimento">
+          {c.data_nascimento ? `${formatDate(c.data_nascimento)}${idade != null ? ` · ${idade} anos` : ''}` : undefined}
+        </Info>
+        <Info rotulo="Cliente desde">{formatDate(c.created_at)}</Info>
+        <Info rotulo="Endereço" largo>{c.endereco}</Info>
+        <Info rotulo="Observações" largo>{c.observacoes}</Info>
+      </InfoGrade>
+
+      {verAgenda && (
+        <SecaoDetalhe titulo="Últimos atendimentos">
+          {atendimentos === null ? (
+            <p style={{ fontSize: '12px', color: '#555' }}>Carregando...</p>
+          ) : atendimentos.length === 0 ? (
+            <p style={{ fontSize: '12px', color: '#555' }}>Nenhum agendamento para este cliente.</p>
+          ) : (
+            <div className="detalhe-lista">
+              {atendimentos.map(a => (
+                <div key={a.id} className="detalhe-lista-item">
+                  <span className="valor-num" style={{ color: '#FFFFFF', flexShrink: 0 }}>
+                    {formatDate(a.data_hora)} <span style={{ color: '#666' }}>{formatTime(a.data_hora)}</span>
+                  </span>
+                  <span className="texto-cortado" style={{ flex: 1 }}>
+                    {[a.servico?.nome, a.profissional?.nome].filter(Boolean).join(' · ') || '—'}
+                  </span>
+                  <span className={STATUS_AGENDA[a.status]?.cls ?? 'badge badge-pending'}>{STATUS_AGENDA[a.status]?.label ?? a.status}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </SecaoDetalhe>
+      )}
+    </ModalDetalhe>
+  )
+}
+
 export default function Clientes() {
-  const { podeEditar: podeEditarTela } = usePermissoes()
+  const { podeEditar: podeEditarTela, podeVer } = usePermissoes()
   const podeEditar = podeEditarTela('clientes')
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [mostrarInativos, setMostrarInativos] = useState(false)
+  const [abertoId, setAbertoId] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState(FORM_INICIAL)
@@ -33,6 +124,7 @@ export default function Clientes() {
       c.nome.toLowerCase().includes(search.toLowerCase()) ||
       c.telefone.includes(search)
     )
+  const clienteAberto = abertoId ? clientes.find(c => c.id === abertoId) ?? null : null
 
   async function handleSave() {
     if (!form.nome.trim() || !form.telefone.trim()) {
@@ -89,8 +181,6 @@ export default function Clientes() {
     setClientes(prev => prev.map(c => c.id === id ? { ...c, ativo: !ativo } : c))
     await supabase.from('clientes').update({ ativo: !ativo }).eq('id', id)
   }
-
-  const modalRef = useModalKeyboard(showModal, fecharModal, handleSave)
 
   return (
     <div className="page">
@@ -166,10 +256,11 @@ export default function Clientes() {
         ) : filtered.map((c, i) => (
           <motion.div
             key={c.id}
-            className="list-row"
+            className="list-row clicavel"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: i * 0.03 }}
+            transition={{ delay: Math.min(i, 20) * 0.02 }}
+            onClick={() => setAbertoId(c.id)}
             style={{
               display: 'grid',
               minWidth: '720px', gridTemplateColumns: '1fr 150px minmax(150px, 200px) 96px 70px 36px', gap: '12px',
@@ -180,7 +271,7 @@ export default function Clientes() {
             }}
             whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
               <div style={{
                 width: '32px', height: '32px',
                 borderRadius: '50%',
@@ -192,19 +283,19 @@ export default function Clientes() {
               }}>
                 {initials(c.nome)}
               </div>
-              <span style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{c.nome}</span>
+              <span className="texto-cortado" style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{c.nome}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#A3A3A3' }}>
               <Phone size={11} style={{ color: '#444' }} /> {c.telefone}
             </div>
-            <div style={{ fontSize: '13px', color: '#555' }}>
+            <div className="texto-cortado" style={{ fontSize: '13px', color: '#555' }}>
               {c.email ?? <span style={{ color: '#333' }}>—</span>}
             </div>
             <div style={{ fontSize: '12px', color: '#444' }}>{formatDate(c.created_at)}</div>
             <div>
               <button
                 className={`status-pill${c.ativo ? '' : ' inativo'}`}
-                onClick={() => { if (podeEditar) toggleAtivo(c.id, c.ativo) }}
+                onClick={e => { e.stopPropagation(); if (podeEditar) toggleAtivo(c.id, c.ativo) }}
                 disabled={!podeEditar}
                 title={podeEditar ? (c.ativo ? 'Clique para desativar' : 'Clique para ativar') : undefined}
               >
@@ -212,7 +303,7 @@ export default function Clientes() {
               </button>
             </div>
             {podeEditar ? (
-              <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicao(c)}>
+              <button className="btn btn-icon" title="Editar" onClick={e => { e.stopPropagation(); abrirEdicao(c) }}>
                 <Pencil size={12} />
               </button>
             ) : <span />}
@@ -229,7 +320,9 @@ export default function Clientes() {
               className="card entity-card"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
+              transition={{ delay: Math.min(i, 20) * 0.04 }}
+              onClick={() => setAbertoId(c.id)}
+              style={{ cursor: 'pointer' }}
             >
               <div className="entity-header" style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
                 <div className="entity-avatar" style={{
@@ -274,10 +367,10 @@ export default function Clientes() {
                 </div>
                 {podeEditar && (
                   <div style={{ display: 'flex', gap: '6px' }}>
-                    <button className="btn btn-icon" title="Editar" onClick={() => abrirEdicao(c)}>
+                    <button className="btn btn-icon" title="Editar" onClick={e => { e.stopPropagation(); abrirEdicao(c) }}>
                       <Pencil size={12} />
                     </button>
-                    <button className="btn btn-secondary btn-sm" onClick={() => toggleAtivo(c.id, c.ativo)}>
+                    <button className="btn btn-secondary btn-sm" onClick={e => { e.stopPropagation(); toggleAtivo(c.id, c.ativo) }}>
                       {c.ativo ? 'Desativar' : 'Ativar'}
                     </button>
                   </div>
@@ -293,67 +386,58 @@ export default function Clientes() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Card do cliente */}
+      <AnimatePresence>
+        {clienteAberto && (
+          <ClienteDetalhe
+            key={clienteAberto.id}
+            cliente={clienteAberto}
+            podeEditar={podeEditar}
+            verAgenda={podeVer('agenda')}
+            onClose={() => setAbertoId(null)}
+            onEditar={() => { setAbertoId(null); abrirEdicao(clienteAberto) }}
+            onAlternarAtivo={() => toggleAtivo(clienteAberto.id, clienteAberto.ativo)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Cadastro / edição */}
       <AnimatePresence>
         {showModal && (
-          <motion.div
-            className="modal-overlay"
-            style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          <ModalFormulario
+            icone={<UserRound size={18} />}
+            titulo={editId ? 'Editar Cliente' : 'Novo Cliente'}
+            descricao={editId ? clientes.find(c => c.id === editId)?.nome : 'Nome e telefone são obrigatórios; o resto pode ser preenchido depois.'}
+            onClose={fecharModal}
+            onSalvar={handleSave}
+            salvando={saving}
+            rotuloSalvar={editId ? 'Salvar' : 'Cadastrar'}
+            erro={error}
           >
-            <motion.div
-              ref={modalRef}
-              className="card"
-              style={{ width: '100%', maxWidth: '460px', padding: '28px', maxHeight: '85vh', overflowY: 'auto' }}
-              initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>{editId ? 'Editar Cliente' : 'Novo Cliente'}</h2>
-                <button className="btn btn-icon" onClick={fecharModal}><X size={14} /></button>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div className="field">
-                  <label className="label">Nome *</label>
-                  <input className="input" placeholder="Nome completo" value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div className="field">
-                    <label className="label">Telefone *</label>
-                    <input className="input" placeholder="(11) 99999-9999" value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} />
-                  </div>
-                  <div className="field">
-                    <label className="label">CPF</label>
-                    <input className="input" placeholder="000.000.000-00" value={form.cpf} onChange={e => setForm(f => ({ ...f, cpf: e.target.value }))} />
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div className="field">
-                    <label className="label">E-mail</label>
-                    <input className="input" type="email" placeholder="email@exemplo.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
-                  </div>
-                  <div className="field">
-                    <label className="label">Nascimento</label>
-                    <input className="input" type="date" value={form.data_nascimento} onChange={e => setForm(f => ({ ...f, data_nascimento: e.target.value }))} />
-                  </div>
-                </div>
-                <div className="field">
-                  <label className="label">Endereço</label>
-                  <input className="input" placeholder="Rua, número, bairro..." value={form.endereco} onChange={e => setForm(f => ({ ...f, endereco: e.target.value }))} />
-                </div>
-                <div className="field">
-                  <label className="label">Observações</label>
-                  <input className="input" placeholder="Preferências, alergias, etc." value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))} />
-                </div>
-                {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
-                <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={fecharModal}>Cancelar (Esc)</button>
-                  <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSave} disabled={saving}>
-                    {saving ? 'Salvando...' : `${editId ? 'Salvar' : 'Cadastrar'} (F10)`}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
+            <FormGrade>
+              <Campo rotulo="Nome *" span={2}>
+                <input className="input" placeholder="Nome completo" value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="Telefone *">
+                <input className="input" placeholder="(11) 99999-9999" value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="CPF">
+                <input className="input" placeholder="000.000.000-00" value={form.cpf} onChange={e => setForm(f => ({ ...f, cpf: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="E-mail">
+                <input className="input" type="email" placeholder="email@exemplo.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="Nascimento">
+                <input className="input" type="date" value={form.data_nascimento} onChange={e => setForm(f => ({ ...f, data_nascimento: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="Endereço" span="total">
+                <input className="input" placeholder="Rua, número, bairro..." value={form.endereco} onChange={e => setForm(f => ({ ...f, endereco: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="Observações" span="total">
+                <textarea className="input textarea" placeholder="Preferências, alergias, etc." value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))} />
+              </Campo>
+            </FormGrade>
+          </ModalFormulario>
         )}
       </AnimatePresence>
     </div>

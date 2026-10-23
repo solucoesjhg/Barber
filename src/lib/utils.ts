@@ -47,11 +47,13 @@ export function formatDateTime(date: string | Date): string {
   return `${formatDate(d)} às ${formatTime(d)}`
 }
 
+/** Iniciais das 2 primeiras palavras, pulando o que não é letra/número ("Paula (Caixa)" vira "PC"). */
 export function initials(name: string): string {
   return name
-    .split(' ')
+    .split(/\s+/)
+    .map((n) => n.match(/[\p{L}\p{N}]/u)?.[0] ?? '')
+    .filter(Boolean)
     .slice(0, 2)
-    .map((n) => n[0])
     .join('')
     .toUpperCase()
 }
