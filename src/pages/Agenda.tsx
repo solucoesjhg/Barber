@@ -11,6 +11,7 @@ import { dataLocalISO } from '../lib/periodo'
 import { usePermissoes } from '../hooks/usePermissoes'
 import AgendamentoDetalheModal, { STATUS_AGENDA, vendaDoAgendamento } from '../components/AgendamentoDetalheModal'
 import VendaDetalheModal from '../components/VendaDetalheModal'
+import VendaAgendamentoModal from '../components/VendaAgendamentoModal'
 import ModalFormulario, { Campo, FormGrade } from '../components/ui/ModalFormulario'
 import type { Agendamento, AgendamentoStatus, Cliente, Profissional, Servico } from '../types'
 
@@ -260,7 +261,7 @@ function ListaView({
                 {gerarVenda && (
                   <button
                     className={ag.status === 'em_atendimento' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
-                    title="Abre Vendas com o cliente, o serviço e o profissional deste atendimento"
+                    title="Registra a venda deste atendimento: só falta escolher a forma de pagamento"
                     onClick={parar(() => onGerarVenda(ag.id))}
                   >
                     <ShoppingCart size={12} /> Gerar venda
@@ -677,9 +678,13 @@ export default function Agenda() {
   const { podeEditar: podeEditarTela, verVendasOutros } = usePermissoes()
   const podeEditar = podeEditarTela('agenda')
   const podeVender = podeEditarTela('pdv')
+  const podeTirarComissao = podeEditarTela('comissoes')
   const navigate = useNavigate()
   const [agAbertoId, setAgAbertoId] = useState<string | null>(null)
   const [vendaAbertaId, setVendaAbertaId] = useState<string | null>(null)
+  // "Gerar venda": modal de venda do atendimento e o aviso depois de vender.
+  const [vendaAgId, setVendaAgId] = useState<string | null>(null)
+  const [vendaFeita, setVendaFeita] = useState<{ comandaId: string; total: number; vinculada: boolean } | null>(null)
   const [viewMode, setViewMode]     = useState<ViewMode>('lista')
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [calBase, setCalBase]       = useState(new Date()) // week/month navigation base
@@ -777,14 +782,30 @@ export default function Agenda() {
       .then(({ data }) => { if (data) setAgenda(data as Agendamento[]) })
   }
 
-  // Abre Vendas já com o cliente, o serviço e o profissional do atendimento;
-  // ao finalizar, a venda fica ligada ao agendamento e ele vira concluído.
+  // "Gerar venda" registra a venda ali mesmo (só falta a forma de
+  // pagamento); a venda fica ligada ao agendamento e ele vira concluído.
   function gerarVenda(id: string) {
     setAgAbertoId(null)
+    setVendaAgId(id)
+  }
+
+  // Para vender outros itens junto: abre Vendas com a comanda já montada.
+  function adicionarItens(id: string) {
+    setVendaAgId(null)
     navigate(`/vendas?agendamento=${id}`)
   }
 
+  function vendido(id: string, comandaId: string, total: number, vinculada: boolean) {
+    setVendaAgId(null)
+    setAgenda(prev => prev.map(a => a.id === id
+      ? { ...a, status: vinculada ? 'concluido' : a.status, vendas: [...(a.vendas ?? []), { id: comandaId, status: 'fechada' }] }
+      : a))
+    setVendaFeita({ comandaId, total, vinculada })
+    setTimeout(() => setVendaFeita(v => (v?.comandaId === comandaId ? null : v)), 7000)
+  }
+
   const agAberto = agAbertoId ? agenda.find(a => a.id === agAbertoId) ?? null : null
+  const agVenda = vendaAgId ? agenda.find(a => a.id === vendaAgId) ?? null : null
 
   async function updateStatus(id: string, status: AgendamentoStatus) {
     const anterior = agenda.find(a => a.id === id)?.status
@@ -964,6 +985,38 @@ export default function Agenda() {
       <AnimatePresence>
         {vendaAbertaId && (
           <VendaDetalheModal comandaId={vendaAbertaId} onClose={() => setVendaAbertaId(null)} />
+        )}
+      </AnimatePresence>
+
+      {/* Gerar venda do atendimento */}
+      <AnimatePresence>
+        {agVenda && (
+          <VendaAgendamentoModal
+            key={agVenda.id}
+            agendamento={agVenda}
+            podeTirarComissao={podeTirarComissao}
+            onClose={() => setVendaAgId(null)}
+            onVendido={(comandaId, total, vinculada) => vendido(agVenda.id, comandaId, total, vinculada)}
+            onAdicionarItens={() => adicionarItens(agVenda.id)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Aviso de venda registrada */}
+      <AnimatePresence>
+        {vendaFeita && (
+          <motion.div
+            className="aviso-flutuante"
+            role="status"
+            initial={{ opacity: 0, y: 16, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16 }}
+          >
+            <span className="aviso-flutuante-icone"><Check size={14} /></span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <strong style={{ display: 'block', fontSize: '13px', color: '#FFFFFF' }}>Venda registrada</strong>
+              <span style={{ fontSize: '12px', color: '#A3A3A3' }}>{formatCurrency(vendaFeita.total)}{vendaFeita.vinculada ? ' · agendamento concluído' : ''}</span>
+            </span>
+            <button className="btn btn-secondary btn-sm" onClick={() => { setVendaAbertaId(vendaFeita.comandaId); setVendaFeita(null) }}>Ver venda</button>
+          </motion.div>
         )}
       </AnimatePresence>
 

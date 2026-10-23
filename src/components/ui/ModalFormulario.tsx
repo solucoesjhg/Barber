@@ -16,7 +16,7 @@ const LARGURA: Record<TamanhoModal, number> = { pequeno: 600, medio: 800, grande
  */
 export default function ModalFormulario({
   titulo, descricao, icone, tamanho = 'medio', onClose, onSalvar, salvando = false,
-  rotuloSalvar = 'Salvar', erro, children,
+  rotuloSalvar = 'Salvar', erro, autoFocus = true, children,
 }: {
   titulo: ReactNode
   descricao?: ReactNode
@@ -27,11 +27,13 @@ export default function ModalFormulario({
   salvando?: boolean
   rotuloSalvar?: string
   erro?: string
+  /** Foca o primeiro campo ao abrir (desligue quando não há campo de digitar). */
+  autoFocus?: boolean
   children: ReactNode
 }) {
   // F10 repetido enquanto salva não grava duas vezes.
   function salvar() { if (!salvando) onSalvar() }
-  const ref = useModalKeyboard(true, onClose, salvar)
+  const ref = useModalKeyboard(true, onClose, salvar, autoFocus)
 
   return (
     <motion.div

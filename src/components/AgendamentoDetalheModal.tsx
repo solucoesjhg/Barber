@@ -85,7 +85,7 @@ export default function AgendamentoDetalheModal({ agendamento: ag, podeEditar, p
             </button>
           )}
           {podeGerarVenda && (
-            <button className="btn btn-primary" onClick={onGerarVenda} title="Abre Vendas com o cliente, o serviço e o profissional deste atendimento">
+            <button className="btn btn-primary" onClick={onGerarVenda} title="Registra a venda deste atendimento: só falta escolher a forma de pagamento">
               <ShoppingCart size={13} /> Gerar venda
             </button>
           )}
