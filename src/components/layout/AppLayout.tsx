@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, useOutlet } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronRight, Bell, Search, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import Sidebar from './Sidebar'
@@ -28,6 +28,19 @@ const PAGE_NAMES: Record<string, string> = {
   '/auditoria':     'Auditoria',
   '/usuarios':      'Usuários',
   '/configuracoes': 'Configurações',
+}
+
+/**
+ * A página da rota, guardada como estava quando a tela abriu. Durante a
+ * animação de saída a página antiga continua na tela; com um <Outlet />
+ * comum ela já passava a mostrar a página nova, que montava duas vezes
+ * (a primeira dentro da que estava saindo) e perdia o que vem na URL só
+ * uma vez, como o /vendas?agendamento= do "Gerar venda".
+ */
+function PaginaDaRota() {
+  const outlet = useOutlet()
+  const [pagina] = useState(outlet)
+  return pagina
 }
 
 export default function AppLayout() {
@@ -188,7 +201,7 @@ export default function AppLayout() {
                 </p>
               </div>
             ) : (
-              <Outlet />
+              <PaginaDaRota />
             )}
           </motion.main>
         </AnimatePresence>

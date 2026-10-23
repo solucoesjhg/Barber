@@ -134,14 +134,18 @@ export default function Vendas() {
   }, [])
 
   // Venda aberta pela Agenda (/vendas?agendamento=<id>): já vem com o
-  // cliente, o serviço e o profissional do atendimento.
+  // cliente, o serviço e o profissional do atendimento. O parâmetro só sai
+  // da URL depois de carregar (se a tela remontar no meio, carrega de novo).
   useEffect(() => {
     const agendamentoId = searchParams.get('agendamento')
     if (!agendamentoId) return
-    setSearchParams({}, { replace: true })
-    if (!podeVender) { setError('Seu usuário não tem permissão para registrar vendas.'); return }
+    let ativo = true
+    const limparUrl = () => setSearchParams({}, { replace: true })
+    if (!podeVender) { limparUrl(); setError('Seu usuário não tem permissão para registrar vendas.'); return }
     supabase.from('agendamentos').select('*, cliente:clientes(*), servico:servicos(*)').eq('id', agendamentoId).maybeSingle()
       .then(({ data, error: err }) => {
+        if (!ativo) return
+        limparUrl()
         if (err || !data) { setError('Agendamento não encontrado.'); return }
         const ag = data as Agendamento
         const quando = new Date(ag.data_hora).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
@@ -157,6 +161,7 @@ export default function Vendas() {
         setError('')
         setModo('nova')
       })
+    return () => { ativo = false }
   }, [searchParams, setSearchParams, podeVender])
 
   const servicosFiltrados = useMemo(() =>
@@ -403,6 +408,8 @@ export default function Vendas() {
             </button>
           )}
         </div>
+
+        {error && <p className="aviso-erro" style={{ marginBottom: '16px' }}>{error}</p>}
 
         <div className="barra-filtros">
           <div className="filtro-busca">
