@@ -52,7 +52,7 @@ export default function AppLayout() {
     ?? ''
   const { papel, empresaId, ativo, loading: perfilLoading } = usePerfil()
   const { nome: nomeLoja } = useLoja()
-  const raizCaminho = papel === 'super_admin' ? 'BarberOS' : (nomeLoja ?? '')
+  const raizCaminho = papel === 'super_admin' ? 'Barber' : (nomeLoja ?? '')
   const [sidebarHidden, setSidebarHidden] = useState(() => {
     if (typeof window !== 'undefined' && window.innerWidth <= 768) return true
     try { return localStorage.getItem(SIDEBAR_KEY) === '1' } catch { return false }

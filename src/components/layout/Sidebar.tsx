@@ -349,7 +349,7 @@ export default function Sidebar({ hidden }: { hidden: boolean }) {
   const ini = initials(name)
   const isSuperAdmin = papel === 'super_admin'
   const { nome: nomeLoja, logoUrl } = useLoja()
-  const tituloMenu = isSuperAdmin ? 'BarberOS' : (nomeLoja ?? '')
+  const tituloMenu = isSuperAdmin ? 'Barber' : (nomeLoja ?? '')
   // Só um painel lateral aberto por vez; fecha ao trocar de tela.
   // Fechar um grupo nunca fecha o painel de outro.
   const [grupoAberto, setGrupoAberto] = useState<string | null>(null)

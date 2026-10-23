@@ -77,7 +77,7 @@ export default function Login() {
             <span className="login-logo-ring" />
             <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Logo" style={{ width: '100px', height: '100px', objectFit: 'contain' }} />
           </div>
-          <h1 className="login-title">BarberOS</h1>
+          <h1 className="login-title">Barber</h1>
           <p className="login-sub">
             <span className="login-dot" /> Sistema de gestão
           </p>
@@ -160,7 +160,7 @@ export default function Login() {
           className="login-foot"
           variants={{ hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0.6 } } }}
         >
-          BarberOS ERP © {new Date().getFullYear()}
+          Barber © {new Date().getFullYear()}
         </motion.p>
       </motion.div>
     </div>
