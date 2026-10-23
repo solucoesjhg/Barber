@@ -78,7 +78,6 @@ export default function UsuarioDetalheModal({ usuario: u, profissionais, podeEdi
 
   const nome = nomeExibicao(u)
   const profissional = u.profissional_id ? profissionais.find(p => p.id === u.profissional_id) : undefined
-  const comissao = u.comissao_percentual != null && Number(u.comissao_percentual) > 0 ? `${Number(u.comissao_percentual)}%` : undefined
   const personalizado = !!permissoes && !permissoes.acesso_total && (
     permissoes.especiais_personalizados || permissoes.dashboard_personalizado || !!permissoes.relatorios_personalizado
     || Object.values(permissoes.telas).some(t => t.personalizado)
@@ -101,7 +100,6 @@ export default function UsuarioDetalheModal({ usuario: u, profissionais, podeEdi
       <InfoGrade>
         <Info rotulo="E-mail de acesso" largo>{u.email}</Info>
         <Info rotulo="Papel">{PAPEL_LABEL[u.papel]}</Info>
-        <Info rotulo="Comissão">{comissao}</Info>
         <Info rotulo="Profissional vinculado">{profissional?.nome}</Info>
         <Info rotulo="Cadastrado em">{formatDate(u.criado_em)}</Info>
       </InfoGrade>

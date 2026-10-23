@@ -7,14 +7,13 @@ import { PAPEL_LABEL, nomeExibicao } from '../../lib/permissoes'
 import PermissoesEditor, { cardsAlterados, rascunhoDe, rascunhosIguais, relatoriosAlterados, type RascunhoPermissoes } from './PermissoesEditor'
 import type { PapelUsuario, PermissoesUsuario, Profissional, UsuarioListado } from '../../types'
 
-type Dados = { nome: string; papel: PapelUsuario; profissional_id: string; comissao: string; ativo: boolean }
+type Dados = { nome: string; papel: PapelUsuario; profissional_id: string; ativo: boolean }
 
 function dadosDe(u: UsuarioListado): Dados {
   return {
     nome: u.nome ?? '',
     papel: u.papel,
     profissional_id: u.profissional_id ?? '',
-    comissao: u.comissao_percentual != null ? String(u.comissao_percentual) : '',
     ativo: u.ativo,
   }
 }
@@ -92,7 +91,7 @@ export default function UsuarioCard({ usuario, aberto, onToggle, papeis, profiss
           p_nome: dados.nome,
           p_papel: dados.papel,
           p_profissional_id: dados.profissional_id || null,
-          p_comissao_percentual: dados.comissao === '' ? null : Number(dados.comissao),
+          p_comissao_percentual: null,
           p_ativo: dados.ativo,
         })
         if (err) throw err
@@ -160,9 +159,6 @@ export default function UsuarioCard({ usuario, aberto, onToggle, papeis, profiss
         </span>
         <span className="usuario-meta">
           <span className="badge badge-confirmed">{PAPEL_LABEL[usuario.papel]}</span>
-          {usuario.comissao_percentual != null && Number(usuario.comissao_percentual) > 0 && (
-            <span className="badge badge-done">{Number(usuario.comissao_percentual)}% comissão</span>
-          )}
           {!usuario.ativo && <span className="badge badge-canceled">Inativo</span>}
         </span>
         <span className={`expandir-caixa${aberto ? ' aberta' : ''}`} aria-hidden>
@@ -201,10 +197,6 @@ export default function UsuarioCard({ usuario, aberto, onToggle, papeis, profiss
                       {!papeis.includes(usuario.papel) && <option value={usuario.papel}>{PAPEL_LABEL[usuario.papel]}</option>}
                       {papeis.map(p => <option key={p} value={p}>{PAPEL_LABEL[p]}</option>)}
                     </select>
-                  </div>
-                  <div className="field">
-                    <label className="label">Comissão (%)</label>
-                    <input className="input" type="number" min={0} max={100} step={0.1} placeholder="0" value={dados.comissao} onChange={e => setDados(d => ({ ...d, comissao: e.target.value }))} />
                   </div>
                   {profissionais.length > 0 && (
                     <div className="field">

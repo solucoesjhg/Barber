@@ -20,7 +20,7 @@ export default function NovoUsuarioModal({ papeis, profissionais, empresaId, onC
   const [form, setForm] = useState({
     nome: '', email: '', senha: '',
     papel: (papeis.includes('atendente') ? 'atendente' : papeis[0]) as PapelUsuario,
-    profissional_id: '', comissao: '',
+    profissional_id: '',
   })
   const [mostrarSenha, setMostrarSenha] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -39,7 +39,7 @@ export default function NovoUsuarioModal({ papeis, profissionais, empresaId, onC
       p_papel: form.papel,
       p_empresa_id: empresaId ?? null,
       p_profissional_id: form.profissional_id || null,
-      p_comissao_percentual: form.comissao === '' ? null : Number(form.comissao),
+      p_comissao_percentual: null,
     })
     setSaving(false)
     if (err) { setError(err.message); return }
@@ -79,9 +79,6 @@ export default function NovoUsuarioModal({ papeis, profissionais, empresaId, onC
           <select className="input" value={form.papel} onChange={e => setForm(f => ({ ...f, papel: e.target.value as PapelUsuario }))}>
             {papeis.map(p => <option key={p} value={p}>{PAPEL_LABEL[p]}</option>)}
           </select>
-        </Campo>
-        <Campo rotulo="Comissão (%)">
-          <input className="input" type="number" min={0} max={100} step={0.1} placeholder="0" value={form.comissao} onChange={e => setForm(f => ({ ...f, comissao: e.target.value }))} />
         </Campo>
         {profissionais.length > 0 && (
           <Campo rotulo="Profissional vinculado">
