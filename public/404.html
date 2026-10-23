@@ -6,7 +6,8 @@
     <script type="text/javascript">
       // Single Page Apps for GitHub Pages
       // https://github.com/rafgraph/spa-github-pages
-      var pathSegmentsToKeep = 1
+      // No github.io o site fica em /Barber (1 segmento); no domínio próprio, na raiz (0).
+      var pathSegmentsToKeep = window.location.hostname.endsWith('github.io') ? 1 : 0
 
       var l = window.location
       l.replace(
