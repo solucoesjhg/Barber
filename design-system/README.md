@@ -48,6 +48,7 @@ BarberOS é um ERP para barbearias com visual **minimalista premium monocromáti
 
 - Estrutura do app: `Sidebar` à esquerda (220px, colapsável) + cabeçalho de `header-height` com breadcrumb "Nome da loja › Página", busca e notificações + conteúdo em `.page`.
 - Cada página abre com `PageHeader`: título serifado, contador abaixo e a ação principal à direita.
+- Telas de cadastro: clicar num registro abre o card de visualização (só leitura, `ModalDetalhe`) com as ações embaixo (Editar, Ativar/Desativar). O cadastro e a edição abrem no modal de formulário (`ModalFormulario`): largo (600, 800 ou 960px), campos em colunas (3 por padrão), título e botões fixos e só o meio rolando.
 - Monte telas com os componentes React em `window.BarberOS` (`AppLayout`, `PageHeader`, `StatGrid` + `StatCard`, `Table`, `Modal`, `Field`, `Button`, `Badge`). Eles já trazem o comportamento mobile; não reescreva os estilos inline.
 
 ## Mobile
@@ -59,6 +60,7 @@ BarberOS é um ERP para barbearias com visual **minimalista premium monocromáti
 - `StatGrid` fica sempre em 2 colunas (gap de 10px) e os `StatCard` encolhem o valor para 20px.
 - `Table` esconde o cabeçalho e transforma cada linha num card com o rótulo de cada coluna.
 - `Modal` encosta embaixo da tela, rola por dentro e empilha os botões com o primário em cima.
+- O modal de formulário do app vira uma folha na largura toda, quase da altura da tela, com uma coluna de campos e Cancelar/Salvar lado a lado no rodapé.
 - As cores não mudam no celular: a mesma paleta monocromática do desktop.
 - Alvos de toque com no mínimo 44px (`control-height`); botões de ícone com 36px.
 

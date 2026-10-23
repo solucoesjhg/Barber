@@ -10,7 +10,7 @@ import ProdutoFotosModal from '../components/ProdutoFotosModal'
 import { ProdutoDetalheModal, ServicoDetalheModal } from '../components/ProdutoServicoDetalhe'
 import Checkbox from '../components/ui/Checkbox'
 import BarraSelecao, { ItemSelecao } from '../components/ui/BarraSelecao'
-import { useModalKeyboard } from '../hooks/useModalKeyboard'
+import ModalFormulario, { Campo, FormGrade, SecaoForm } from '../components/ui/ModalFormulario'
 import { usePermissoes } from '../hooks/usePermissoes'
 import { useSelecao } from '../hooks/useSelecao'
 import { COLUNAS_PRODUTO } from '../lib/produtos'
@@ -257,6 +257,7 @@ export default function Produtos() {
   function fecharModalProd() {
     setShowProdModal(false)
     setEditProdId(null)
+    setError('')
   }
 
   async function toggleAtivoProd(id: string, ativo: boolean) {
@@ -331,6 +332,7 @@ export default function Produtos() {
   function fecharModalServ() {
     setShowServModal(false)
     setEditServId(null)
+    setError('')
   }
 
   async function toggleAtivoServ(id: string, ativo: boolean) {
@@ -346,9 +348,6 @@ export default function Produtos() {
         : [...f.profissional_ids, id],
     }))
   }
-
-  const modalProdRef = useModalKeyboard(showProdModal, fecharModalProd, handleSaveProd)
-  const modalServRef = useModalKeyboard(showServModal, fecharModalServ, handleSaveServ)
 
   return (
     <div className="page">
@@ -851,192 +850,129 @@ export default function Produtos() {
         )}
       </AnimatePresence>
 
-      {/* Modal: Novo Produto */}
+      {/* Cadastro / edição de produto */}
       <AnimatePresence>
-        {showProdModal && (
-          <motion.div
-            className="modal-overlay"
-            style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          >
-            <motion.div
-              ref={modalProdRef}
-              className="card"
-              style={{ width: '100%', maxWidth: '460px', padding: '28px', maxHeight: '85vh', overflowY: 'auto' }}
-              initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
+        {showProdModal && (() => {
+          const custo = Number(prodForm.preco_custo) || 0
+          const venda = Number(prodForm.preco_venda) || 0
+          const margem = custo > 0 && venda > 0 ? `${(((venda - custo) / custo) * 100).toFixed(0)}% · ${formatCurrency(venda - custo)} por unidade` : ''
+          return (
+            <ModalFormulario
+              icone={<Package size={18} />}
+              titulo={editProdId ? 'Editar Produto' : 'Novo Produto'}
+              descricao={editProdId ? produtos.find(p => p.id === editProdId)?.nome : 'Nome e preço de venda são obrigatórios.'}
+              onClose={fecharModalProd}
+              onSalvar={handleSaveProd}
+              salvando={saving}
+              rotuloSalvar={editProdId ? 'Salvar' : 'Cadastrar'}
+              erro={error}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>{editProdId ? 'Editar Produto' : 'Novo Produto'}</h2>
-                <button className="btn btn-icon" onClick={fecharModalProd}><X size={14} /></button>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div className="field">
-                  <label className="label">Nome *</label>
+              <FormGrade>
+                <SecaoForm titulo="Produto" />
+                <Campo rotulo="Nome *" span={2}>
                   <input className="input" placeholder="Nome do produto" value={prodForm.nome} onChange={e => setProdForm(f => ({ ...f, nome: e.target.value }))} />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div className="field">
-                    <label className="label">Categoria</label>
-                    <select className="input" value={prodForm.categoria} onChange={e => setProdForm(f => ({ ...f, categoria: e.target.value as ProdutoCategoria }))}>
-                      <option value="bebidas">Bebidas</option>
-                      <option value="pomadas">Pomadas</option>
-                      <option value="petiscos">Petiscos</option>
-                      <option value="outros">Outros</option>
-                    </select>
-                  </div>
-                  <div className="field">
-                    <label className="label">SKU / Código</label>
-                    <input className="input" placeholder="opcional" value={prodForm.sku} onChange={e => setProdForm(f => ({ ...f, sku: e.target.value }))} />
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: verCusto ? '1fr 1fr' : '1fr', gap: '12px' }}>
-                  {verCusto && (
-                    <div className="field">
-                      <label className="label">Preço de Custo</label>
-                      <input className="input" type="number" min={0} step={0.01} placeholder="0,00" value={prodForm.preco_custo} onChange={e => setProdForm(f => ({ ...f, preco_custo: e.target.value }))} />
-                    </div>
-                  )}
-                  <div className="field">
-                    <label className="label">Preço de Venda *</label>
-                    <input className="input" type="number" min={0} step={0.01} placeholder="0,00" value={prodForm.preco_venda} onChange={e => setProdForm(f => ({ ...f, preco_venda: e.target.value }))} />
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-                  <div className="field">
-                    <label className="label">Estoque Atual</label>
-                    <input className="input" type="number" min={0} placeholder="0" value={prodForm.estoque_atual} onChange={e => setProdForm(f => ({ ...f, estoque_atual: e.target.value }))} />
-                  </div>
-                  <div className="field">
-                    <label className="label">Estoque Mínimo</label>
-                    <input className="input" type="number" min={0} placeholder="5" value={prodForm.estoque_minimo} onChange={e => setProdForm(f => ({ ...f, estoque_minimo: e.target.value }))} />
-                  </div>
-                  <div className="field">
-                    <label className="label">Estoque Máximo</label>
-                    <input className="input" type="number" min={0} placeholder="opcional" value={prodForm.estoque_maximo} onChange={e => setProdForm(f => ({ ...f, estoque_maximo: e.target.value }))} />
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div className="field">
-                    <label className="label">Unidade</label>
-                    <input className="input" placeholder="un, kg, ml..." value={prodForm.unidade} onChange={e => setProdForm(f => ({ ...f, unidade: e.target.value }))} />
-                  </div>
-                  <div className="field">
-                    <label className="label">Comissão (%)</label>
-                    <input className="input" type="number" min={0} max={100} placeholder="usa a do profissional" value={prodForm.comissao_percentual} onChange={e => setProdForm(f => ({ ...f, comissao_percentual: e.target.value }))} />
-                  </div>
-                </div>
-                {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
-                <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={fecharModalProd}>Cancelar (Esc)</button>
-                  <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSaveProd} disabled={saving}>
-                    {saving ? 'Salvando...' : `${editProdId ? 'Salvar' : 'Cadastrar'} (F10)`}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
+                </Campo>
+                <Campo rotulo="Categoria">
+                  <select className="input" value={prodForm.categoria} onChange={e => setProdForm(f => ({ ...f, categoria: e.target.value as ProdutoCategoria }))}>
+                    <option value="bebidas">Bebidas</option>
+                    <option value="pomadas">Pomadas</option>
+                    <option value="petiscos">Petiscos</option>
+                    <option value="outros">Outros</option>
+                  </select>
+                </Campo>
+                <Campo rotulo="SKU / Código">
+                  <input className="input" placeholder="opcional" value={prodForm.sku} onChange={e => setProdForm(f => ({ ...f, sku: e.target.value }))} />
+                </Campo>
+                <Campo rotulo="Unidade">
+                  <input className="input" placeholder="un, kg, ml..." value={prodForm.unidade} onChange={e => setProdForm(f => ({ ...f, unidade: e.target.value }))} />
+                </Campo>
+                <Campo rotulo="Comissão (%)">
+                  <input className="input" type="number" min={0} max={100} placeholder="usa a do profissional" value={prodForm.comissao_percentual} onChange={e => setProdForm(f => ({ ...f, comissao_percentual: e.target.value }))} />
+                </Campo>
+
+                <SecaoForm titulo="Preço" />
+                {verCusto && (
+                  <Campo rotulo="Preço de Custo">
+                    <input className="input" type="number" min={0} step={0.01} placeholder="0,00" value={prodForm.preco_custo} onChange={e => setProdForm(f => ({ ...f, preco_custo: e.target.value }))} />
+                  </Campo>
+                )}
+                <Campo rotulo="Preço de Venda *">
+                  <input className="input" type="number" min={0} step={0.01} placeholder="0,00" value={prodForm.preco_venda} onChange={e => setProdForm(f => ({ ...f, preco_venda: e.target.value }))} />
+                </Campo>
+                {verCusto && (
+                  <Campo rotulo="Margem">
+                    <div className="input campo-calculado">{margem || 'Informe custo e venda'}</div>
+                  </Campo>
+                )}
+
+                <SecaoForm titulo="Estoque" />
+                <Campo rotulo="Estoque Atual">
+                  <input className="input" type="number" min={0} placeholder="0" value={prodForm.estoque_atual} onChange={e => setProdForm(f => ({ ...f, estoque_atual: e.target.value }))} />
+                </Campo>
+                <Campo rotulo="Estoque Mínimo">
+                  <input className="input" type="number" min={0} placeholder="5" value={prodForm.estoque_minimo} onChange={e => setProdForm(f => ({ ...f, estoque_minimo: e.target.value }))} />
+                </Campo>
+                <Campo rotulo="Estoque Máximo">
+                  <input className="input" type="number" min={0} placeholder="opcional" value={prodForm.estoque_maximo} onChange={e => setProdForm(f => ({ ...f, estoque_maximo: e.target.value }))} />
+                </Campo>
+              </FormGrade>
+            </ModalFormulario>
+          )
+        })()}
       </AnimatePresence>
 
-      {/* Modal: Novo Serviço */}
+      {/* Cadastro / edição de serviço */}
       <AnimatePresence>
         {showServModal && (
-          <motion.div
-            className="modal-overlay"
-            style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          <ModalFormulario
+            icone={<Scissors size={18} />}
+            titulo={editServId ? 'Editar Serviço' : 'Novo Serviço'}
+            descricao={editServId ? servicos.find(s => s.id === editServId)?.nome : 'Nome e preço são obrigatórios.'}
+            onClose={fecharModalServ}
+            onSalvar={handleSaveServ}
+            salvando={saving}
+            rotuloSalvar={editServId ? 'Salvar' : 'Cadastrar'}
+            erro={error}
           >
-            <motion.div
-              ref={modalServRef}
-              className="card"
-              style={{ width: '100%', maxWidth: '460px', padding: '28px', maxHeight: '85vh', overflowY: 'auto' }}
-              initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>{editServId ? 'Editar Serviço' : 'Novo Serviço'}</h2>
-                <button className="btn btn-icon" onClick={fecharModalServ}><X size={14} /></button>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div className="field">
-                  <label className="label">Nome *</label>
-                  <input className="input" placeholder="Nome do serviço" value={servForm.nome} onChange={e => setServForm(f => ({ ...f, nome: e.target.value }))} />
-                </div>
-                <div className="field">
-                  <label className="label">Descrição</label>
-                  <input className="input" placeholder="opcional" value={servForm.descricao} onChange={e => setServForm(f => ({ ...f, descricao: e.target.value }))} />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div className="field">
-                    <label className="label">Preço *</label>
-                    <input className="input" type="number" min={0} step={0.01} placeholder="0,00" value={servForm.preco} onChange={e => setServForm(f => ({ ...f, preco: e.target.value }))} />
+            <FormGrade>
+              <Campo rotulo="Nome *" span={2}>
+                <input className="input" placeholder="Nome do serviço" value={servForm.nome} onChange={e => setServForm(f => ({ ...f, nome: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="Categoria">
+                <input className="input" placeholder="Ex: Cabelo, Barba..." value={servForm.categoria} onChange={e => setServForm(f => ({ ...f, categoria: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="Preço *">
+                <input className="input" type="number" min={0} step={0.01} placeholder="0,00" value={servForm.preco} onChange={e => setServForm(f => ({ ...f, preco: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="Duração (min)">
+                <input className="input" type="number" min={5} step={5} placeholder="30" value={servForm.duracao_minutos} onChange={e => setServForm(f => ({ ...f, duracao_minutos: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="Comissão (%)">
+                <input className="input" type="number" min={0} max={100} placeholder="usa a do profissional" value={servForm.comissao_percentual} onChange={e => setServForm(f => ({ ...f, comissao_percentual: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="Descrição" span="total">
+                <textarea className="input textarea" style={{ minHeight: '64px' }} placeholder="opcional" value={servForm.descricao} onChange={e => setServForm(f => ({ ...f, descricao: e.target.value }))} />
+              </Campo>
+              {profissionais.length > 0 && (
+                <Campo rotulo={`Profissionais que fazem (${servForm.profissional_ids.length} de ${profissionais.length})`} span="total">
+                  <div className="opcoes-grade">
+                    {profissionais.map(p => {
+                      const checked = servForm.profissional_ids.includes(p.id)
+                      return (
+                        <button key={p.id} type="button" className={`opcao${checked ? ' marcada' : ''}`} onClick={() => toggleProfissional(p.id)} aria-pressed={checked}>
+                          <span className="opcao-caixa">{checked && <Check size={10} strokeWidth={3} />}</span>
+                          <span style={{ minWidth: 0 }}>
+                            <span className="texto-cortado" style={{ display: 'block', fontSize: '13px', color: '#FFFFFF' }}>{p.nome}</span>
+                            <span className="texto-cortado" style={{ display: 'block', fontSize: '11px', color: '#555' }}>{p.especialidade}{p.ativo ? '' : ' · inativo'}</span>
+                          </span>
+                        </button>
+                      )
+                    })}
                   </div>
-                  <div className="field">
-                    <label className="label">Duração (min)</label>
-                    <input className="input" type="number" min={5} step={5} placeholder="30" value={servForm.duracao_minutos} onChange={e => setServForm(f => ({ ...f, duracao_minutos: e.target.value }))} />
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div className="field">
-                    <label className="label">Categoria</label>
-                    <input className="input" placeholder="Ex: Cabelo, Barba..." value={servForm.categoria} onChange={e => setServForm(f => ({ ...f, categoria: e.target.value }))} />
-                  </div>
-                  <div className="field">
-                    <label className="label">Comissão (%)</label>
-                    <input className="input" type="number" min={0} max={100} placeholder="usa a do profissional" value={servForm.comissao_percentual} onChange={e => setServForm(f => ({ ...f, comissao_percentual: e.target.value }))} />
-                  </div>
-                </div>
-                {profissionais.length > 0 && (
-                  <div className="field">
-                    <label className="label">Profissionais</label>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
-                      {profissionais.map(p => {
-                        const checked = servForm.profissional_ids.includes(p.id)
-                        return (
-                          <button
-                            key={p.id}
-                            onClick={() => toggleProfissional(p.id)}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: '10px',
-                              padding: '9px 12px',
-                              borderRadius: '7px',
-                              border: checked ? '1px solid #FFFFFF' : '1px solid #2A2A2A',
-                              background: checked ? 'rgba(255,255,255,0.06)' : 'transparent',
-                              cursor: 'pointer',
-                              fontFamily: 'inherit',
-                              transition: 'all 0.12s',
-                              textAlign: 'left',
-                            }}
-                          >
-                            <div style={{
-                              width: '16px', height: '16px',
-                              borderRadius: '4px',
-                              border: checked ? '1px solid #FFFFFF' : '1px solid #444',
-                              background: checked ? '#FFFFFF' : 'transparent',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              flexShrink: 0,
-                            }}>
-                              {checked && <Check size={10} strokeWidth={3} style={{ color: '#0D0D0D' }} />}
-                            </div>
-                            <div>
-                              <div style={{ fontSize: '13px', color: '#FFFFFF' }}>{p.nome}</div>
-                              <div style={{ fontSize: '11px', color: '#555' }}>{p.especialidade}</div>
-                            </div>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-                {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
-                <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={fecharModalServ}>Cancelar (Esc)</button>
-                  <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSaveServ} disabled={saving}>
-                    {saving ? 'Salvando...' : `${editServId ? 'Salvar' : 'Cadastrar'} (F10)`}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
+                </Campo>
+              )}
+            </FormGrade>
+          </ModalFormulario>
         )}
       </AnimatePresence>
 

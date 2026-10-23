@@ -2,16 +2,16 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  ChevronLeft, ChevronRight, Plus, X, Clock,
-  Check, Trash2, List, CalendarDays, CalendarRange, ShoppingCart, Play,
+  ChevronLeft, ChevronRight, Plus, Clock,
+  Check, Trash2, List, CalendarDays, CalendarRange, CalendarPlus, ShoppingCart, Play,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
 import { dataLocalISO } from '../lib/periodo'
-import { useModalKeyboard } from '../hooks/useModalKeyboard'
 import { usePermissoes } from '../hooks/usePermissoes'
 import AgendamentoDetalheModal, { STATUS_AGENDA, vendaDoAgendamento } from '../components/AgendamentoDetalheModal'
 import VendaDetalheModal from '../components/VendaDetalheModal'
+import ModalFormulario, { Campo, FormGrade } from '../components/ui/ModalFormulario'
 import type { Agendamento, AgendamentoStatus, Cliente, Profissional, Servico } from '../types'
 
 /* ── Types ──────────────────────────────────────────────── */
@@ -808,8 +808,6 @@ export default function Agenda() {
     ? servicos.filter(s => (profServMap[form.profissional_id] ?? []).includes(s.id))
     : servicos
 
-  const modalRef = useModalKeyboard(showModal, () => setShowModal(false), handleSave)
-
   return (
     <div className="page">
       {/* Header */}
@@ -843,7 +841,7 @@ export default function Agenda() {
           {podeEditar && (
             <button
               className="btn btn-primary"
-              onClick={() => setShowModal(true)}
+              onClick={() => { setError(''); setShowModal(true) }}
               style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
             >
               <Plus size={14} strokeWidth={2.5} /> Agendar
@@ -915,7 +913,7 @@ export default function Agenda() {
               podeEditar={podeEditar}
               podeVender={podeVender}
               verTodasVendas={verVendasOutros}
-              onOpenModal={() => setShowModal(true)}
+              onOpenModal={() => { setError(''); setShowModal(true) }}
               setFormDate={k => setForm(f => ({ ...f, data: k }))}
               onAbrir={setAgAbertoId}
               onGerarVenda={gerarVenda}
@@ -969,77 +967,51 @@ export default function Agenda() {
         )}
       </AnimatePresence>
 
-      {/* Modal */}
+      {/* Novo agendamento */}
       <AnimatePresence>
         {showModal && (
-          <motion.div
-            style={{
-              position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
-            }}
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          <ModalFormulario
+            icone={<CalendarPlus size={18} />}
+            titulo="Novo Agendamento"
+            descricao="O horário não pode bater com outro atendimento do mesmo profissional."
+            onClose={() => setShowModal(false)}
+            onSalvar={handleSave}
+            salvando={saving}
+            rotuloSalvar="Confirmar"
+            erro={error}
           >
-            <motion.div
-              ref={modalRef}
-              className="card"
-              style={{ width: '100%', maxWidth: '480px', padding: '28px' }}
-              initial={{ scale: 0.95, opacity: 0, y: 16 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 16 }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>Novo Agendamento</h2>
-                <button className="btn btn-icon" onClick={() => setShowModal(false)}><X size={14} /></button>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {clientes.length > 0 && (
-                  <div className="field">
-                    <label className="label">Cliente</label>
-                    <select className="input" value={form.cliente_id} onChange={e => setForm(f => ({ ...f, cliente_id: e.target.value }))}>
-                      <option value="">Selecionar...</option>
-                      {clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                    </select>
-                  </div>
-                )}
-                <div className="field">
-                  <label className="label">Profissional *</label>
-                  <select className="input" value={form.profissional_id} onChange={e => setForm(f => ({ ...f, profissional_id: e.target.value, servico_id: '' }))}>
+            <FormGrade colunas={4}>
+              {clientes.length > 0 && (
+                <Campo rotulo="Cliente" span={2}>
+                  <select className="input" value={form.cliente_id} onChange={e => setForm(f => ({ ...f, cliente_id: e.target.value }))}>
                     <option value="">Selecionar...</option>
-                    {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                    {clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                   </select>
-                </div>
-                <div className="field">
-                  <label className="label">Serviço</label>
-                  <select className="input" value={form.servico_id} onChange={e => setForm(f => ({ ...f, servico_id: e.target.value }))}>
-                    <option value="">Selecionar...</option>
-                    {servicosFiltrados.map(s => <option key={s.id} value={s.id}>{s.nome} · {formatCurrency(s.preco)}</option>)}
-                  </select>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div className="field">
-                    <label className="label">Data</label>
-                    <input type="date" className="input" value={form.data} onChange={e => setForm(f => ({ ...f, data: e.target.value }))} />
-                  </div>
-                  <div className="field">
-                    <label className="label">Hora</label>
-                    <input type="time" className="input" value={form.hora} onChange={e => setForm(f => ({ ...f, hora: e.target.value }))} />
-                  </div>
-                </div>
-                <div className="field">
-                  <label className="label">Observações</label>
-                  <input type="text" className="input" placeholder="Opcional..." value={form.obs} onChange={e => setForm(f => ({ ...f, obs: e.target.value }))} />
-                </div>
-                {error && <p style={{ fontSize: '13px', color: '#888' }}>{error}</p>}
-                <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancelar (Esc)</button>
-                  <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSave} disabled={saving}>
-                    {saving ? 'Salvando...' : 'Confirmar (F10)'}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
+                </Campo>
+              )}
+              <Campo rotulo="Profissional *" span={2}>
+                <select className="input" value={form.profissional_id} onChange={e => setForm(f => ({ ...f, profissional_id: e.target.value, servico_id: '' }))}>
+                  <option value="">Selecionar...</option>
+                  {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                </select>
+              </Campo>
+              <Campo rotulo="Serviço" span={2}>
+                <select className="input" value={form.servico_id} onChange={e => setForm(f => ({ ...f, servico_id: e.target.value }))}>
+                  <option value="">Selecionar...</option>
+                  {servicosFiltrados.map(s => <option key={s.id} value={s.id}>{s.nome} · {formatCurrency(s.preco)}</option>)}
+                </select>
+              </Campo>
+              <Campo rotulo="Data">
+                <input type="date" className="input" value={form.data} onChange={e => setForm(f => ({ ...f, data: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="Hora">
+                <input type="time" className="input" value={form.hora} onChange={e => setForm(f => ({ ...f, hora: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="Observações" span="total">
+                <textarea className="input textarea" style={{ minHeight: '64px' }} placeholder="Opcional..." value={form.obs} onChange={e => setForm(f => ({ ...f, obs: e.target.value }))} />
+              </Campo>
+            </FormGrade>
+          </ModalFormulario>
         )}
       </AnimatePresence>
     </div>

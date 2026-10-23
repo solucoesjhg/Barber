@@ -941,6 +941,100 @@ button.status-pill:disabled { cursor: default; }
 }
 .textarea { min-height: 84px; resize: vertical; line-height: 1.5; font-family: inherit; }
 
+/* Etiquetas pequenas dentro dos cards (serviços, subcategorias, telas) */
+.chip-lista { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; color: var(--text-muted); line-height: 1.4;
+  background: rgba(255,255,255,0.05); border: 1px solid #2A2A2A; border-radius: 99px;
+  padding: 3px 10px;
+}
+.chip.fraco { color: #666; border-style: dashed; background: transparent; }
+.chip-marca { font-size: 10px; color: var(--text); text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* Card de lista que abre o detalhe ao clicar (Profissionais) */
+.card.clicavel { cursor: pointer; transition: border-color 0.15s ease; }
+.card.clicavel:hover { border-color: var(--border-strong); }
+
+/* ============================================================
+   MODAL DE CADASTRO / EDIÇÃO — usa boa parte da tela
+   ============================================================ */
+.modal-form-fundo {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(0,0,0,0.78);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.card.modal-form {
+  width: 100%;
+  max-height: calc(100dvh - 48px);
+  padding: 0;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+.modal-form-topo {
+  display: flex; align-items: flex-start; gap: 12px; flex-shrink: 0;
+  padding: 22px 28px 18px;
+  border-bottom: 1px solid #262626;
+}
+.modal-form-titulo { font-size: 20px; color: var(--text); line-height: 1.25; }
+.modal-form-descricao { font-size: 12px; color: var(--text-muted); margin-top: 4px; line-height: 1.5; }
+.modal-form-corpo {
+  flex: 1; min-height: 0; overflow-y: auto;
+  padding: 22px 28px 26px;
+  container-type: inline-size; container-name: modalform;
+}
+.modal-form-rodape {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px 16px; flex-shrink: 0;
+  padding: 14px 28px;
+  border-top: 1px solid #262626;
+  background: rgba(0,0,0,0.18);
+}
+.modal-form-erro { flex: 1 1 260px; }
+.modal-form-botoes { display: flex; gap: 10px; margin-left: auto; }
+.modal-form-botoes .btn { min-width: 150px; }
+
+/* Grade de campos: 3 colunas (c2/c4 mudam), 2 e 1 quando o modal estreita */
+.form-grade { display: grid; gap: 16px 18px; align-items: start; }
+.form-grade.c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.form-grade.c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.form-grade.c4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.form-grade > * { min-width: 0; }
+.form-grade > .span-2 { grid-column: span 2; }
+.form-grade > .span-total { grid-column: 1 / -1; }
+.form-secao { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 4px; padding-top: 16px; margin-top: 2px; border-top: 1px solid #262626; }
+.form-grade > .form-secao:first-child { padding-top: 0; margin-top: 0; border-top: none; }
+.form-secao-titulo { font-size: 10px; font-weight: 600; color: #777; text-transform: uppercase; letter-spacing: 0.12em; }
+.campo-ajuda { font-size: 11px; color: var(--text-dim); line-height: 1.45; }
+/* Valor calculado (margem): parece campo, mas não é editável */
+.campo-calculado { display: flex; align-items: center; color: var(--text-muted); background: transparent; border-style: dashed; font-size: 13px; }
+
+/* Escolha múltipla em grade (profissionais de um serviço) */
+.opcoes-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr)); gap: 8px; }
+.opcao {
+  display: flex; align-items: center; gap: 10px; min-width: 0;
+  padding: 10px 12px; border-radius: var(--radius);
+  border: 1px solid #2A2A2A; background: transparent;
+  font-family: inherit; text-align: left; cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.opcao:hover { border-color: var(--border-strong); }
+.opcao.marcada { border-color: #FFFFFF; background: rgba(255,255,255,0.06); }
+.opcao-caixa {
+  width: 16px; height: 16px; flex-shrink: 0; border-radius: 4px;
+  border: 1px solid #444; display: flex; align-items: center; justify-content: center;
+}
+.opcao.marcada .opcao-caixa { border-color: #FFFFFF; background: #FFFFFF; color: #0D0D0D; }
+
+@container modalform (max-width: 640px) {
+  .form-grade.c3, .form-grade.c4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container modalform (max-width: 440px) {
+  .form-grade.c2, .form-grade.c3, .form-grade.c4 { grid-template-columns: minmax(0, 1fr); }
+  .form-grade > * { grid-column: 1 / -1 !important; }
+}
+
 /* ============================================================
    CARD DE INDICADOR (valor de destaque)
    ============================================================ */
@@ -976,4 +1070,20 @@ button.status-pill:disabled { cursor: default; }
   /* Botões de ícone e "Pagar" mantêm o tamanho (a regra do card encolhia a largura) */
   .list-row > .btn-icon { width: 32px !important; height: 32px !important; }
   .list-row > .btn-sm { width: auto !important; align-self: flex-start; }
+  /* Modal de cadastro: folha na largura toda, encostada embaixo */
+  .modal-form-fundo { align-items: flex-end; padding: 0; }
+  .card.modal-form {
+    max-width: none !important;
+    max-height: calc(100dvh - 12px);
+    border-radius: 16px 16px 0 0;
+    border-bottom: none;
+  }
+  .modal-form-topo { padding: 16px 18px 14px; }
+  .modal-form-titulo { font-size: 18px; }
+  .modal-form-corpo { padding: 16px 18px 20px; }
+  .modal-form-rodape { padding: 12px 18px calc(12px + env(safe-area-inset-bottom)); }
+  .modal-form-botoes { width: 100%; }
+  .modal-form-botoes .btn { flex: 1; min-width: 0; }
+  /* Com um modal aberto, o botão do menu fica atrás dele, não por cima do título */
+  body:has(.modal-overlay, .modal-form-fundo) .sidebar-toggle-btn { z-index: 0; }
 }

@@ -4,10 +4,9 @@ import {
   AreaChart, Area, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid,
 } from 'recharts'
-import { TrendingUp, TrendingDown, DollarSign, Plus, ArrowUpRight, ArrowDownRight, ChevronDown, ChevronUp, Wallet, Pencil } from 'lucide-react'
+import { TrendingUp, TrendingDown, DollarSign, Plus, ArrowUpRight, ArrowDownRight, ChevronDown, ChevronUp, Wallet, Pencil, ArrowLeftRight } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency, formatDate } from '../lib/utils'
-import { useModalKeyboard } from '../hooks/useModalKeyboard'
 import { useSelecao } from '../hooks/useSelecao'
 import { confirmarSaldoSuficiente } from '../lib/contasFinanceiras'
 import { usePermissoes } from '../hooks/usePermissoes'
@@ -15,6 +14,7 @@ import { dataLocalISO, intervaloMes, rotuloIntervalo, type Intervalo } from '../
 import VendaDetalheModal from '../components/VendaDetalheModal'
 import LancamentoDetalheModal from '../components/LancamentoDetalheModal'
 import ContaFinanceiraModal from '../components/ContaFinanceiraModal'
+import ModalFormulario, { Campo, FormGrade } from '../components/ui/ModalFormulario'
 import FiltroPeriodo from '../components/ui/FiltroPeriodo'
 import Checkbox from '../components/ui/Checkbox'
 import StatCard from '../components/ui/StatCard'
@@ -178,8 +178,6 @@ export default function Financeiro() {
     setMovimentos(prev => prev.filter(m => m.id !== lancamentoSelecionado.id))
     setLancamentoSelecionado(null)
   }
-
-  const modalRef = useModalKeyboard(showModal, () => setShowModal(false), handleSave)
 
   return (
     <div className="page">
@@ -417,52 +415,46 @@ export default function Financeiro() {
         <ItemSelecao rotulo="Saldo" valor={formatCurrency(entradasMarcadas - saidasMarcadas)} />
       </BarraSelecao>
 
-      {/* Modal saída */}
-      {showModal && (
-        <div
-          className="modal-overlay"
-          style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
-        >
-          <div ref={modalRef} className="card" style={{ width: '100%', maxWidth: '400px', padding: '28px' }}>
-            <h2 style={{ fontSize: '18px', color: '#FFFFFF', marginBottom: '20px' }}>Lançar Movimento</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div className="field">
-                <label className="label">Tipo</label>
+      {/* Lançar movimento */}
+      <AnimatePresence>
+        {showModal && (
+          <ModalFormulario
+            tamanho="pequeno"
+            icone={<ArrowLeftRight size={18} />}
+            titulo="Lançar Movimento"
+            descricao="Entrada ou saída avulsa, fora das vendas e das contas a pagar e a receber."
+            onClose={() => setShowModal(false)}
+            onSalvar={handleSave}
+            salvando={saving}
+            rotuloSalvar="Confirmar"
+            erro={formError}
+          >
+            <FormGrade colunas={2}>
+              <Campo rotulo="Tipo">
                 <select className="input" value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}>
                   <option value="entrada">Entrada</option>
                   <option value="saida">Saída</option>
                 </select>
-              </div>
-              <div className="field">
-                <label className="label">Categoria</label>
-                <input className="input" placeholder="Ex: comissão, custo fixo..." value={form.categoria} onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))} />
-              </div>
-              <div className="field">
-                <label className="label">Descrição *</label>
-                <input className="input" placeholder="Descrição do lançamento" value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))} />
-              </div>
-              <div className="field">
-                <label className="label">Valor (R$) *</label>
+              </Campo>
+              <Campo rotulo="Valor (R$) *">
                 <input className="input" type="number" min={0} step={0.01} placeholder="0,00" value={form.valor} onChange={e => setForm(f => ({ ...f, valor: e.target.value }))} />
-              </div>
-              <div className="field">
-                <label className="label">Conta</label>
+              </Campo>
+              <Campo rotulo="Descrição *" span="total">
+                <input className="input" placeholder="Descrição do lançamento" value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="Categoria">
+                <input className="input" placeholder="Ex: comissão, custo fixo..." value={form.categoria} onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="Conta">
                 <select className="input" value={form.contaId} onChange={e => setForm(f => ({ ...f, contaId: e.target.value }))}>
                   <option value="">Conta padrão da loja</option>
                   {contas.map(c => <option key={c.conta_id} value={c.conta_id}>{c.nome}</option>)}
                 </select>
-              </div>
-              {formError && <p style={{ fontSize: '12px', color: '#666' }}>{formError}</p>}
-              <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancelar (Esc)</button>
-                <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSave} disabled={saving}>
-                  {saving ? 'Salvando...' : 'Confirmar (F10)'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+              </Campo>
+            </FormGrade>
+          </ModalFormulario>
+        )}
+      </AnimatePresence>
 
       {/* Detalhe do lançamento (clique numa linha) */}
       <AnimatePresence>

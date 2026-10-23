@@ -9,6 +9,7 @@ import { useAuth } from '../hooks/useAuth'
 import { PAPEL_LABEL as PAPEL_LABEL_LOJA, nomeExibicao, papeisQuePossoAtribuir } from '../lib/permissoes'
 import UsuarioCard from '../components/usuarios/UsuarioCard'
 import NovoUsuarioModal from '../components/usuarios/NovoUsuarioModal'
+import UsuarioDetalheModal from '../components/usuarios/UsuarioDetalheModal'
 import type { UsuarioListado, PapelUsuario, Profissional, Empresa } from '../types'
 
 const PAPEL_LABEL: Record<PapelUsuario, string> = {
@@ -29,6 +30,8 @@ export default function Usuarios() {
   const [searchParams, setSearchParams] = useSearchParams()
   const abertoId = searchParams.get('usuario')
   const [showNovo, setShowNovo] = useState(false)
+  // Card de visualização (clique na lista); "Editar" abre o cartão de edição.
+  const [detalheId, setDetalheId] = useState<string | null>(null)
   const [busca, setBusca] = useState('')
 
   function carregar() {
@@ -289,8 +292,16 @@ export default function Usuarios() {
       : u.papel === 'administrador' ? 'Administrador só é alterado pelo suporte da plataforma.'
         : `Só o administrador pode alterar um ${PAPEL_LABEL_LOJA[u.papel].toLowerCase()}.`
 
+  // Clique no usuário: mostra o card com as informações. Se o cartão de
+  // edição dele estiver aberto, o clique fecha a edição.
   function alternar(id: string) {
-    setSearchParams(abertoId === id ? {} : { usuario: id }, { replace: true })
+    if (abertoId === id) setSearchParams({}, { replace: true })
+    else setDetalheId(id)
+  }
+
+  function editar(id: string) {
+    setDetalheId(null)
+    setSearchParams({ usuario: id }, { replace: true })
   }
 
   const termo = busca.trim().toLowerCase()
@@ -304,7 +315,7 @@ export default function Usuarios() {
         <div style={{ minWidth: 0 }}>
           <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Usuários</h1>
           <p style={{ fontSize: '13px', color: '#A3A3A3', marginTop: '3px' }}>
-            {usuarios.filter(u => u.ativo).length} ativos · {usuarios.length} cadastrados · toque num usuário para editar dados e permissões
+            {usuarios.filter(u => u.ativo).length} ativos · {usuarios.length} cadastrados · toque num usuário para ver os dados e as permissões
           </p>
         </div>
         {papeisAtribuiveis.length > 0 && (
@@ -347,6 +358,24 @@ export default function Usuarios() {
           ))}
         </div>
       )}
+
+      <AnimatePresence>
+        {(() => {
+          const u = detalheId ? usuarios.find(x => x.usuario_id === detalheId) : undefined
+          if (!u) return null
+          return (
+            <UsuarioDetalheModal
+              key={u.usuario_id}
+              usuario={u}
+              profissionais={profissionais}
+              podeEditar={podeEditarUsuario(u)}
+              motivoSomenteLeitura={motivoSomenteLeitura(u)}
+              onClose={() => setDetalheId(null)}
+              onEditar={() => editar(u.usuario_id)}
+            />
+          )
+        })()}
+      </AnimatePresence>
 
       <AnimatePresence>
         {showNovo && (

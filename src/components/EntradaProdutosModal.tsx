@@ -193,7 +193,7 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
       <motion.div
         ref={modalRef}
         className="card"
-        style={{ width: '100%', maxWidth: '680px', padding: '28px', maxHeight: '88vh', overflowY: 'auto', overflowX: 'hidden' }}
+        style={{ width: '100%', maxWidth: '900px', padding: '28px', maxHeight: 'calc(100dvh - 48px)', overflowY: 'auto', overflowX: 'hidden' }}
         initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
