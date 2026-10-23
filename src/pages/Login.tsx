@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, ArrowRight } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
@@ -77,7 +77,7 @@ export default function Login() {
             <span className="login-logo-ring" />
             <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Logo" style={{ width: '100px', height: '100px', objectFit: 'contain' }} />
           </div>
-          <h1 className="login-title">BarberOS</h1>
+          <h1 className="login-title">Barber</h1>
           <p className="login-sub">
             <span className="login-dot" /> Sistema de gestão
           </p>
@@ -150,17 +150,10 @@ export default function Login() {
         </motion.div>
 
         <motion.p
-          style={{ textAlign: 'center', fontSize: '13px', color: '#777', marginTop: '22px' }}
-          variants={{ hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0.6 } } }}
-        >
-          Não tem conta? <Link to="/cadastro" style={{ color: '#FFFFFF' }}>Criar conta</Link>
-        </motion.p>
-
-        <motion.p
           className="login-foot"
           variants={{ hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0.6 } } }}
         >
-          BarberOS ERP © {new Date().getFullYear()}
+          Barber © {new Date().getFullYear()}
         </motion.p>
       </motion.div>
     </div>
