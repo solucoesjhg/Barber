@@ -195,9 +195,9 @@ export default function AppLayout() {
               </div>
             ) : semLoja ? (
               <div style={{ padding: '80px 40px', textAlign: 'center', maxWidth: '440px', margin: '0 auto' }}>
-                <h2 style={{ fontSize: '18px', color: '#FFFFFF', marginBottom: '10px' }}>Aguardando vínculo com uma loja</h2>
+                <h2 style={{ fontSize: '18px', color: '#FFFFFF', marginBottom: '10px' }}>Usuário sem loja</h2>
                 <p style={{ fontSize: '13px', color: '#A3A3A3', lineHeight: 1.6 }}>
-                  Sua conta foi criada, mas ainda não está vinculada a nenhuma loja. Peça para um administrador te vincular em Usuários.
+                  Seu usuário não está ligado a nenhuma loja. Fale com o gerente da sua loja.
                 </p>
               </div>
             ) : (

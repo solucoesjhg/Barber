@@ -28,7 +28,7 @@ export function useRotaInicial(): string | null {
  * Guarda de rota.
  * - tela: precisa de "ver" nessa tela;
  * - gestao: administrador/gerente da loja (Usuários, Permissões);
- * - superAdmin: super admin (Empresas; Pendências em Usuários).
+ * - superAdmin: super admin (Empresas).
  * Com mais de uma opção, basta atender uma.
  */
 export default function RotaPermitida({ tela, gestao, superAdmin, children }: {

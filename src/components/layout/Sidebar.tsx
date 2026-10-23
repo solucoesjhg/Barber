@@ -18,7 +18,6 @@ import type { TelaId } from '../../types'
 
 const NAV_SUPER_ADMIN = [
   { to: '/empresas',     icon: Building2,       label: 'Empresas'      },
-  { to: '/usuarios',     icon: UserCog,         label: 'Pendências'    },
 ]
 
 // tela: permissão de "ver" que libera o item; gestao: só administrador/gerente.

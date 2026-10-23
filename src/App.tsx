@@ -87,7 +87,7 @@ export default function App() {
           <Route path="/relatorios"     element={<RotaPermitida tela="relatorios"><Relatorios /></RotaPermitida>} />
           <Route path="/auditoria"      element={<RotaPermitida tela="auditoria"><Auditoria /></RotaPermitida>} />
           <Route path="/configuracoes"  element={<RotaPermitida tela="configuracoes"><Configuracoes /></RotaPermitida>} />
-          <Route path="/usuarios"       element={<RotaPermitida gestao superAdmin><Usuarios /></RotaPermitida>} />
+          <Route path="/usuarios"       element={<RotaPermitida gestao><Usuarios /></RotaPermitida>} />
           <Route path="/permissoes"     element={<IrParaUsuarios />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>

@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Building2, Copy, Check, UserCheck, UserPlus, UserMinus, Plus } from 'lucide-react'
+import { ArrowLeft, Building2, Copy, Check, UserCheck, Plus } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatDate } from '../lib/utils'
-import { PAPEL_LABEL, nomeExibicao, papeisQuePossoAtribuir } from '../lib/permissoes'
+import { nomeExibicao, papeisQuePossoAtribuir } from '../lib/permissoes'
 import UsuarioCard from '../components/usuarios/UsuarioCard'
 import NovoUsuarioModal from '../components/usuarios/NovoUsuarioModal'
-import type { Empresa, UsuarioListado, PapelUsuario } from '../types'
+import type { Empresa, UsuarioListado } from '../types'
 
 const PAPEIS_SUPER = papeisQuePossoAtribuir('super_admin')
 
@@ -17,10 +17,8 @@ export default function EmpresaDetalhe() {
   const [empresa, setEmpresa] = useState<Empresa | null>(null)
   const [usuarios, setUsuarios] = useState<UsuarioListado[]>([])
   const [loading, setLoading] = useState(true)
-  const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [codigoCopiado, setCodigoCopiado] = useState(false)
-  const [papelPendente, setPapelPendente] = useState<Record<string, PapelUsuario>>({})
   const [abertoId, setAbertoId] = useState<string | null>(null)
   const [showNovo, setShowNovo] = useState(false)
 
@@ -39,31 +37,6 @@ export default function EmpresaDetalhe() {
 
   useEffect(() => { setLoading(true); carregar() }, [id])
 
-  async function vincular(usuarioId: string, papel: PapelUsuario) {
-    if (!id) return
-    setBusyId(usuarioId); setError('')
-    const { error: err } = await supabase.rpc('atualizar_papel_usuario', {
-      p_usuario_id: usuarioId, p_papel: papel, p_profissional_id: null, p_ativo: true, p_empresa_id: id,
-      p_comissao_percentual: null,
-    })
-    setBusyId(null)
-    if (err) { setError(err.message); return }
-    carregar()
-  }
-
-  async function desvincular(u: UsuarioListado) {
-    if (!window.confirm(`Desvincular ${nomeExibicao(u)} da loja? Ele deixa de acessar os dados dela até ser vinculado de novo.`)) return
-    setBusyId(u.usuario_id); setError('')
-    const { error: err } = await supabase.rpc('atualizar_papel_usuario', {
-      p_usuario_id: u.usuario_id, p_papel: u.papel, p_profissional_id: null, p_ativo: true, p_empresa_id: null,
-      p_comissao_percentual: u.comissao_percentual ?? null,
-    })
-    setBusyId(null)
-    if (err) { setError(err.message); return }
-    setAbertoId(null)
-    carregar()
-  }
-
   function copiarCodigo() {
     if (!empresa?.codigo) return
     navigator.clipboard?.writeText(empresa.codigo).then(() => {
@@ -76,7 +49,6 @@ export default function EmpresaDetalhe() {
     .filter(u => u.empresa_id === id)
     .sort((a, b) => Number(b.papel === 'administrador') - Number(a.papel === 'administrador') || nomeExibicao(a).localeCompare(nomeExibicao(b)))
   const temAdmin = vinculados.some(u => u.papel === 'administrador' && u.ativo)
-  const pendentes = usuarios.filter(u => !u.empresa_id && u.papel !== 'super_admin' && u.ativo)
 
   if (loading) {
     return <div className="page"><p style={{ color: '#666', fontSize: '13px' }}>Carregando...</p></div>
@@ -145,49 +117,9 @@ export default function EmpresaDetalhe() {
               podeEditar={u.papel !== 'super_admin'}
               comPermissoes={false}
               onSaved={carregar}
-              acoesExtras={
-                <button className="btn btn-secondary btn-sm" onClick={() => desvincular(u)} disabled={busyId === u.usuario_id}>
-                  <UserMinus size={13} /> Desvincular da loja
-                </button>
-              }
             />
           ))}
         </div>
-      )}
-
-      {/* Cadastros públicos esperando vínculo */}
-      {pendentes.length > 0 && (
-        <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-            <UserPlus size={14} style={{ color: '#A3A3A3' }} />
-            <p style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>Aguardando vínculo (qualquer loja)</p>
-            <span style={{ fontSize: '11px', color: '#A3A3A3' }}>({pendentes.length})</span>
-          </div>
-          <div className="usuarios-lista">
-            {pendentes.map(u => (
-              <div key={u.usuario_id} className="usuario-card pendente-linha" style={{ opacity: busyId === u.usuario_id ? 0.6 : 1 }}>
-                <div className="usuario-identidade">
-                  <span className="usuario-nome">{u.email}</span>
-                  <span className="usuario-email">Cadastrado em {formatDate(u.criado_em)}</span>
-                </div>
-                <select
-                  className="input"
-                  value={papelPendente[u.usuario_id] ?? 'atendente'}
-                  onChange={e => setPapelPendente(prev => ({ ...prev, [u.usuario_id]: e.target.value as PapelUsuario }))}
-                >
-                  {PAPEIS_SUPER.map(p => <option key={p} value={p}>{PAPEL_LABEL[p]}</option>)}
-                </select>
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => vincular(u.usuario_id, papelPendente[u.usuario_id] ?? 'atendente')}
-                  disabled={busyId === u.usuario_id}
-                >
-                  Vincular aqui
-                </button>
-              </div>
-            ))}
-          </div>
-        </>
       )}
 
       <AnimatePresence>

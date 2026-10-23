@@ -737,14 +737,7 @@ fieldset { border: none; padding: 0; margin: 0; min-width: 0; }
 
 /* ── Detalhe da empresa ───────────────────────────────────── */
 .empresa-cabecalho { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; flex-wrap: wrap; }
-.pendente-linha {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(140px, 180px) auto;
-  align-items: center; gap: 12px; padding: 12px 18px;
-}
 .secao-separador { display: flex; flex-direction: column; gap: 4px; padding-top: 14px; margin-top: 4px; border-top: 1px solid var(--border); }
-@media (max-width: 768px) {
-  .pendente-linha { grid-template-columns: minmax(0, 1fr); }
-}
 
 /* ============================================================
    CHECKBOX — pequeno e discreto, igual em todas as telas
