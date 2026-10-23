@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { useAuth } from './hooks/useAuth'
 import AppLayout from './components/layout/AppLayout'
 import Login from './pages/Login'
-import Signup from './pages/Signup'
 import Empresas from './pages/Empresas'
 import EmpresaDetalhe from './pages/EmpresaDetalhe'
 import Dashboard from './pages/Dashboard'
@@ -64,7 +63,8 @@ export default function App() {
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/cadastro" element={<Signup />} />
+        {/* Usuários são cadastrados pelo gerente/administrador em Usuários; sem cadastro público. */}
+        <Route path="/cadastro" element={<Navigate to="/login" replace />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route element={<PrivateRoute><PermissoesProvider><LojaProvider><AppLayout /></LojaProvider></PermissoesProvider></PrivateRoute>}>
           <Route path="/empresas"       element={<RotaPermitida superAdmin><Empresas /></RotaPermitida>} />
