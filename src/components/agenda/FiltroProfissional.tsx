@@ -4,7 +4,8 @@ import type { Profissional } from '../../types'
 
 /** Cor estável por profissional (mesmo nome, mesma cor em todas as telas). */
 const CORES = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#14b8a6', '#f97316', '#84cc16']
-export function corDoProfissional(id: string): string {
+export function corDoProfissional(id: string | null | undefined): string {
+  if (!id) return 'var(--c-55)'
   let h = 0
   for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0
   return CORES[h % CORES.length]
@@ -12,37 +13,43 @@ export function corDoProfissional(id: string): string {
 
 /**
  * Filtro da agenda: "Todos" + um cartãozinho por profissional, com a
- * inicial colorida e quantos atendimentos ele tem no período da tela.
- * Clicar de novo no selecionado volta para "Todos".
+ * cor dele (a mesma dos atendimentos) e quantos atendimentos tem no
+ * período da tela. Dá para marcar um, dois, três... ("Todos" limpa).
  */
 export default function FiltroProfissional({ profissionais, contagem, total, valor, onChange }: {
   profissionais: Profissional[]
   contagem: Record<string, number>
   total: number
-  valor: string
-  onChange: (id: string) => void
+  /** Escolhidos; vazio = todos. */
+  valor: string[]
+  onChange: (ids: string[]) => void
 }) {
   if (profissionais.length < 2) return null
+  const todos = valor.length === 0
   return (
-    <div className="filtro-prof" role="radiogroup" aria-label="Filtrar por profissional">
+    <div className="filtro-prof" role="group" aria-label="Filtrar por profissional">
       <button
-        type="button" role="radio" aria-checked={valor === ''}
-        className={`filtro-prof-item${valor === '' ? ' ativo' : ''}`}
-        onClick={() => onChange('')}
+        type="button" aria-pressed={todos}
+        className={`filtro-prof-item${todos ? ' ativo' : ''}`}
+        onClick={() => onChange([])}
       >
         <span className="filtro-prof-avatar filtro-prof-todos"><Users size={13} /></span>
         <span className="filtro-prof-nome">Todos</span>
         <span className="filtro-prof-contagem">{total}</span>
       </button>
       {profissionais.map(p => {
-        const ativo = valor === p.id
+        const ativo = valor.includes(p.id)
         const cor = corDoProfissional(p.id)
         const n = contagem[p.id] ?? 0
         return (
           <button
-            key={p.id} type="button" role="radio" aria-checked={ativo}
+            key={p.id} type="button" aria-pressed={ativo}
             className={`filtro-prof-item${ativo ? ' ativo' : ''}`}
-            onClick={() => onChange(ativo ? '' : p.id)}
+            onClick={() => {
+              const novo = ativo ? valor.filter(id => id !== p.id) : [...valor, p.id]
+              // Todos marcados é o mesmo que "Todos".
+              onChange(novo.length === profissionais.length ? [] : novo)
+            }}
             title={p.especialidade ? `${p.nome} · ${p.especialidade}` : p.nome}
             style={ativo ? { borderColor: cor, boxShadow: `0 0 0 1px ${cor}` } : undefined}
           >

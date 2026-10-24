@@ -14,7 +14,7 @@ import AgendamentoDetalheModal, { STATUS_AGENDA, vendaDoAgendamento } from '../c
 import VendaDetalheModal from '../components/VendaDetalheModal'
 import VendaAgendamentoModal from '../components/VendaAgendamentoModal'
 import ModalFormulario, { Campo, FormGrade } from '../components/ui/ModalFormulario'
-import FiltroProfissional from '../components/agenda/FiltroProfissional'
+import FiltroProfissional, { corDoProfissional } from '../components/agenda/FiltroProfissional'
 import type { Agendamento, AgendamentoStatus, Cliente, Profissional, Servico } from '../types'
 
 /* ── Types ──────────────────────────────────────────────── */
@@ -30,7 +30,7 @@ function somarDias(d: Date, n: number): Date {
   return r
 }
 
-const FILTRO_PROF_KEY = 'barber-agenda-profissional'
+const FILTRO_PROF_KEY = 'barber-agenda-profissionais'
 const SELECT_AGENDA = '*, cliente:clientes(*), profissional:profissionais(*), servico:servicos(*), vendas:comandas(id, status)'
 
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 8) // 8–20
@@ -248,7 +248,7 @@ function ListaView({
                 <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--c-fff)', fontVariantNumeric: 'tabular-nums' }}>{hora}</p>
                 {fim && <p style={{ fontSize: '11px', color: 'var(--c-44)', marginTop: '2px' }}>até {fim}</p>}
               </div>
-              <div style={{ width: '2px', background: 'var(--c-2a)', borderRadius: '1px', alignSelf: 'stretch', flexShrink: 0 }} />
+              <div title={ag.profissional?.nome} style={{ width: '3px', background: corDoProfissional(ag.profissional_id), borderRadius: '2px', alignSelf: 'stretch', flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="agenda-item-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
                   <p className="texto-cortado" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--c-fff)' }}>{ag.cliente?.nome ?? 'Sem cliente'}</p>
@@ -509,7 +509,7 @@ function SemanalView({
                           setArrasto({ id: ag.id, pegaY: e.clientY - e.currentTarget.getBoundingClientRect().top, altura: h })
                         } : undefined}
                         onDragEnd={() => { setArrasto(null); setDestino(null) }}
-                        title={`${ag.cliente?.nome ?? 'Sem cliente'} — ${ag.servico?.nome ?? ''}${arrastavel ? ' · arraste para remarcar' : ''}`}
+                        title={`${ag.cliente?.nome ?? 'Sem cliente'} — ${ag.servico?.nome ?? ''}${ag.profissional ? ` · ${ag.profissional.nome}` : ''}${arrastavel ? ' · arraste para remarcar' : ''}`}
                         onClick={() => onAbrir(ag.id)}
                         role="button"
                         tabIndex={0}
@@ -520,9 +520,9 @@ function SemanalView({
                           left: '3px',
                           right: '3px',
                           height: `${h}px`,
-                          background: 'var(--c-26)',
+                          background: `color-mix(in srgb, ${corDoProfissional(ag.profissional_id)} 14%, var(--c-26))`,
                           border: '1px solid var(--c-3a)',
-                          borderLeft: '2px solid var(--c-fff)',
+                          borderLeft: `3px solid ${corDoProfissional(ag.profissional_id)}`,
                           borderRadius: '5px',
                           padding: '4px 7px',
                           overflow: 'hidden',
@@ -537,6 +537,7 @@ function SemanalView({
                           lineHeight: 1.2,
                         }}>
                           {ag.cliente?.nome ?? 'Cliente'}
+                          {h < 40 && ag.profissional && <span style={{ fontWeight: 400, color: 'var(--c-66)' }}> · {ag.profissional.nome.split(' ')[0]}</span>}
                         </p>
                         {h >= 40 && (
                           <p style={{
@@ -544,7 +545,7 @@ function SemanalView({
                             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                             marginTop: '2px',
                           }}>
-                            {ag.servico?.nome}
+                            {ag.servico?.nome}{ag.profissional ? ` · ${ag.profissional.nome.split(' ')[0]}` : ''}
                           </p>
                         )}
                         {h >= 52 && (
@@ -685,12 +686,13 @@ function MensalView({
                       <div
                         key={ag.id}
                         role="button"
-                        title={`${hora} · ${ag.cliente?.nome ?? 'Sem cliente'} — ${ag.servico?.nome ?? ''}`}
+                        title={`${hora} · ${ag.cliente?.nome ?? 'Sem cliente'} — ${ag.servico?.nome ?? ''}${ag.profissional ? ` · ${ag.profissional.nome}` : ''}`}
                         onClick={e => { e.stopPropagation(); onAbrir(ag.id) }}
                         style={{
                           fontSize: '10px', color: 'var(--c-a3)',
                           background: 'rgba(var(--ink),0.06)',
                           border: '1px solid var(--c-2a)',
+                          borderLeft: `3px solid ${corDoProfissional(ag.profissional_id)}`,
                           borderRadius: '3px',
                           padding: '1px 5px',
                           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
@@ -741,7 +743,10 @@ export default function Agenda() {
   // semana pelas setas; se o dia escolhido sair dela, ela o acompanha.
   const [inicioFaixa, setInicioFaixa] = useState(() => somarDias(new Date(), -2))
   const [recarga, setRecarga] = useState(0)
-  const [filterProfId, setFilterProfId] = useState(() => { try { return localStorage.getItem(FILTRO_PROF_KEY) ?? '' } catch { return '' } })
+  // Profissionais escolhidos no filtro (vazio = todos).
+  const [filterProfIds, setFilterProfIds] = useState<string[]>(() => {
+    try { const v = JSON.parse(localStorage.getItem(FILTRO_PROF_KEY) ?? '[]'); return Array.isArray(v) ? v : [] } catch { return [] }
+  })
 
   const [agenda, setAgenda]         = useState<Agendamento[]>([])
   const [profissionais, setProfissionais] = useState<Profissional[]>([])
@@ -918,8 +923,8 @@ export default function Agenda() {
   const profissionaisVisiveis = verAgendamentosOutros ? profissionais : profissionais.filter(p => p.id === meuProfissional)
 
   // Filtro salvo de um profissional que saiu da lista não esconde a agenda.
-  const filtroAtivo = profissionaisVisiveis.some(p => p.id === filterProfId) ? filterProfId : ''
-  const agendaFiltrada = filtroAtivo ? agenda.filter(a => a.profissional_id === filtroAtivo) : agenda
+  const filtroAtivo = filterProfIds.filter(id => profissionaisVisiveis.some(p => p.id === id))
+  const agendaFiltrada = filtroAtivo.length > 0 ? agenda.filter(a => filtroAtivo.includes(a.profissional_id)) : agenda
 
   // O novo agendamento já vem com o profissional filtrado ou, sem
   // filtro, com o profissional vinculado ao usuário. Dá para agendar
@@ -928,15 +933,15 @@ export default function Agenda() {
     setError('')
     const vinculado = meuProfissional && profissionais.some(p => p.id === meuProfissional) ? meuProfissional : ''
     setForm(f => {
-      const prof = filtroAtivo || f.profissional_id || vinculado
+      const prof = (filtroAtivo.length === 1 ? filtroAtivo[0] : '') || f.profissional_id || vinculado
       return prof === f.profissional_id ? f : { ...f, profissional_id: prof, servico_id: '' }
     })
     setShowModal(true)
   }
 
-  function escolherProfissional(id: string) {
-    setFilterProfId(id)
-    try { localStorage.setItem(FILTRO_PROF_KEY, id) } catch { /* sem storage */ }
+  function escolherProfissionais(ids: string[]) {
+    setFilterProfIds(ids)
+    try { localStorage.setItem(FILTRO_PROF_KEY, JSON.stringify(ids)) } catch { /* sem storage */ }
   }
 
   // Só os serviços que o profissional faz; profissional sem nenhum
@@ -994,7 +999,7 @@ export default function Agenda() {
         contagem={contagemProf}
         total={agendaPeriodo.length}
         valor={filtroAtivo}
-        onChange={escolherProfissional}
+        onChange={escolherProfissionais}
       />
 
       {/* Views */}
