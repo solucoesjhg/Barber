@@ -47,7 +47,6 @@ function CategoriaDetalhe({ categoria: c, categorias, podeEditar, onClose, onEdi
 
   return (
     <ModalDetalhe
-      largura={540}
       icone={<Tags size={18} />}
       titulo={c.nome}
       subtitulo={<>
@@ -92,7 +91,6 @@ function FormaDetalhe({ forma: f, podeEditar, onClose, onEditar, onAlternarAtivo
 }) {
   return (
     <ModalDetalhe
-      largura={540}
       icone={<Wallet size={18} />}
       titulo={f.nome}
       subtitulo={<span className={`status-pill${f.ativo ? '' : ' inativo'}`}>{f.ativo ? 'Ativa' : 'Inativa'}</span>}

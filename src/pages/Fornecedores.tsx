@@ -36,7 +36,6 @@ function FornecedorDetalhe({ fornecedor: f, podeEditar, verContas, onClose, onEd
 
   return (
     <ModalDetalhe
-      largura={500}
       icone={initials(f.nome)}
       titulo={f.nome}
       subtitulo={<>

@@ -34,7 +34,6 @@ function ProfissionalDetalhe({ profissional: p, podeEditar, onClose, onEditar, o
 
   return (
     <ModalDetalhe
-      largura={500}
       icone={initials(p.nome)}
       titulo={p.nome}
       subtitulo={<>

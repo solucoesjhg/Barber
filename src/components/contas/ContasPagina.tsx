@@ -327,7 +327,6 @@ export default function ContasPagina({ tipo }: { tipo: TipoConta }) {
           return (
             <ModalDetalhe
               key={contaAberta.id}
-              largura={500}
               icone={<Icone size={18} />}
               titulo={contaAberta.descricao}
               subtitulo={<>

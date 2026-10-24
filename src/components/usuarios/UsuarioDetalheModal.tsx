@@ -85,7 +85,6 @@ export default function UsuarioDetalheModal({ usuario: u, profissionais, podeEdi
 
   return (
     <ModalDetalhe
-      largura={560}
       icone={initials(nome)}
       titulo={nome}
       subtitulo={<>

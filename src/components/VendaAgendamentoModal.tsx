@@ -85,7 +85,7 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
 
   return (
     <ModalFormulario
-      tamanho="pequeno"
+      tamanho="medio"
       icone={<ShoppingCart size={18} />}
       titulo="Gerar venda"
       descricao="Confira o atendimento e escolha a forma de pagamento. O agendamento fica concluído e ligado à venda."
@@ -108,7 +108,10 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
         <strong>{formatCurrency(cobranca.cobrado)}</strong>
       </div>
 
-      <p className="label" style={{ margin: '20px 0 8px' }}>Forma de pagamento</p>
+      {/* Esquerda: forma de pagamento. Direita: maquininha, parcelas e taxa. */}
+      <div className="pagamento-colunas" style={{ marginTop: '20px' }}>
+      <div>
+      <p className="label" style={{ marginBottom: '8px' }}>Forma de pagamento</p>
       <div className="opcoes-grade duas">
         {FORMAS.map(f => (
           <button key={f} type="button" className={`opcao${pagamento === f ? ' marcada' : ''}`} onClick={() => setPagamento(f)} aria-pressed={pagamento === f}>
@@ -117,7 +120,9 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
           </button>
         ))}
       </div>
+      </div>
       <PagamentoTaxa forma={pagamento} parcelas={parcelas} onParcelas={setParcelas} maquininhaId={maquininhaId} onMaquininha={escolherMaquininha} repassar={repassar} onRepassar={setRepassar} total={valor} taxas={taxas} />
+      </div>
 
       {semCaixa && (
         <div style={{ marginTop: '16px' }}>

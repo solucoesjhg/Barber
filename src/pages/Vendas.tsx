@@ -834,14 +834,16 @@ export default function Vendas() {
               ref={modalRef}
               className="card"
               // Cabe na tela mesmo com zoom ou janela baixa: rola por dentro.
-              style={{ width: '100%', maxWidth: '420px', padding: '22px 24px', maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto' }}
+              style={{ width: '100%', maxWidth: 'min(780px, 94vw)', padding: '22px 26px', maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto' }}
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h2 style={{ fontSize: '18px', color: 'var(--c-fff)' }}>Forma de Pagamento</h2>
                 <button className="btn btn-icon" onClick={() => setShowPayModal(false)}><X size={14} /></button>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+              {/* Esquerda: forma e total. Direita: maquininha, parcelas e taxa. */}
+              <div className="pagamento-colunas" style={{ marginBottom: '16px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                 {PAGAMENTOS.map(p => (
                   <button
@@ -863,13 +865,16 @@ export default function Vendas() {
                   </button>
                 ))}
                 </div>
+                <div style={{ padding: '14px 16px', background: 'rgba(var(--ink),0.04)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--c-a3)' }}>Total a cobrar</span>
+                  <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--c-fff)' }}>{formatCurrency(cobranca.cobrado)}</span>
+                </div>
+                {semComissao && <p style={{ fontSize: '12px', color: 'var(--c-66)' }}>Esta venda não vai gerar comissão.</p>}
+              </div>
+              <div>
                 <PagamentoTaxa forma={pagamento} parcelas={parcelas} onParcelas={setParcelas} maquininhaId={maquininhaId} onMaquininha={escolherMaquininha} repassar={repassar} onRepassar={setRepassar} total={total} taxas={taxas} />
               </div>
-              <div style={{ padding: '14px 16px', background: 'rgba(var(--ink),0.04)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', marginBottom: semComissao ? '10px' : '20px' }}>
-                <span style={{ fontSize: '13px', color: 'var(--c-a3)' }}>Total a cobrar</span>
-                <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--c-fff)' }}>{formatCurrency(cobranca.cobrado)}</span>
               </div>
-              {semComissao && <p style={{ fontSize: '12px', color: 'var(--c-66)', marginBottom: '16px' }}>Esta venda não vai gerar comissão.</p>}
               {error && ehErroSemCaixa(error)
                 ? <AbrirCaixaRapido onAberto={() => { setError(''); finalizarVenda() }} />
                 : error && <p style={{ fontSize: '12px', color: 'var(--c-a3)', marginBottom: '12px' }}>{error}</p>}

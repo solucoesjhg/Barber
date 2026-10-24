@@ -985,7 +985,14 @@ button.status-pill:disabled { cursor: default; }
 .detalhe-icone img { width: 100%; height: 100%; object-fit: cover; }
 .detalhe-titulo { font-size: 18px; color: var(--text); line-height: 1.25; }
 .detalhe-sub { font-size: 12px; color: var(--c-66); margin-top: 3px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.detalhe-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 18px; }
+.detalhe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px 18px; }
+/* Card de visualização em duas colunas (ex.: itens à esquerda, comissões
+   à direita). No celular, uma coluna. */
+.detalhe-colunas { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 0 28px; align-items: start; }
+.detalhe-colunas > * > .detalhe-secao:first-child { margin-top: 18px; }
+@media (max-width: 760px) {
+  .detalhe-colunas { grid-template-columns: minmax(0, 1fr); }
+}
 .detalhe-item { min-width: 0; }
 .detalhe-item.largo { grid-column: 1 / -1; }
 .detalhe-rotulo { font-size: 10px; font-weight: 600; color: var(--c-66); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px; }
@@ -1180,4 +1187,11 @@ button.status-pill:disabled { cursor: default; }
 .modal-overlay > .card {
   max-height: calc(100dvh - 32px);
   overflow-y: auto;
+}
+
+/* Pagamento da venda: forma e total à esquerda, maquininha/parcelas/taxa
+   à direita; no celular empilha. */
+.pagamento-colunas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 760px) {
+  .pagamento-colunas { grid-template-columns: minmax(0, 1fr); gap: 4px; }
 }

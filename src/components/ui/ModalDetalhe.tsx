@@ -8,7 +8,7 @@ import { useModalKeyboard } from '../../hooks/useModalKeyboard'
  * cabeçalho com ícone/foto, título e subtítulo, conteúdo livre e as
  * ações no rodapé. Esc ou clique fora fecha.
  */
-export default function ModalDetalhe({ titulo, subtitulo, icone, onClose, children, acoes, largura = 480, onSalvar }: {
+export default function ModalDetalhe({ titulo, subtitulo, icone, onClose, children, acoes, largura = 820, onSalvar }: {
   titulo: ReactNode
   subtitulo?: ReactNode
   icone?: ReactNode
@@ -32,7 +32,7 @@ export default function ModalDetalhe({ titulo, subtitulo, icone, onClose, childr
         className="card"
         role="dialog"
         aria-modal="true"
-        style={{ width: '100%', maxWidth: `${largura}px`, padding: '24px', maxHeight: '88vh', overflowY: 'auto' }}
+        style={{ width: '100%', maxWidth: `min(${largura}px, 94vw)`, padding: '24px 28px', maxHeight: '90vh', overflowY: 'auto' }}
         initial={{ scale: 0.96, y: 14 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 14 }}
         transition={{ duration: 0.18, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
@@ -53,7 +53,7 @@ export default function ModalDetalhe({ titulo, subtitulo, icone, onClose, childr
   )
 }
 
-/** Grade de informações (rótulo em cima, valor embaixo), 2 colunas. */
+/** Grade de informações (rótulo em cima, valor embaixo); quantas colunas couberem. */
 export function InfoGrade({ children }: { children: ReactNode }) {
   return <div className="detalhe-grid">{children}</div>
 }

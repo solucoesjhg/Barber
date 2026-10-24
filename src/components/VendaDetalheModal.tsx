@@ -153,7 +153,6 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
 
   return (
     <ModalDetalhe
-      largura={480}
       icone={<ShoppingCart size={18} />}
       titulo={comanda ? (comanda.cliente_nome || 'Balcão') : 'Venda'}
       subtitulo={comanda && (
@@ -203,6 +202,9 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
             )}
           </InfoGrade>
 
+          {/* Itens à esquerda e comissões à direita (no celular, uma coluna). */}
+          <div className={comissoes.length > 0 ? 'detalhe-colunas' : undefined}>
+          <div>
           <SecaoDetalhe titulo={`Itens (${itens.length})`}>
             {itens.length === 0 ? (
               <p style={{ fontSize: '12px', color: 'var(--c-55)' }}>Nenhum item encontrado.</p>
@@ -271,7 +273,9 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
             )}
           </SecaoDetalhe>
 
+          </div>
           {comissoes.length > 0 && (
+            <div>
             <SecaoDetalhe
               titulo={ativas.length > 0 ? `Comissões · ${formatCurrency(totalComissoes)}` : 'Comissões'}
               acao={podeTirarComissao && ativas.length > 0 ? (
@@ -304,7 +308,9 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
                 </div>
               )}
             </SecaoDetalhe>
+            </div>
           )}
+          </div>
 
           {error && <p className="aviso-erro" style={{ marginTop: '14px' }}>{error}</p>}
         </>

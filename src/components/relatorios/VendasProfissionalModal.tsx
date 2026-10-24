@@ -27,7 +27,7 @@ export default function VendasProfissionalModal({ nome, periodo, vendas, onAbrir
   const faturamento = vendas.reduce((s, v) => s + v.valor, 0)
   const comissao = vendas.reduce((s, v) => s + v.comissao, 0)
   return (
-    <ModalDetalhe largura={620} icone={<Scissors size={18} />} titulo={nome} subtitulo={<span>{periodo}</span>} onClose={onClose}>
+    <ModalDetalhe icone={<Scissors size={18} />} titulo={nome} subtitulo={<span>{periodo}</span>} onClose={onClose}>
       <InfoGrade>
         <Info rotulo="Atendimentos">{String(vendas.length)}</Info>
         <Info rotulo="Faturamento">{formatCurrency(faturamento)}</Info>

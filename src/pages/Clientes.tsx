@@ -45,7 +45,6 @@ function ClienteDetalhe({ cliente: c, podeEditar, verAgenda, onClose, onEditar, 
 
   return (
     <ModalDetalhe
-      largura={520}
       icone={initials(c.nome)}
       titulo={c.nome}
       subtitulo={<>

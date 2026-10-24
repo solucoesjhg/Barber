@@ -39,7 +39,6 @@ export function ProdutoDetalheModal({ produto: p, verCusto, podeEditar, onClose,
 
   return (
     <ModalDetalhe
-      largura={500}
       icone={p.foto_url ? <img src={p.foto_url} alt="" /> : <Package size={18} />}
       titulo={p.nome}
       subtitulo={<>
@@ -103,7 +102,6 @@ export function ServicoDetalheModal({ servico: s, podeEditar, onClose, onEditar 
 }) {
   return (
     <ModalDetalhe
-      largura={460}
       icone={<Scissors size={18} />}
       titulo={s.nome}
       subtitulo={<>

@@ -48,7 +48,6 @@ export default function LancamentoDetalheModal({ movimento, onClose, onDelete }:
 
   return (
     <ModalDetalhe
-      largura={440}
       icone={entrada ? <ArrowUpRight size={18} style={{ color: 'var(--c-fff)' }} /> : <ArrowDownRight size={18} />}
       titulo={entrada ? 'Entrada' : 'Saída'}
       subtitulo={formatDateTime(movimento.created_at ?? movimento.data)}

@@ -71,7 +71,6 @@ export default function AgendamentoDetalheModal({ agendamento: ag, podeEditar, p
 
   return (
     <ModalDetalhe
-      largura={500}
       icone={ag.cliente?.nome ? initials(ag.cliente.nome) : <Clock size={18} />}
       titulo={ag.cliente?.nome ?? 'Sem cliente'}
       subtitulo={<><span>{dia}</span><span>{hora(inicio)} – {hora(fim)}</span><span className={cfg.cls}>{cfg.label}</span></>}

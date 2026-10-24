@@ -50,7 +50,7 @@ export default function PagamentoTaxa({ forma, parcelas, onParcelas, maquininhaI
   )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
       {mostraMaquininha && (
         <div className="field" style={{ marginBottom: 0 }}>
           <label className="label">Maquininha{obrigatoria ? ' *' : ''}</label>
