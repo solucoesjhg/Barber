@@ -18,6 +18,7 @@ interface PermissoesCtx {
   /** Administrador/gerente com Vendas (editar): pode editar uma venda já feita. */
   podeEditarVendas: boolean
   verVendasOutros: boolean
+  verAgendamentosOutros: boolean
   verCustoProdutos: boolean
   recarregar: () => void
 }
@@ -57,6 +58,7 @@ export function PermissoesProvider({ children }: { children: ReactNode }) {
       gerenciaEquipe: !!permissoes?.gerenciar_equipe,
       podeEditarVendas: !!permissoes?.gerenciar_equipe && !!permissoes?.telas?.pdv?.editar,
       verVendasOutros: !!permissoes?.ver_vendas_outros,
+      verAgendamentosOutros: permissoes?.ver_agendamentos_outros ?? true,
       verCustoProdutos: !!permissoes?.ver_custo_produtos,
     }}>
       {children}

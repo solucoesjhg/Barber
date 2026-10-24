@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
 import { dataLocalISO } from '../lib/periodo'
 import { usePermissoes } from '../hooks/usePermissoes'
+import { usePerfil } from '../hooks/usePerfil'
 import AgendamentoDetalheModal, { STATUS_AGENDA, vendaDoAgendamento } from '../components/AgendamentoDetalheModal'
 import VendaDetalheModal from '../components/VendaDetalheModal'
 import VendaAgendamentoModal from '../components/VendaAgendamentoModal'
@@ -671,7 +672,8 @@ function MensalView({
    MAIN COMPONENT
 ══════════════════════════════════════════════════════════ */
 export default function Agenda() {
-  const { podeEditar: podeEditarTela, verVendasOutros } = usePermissoes()
+  const { podeEditar: podeEditarTela, verVendasOutros, verAgendamentosOutros } = usePermissoes()
+  const { profissionalId: meuProfissional } = usePerfil()
   const podeEditar = podeEditarTela('agenda')
   const podeVender = podeEditarTela('pdv')
   const podeTirarComissao = podeEditarTela('comissoes')
@@ -826,14 +828,23 @@ export default function Agenda() {
   const agendaPeriodo = viewMode === 'lista' ? agenda.filter(a => a.data_hora.startsWith(chaveDia)) : agenda
   const contagemProf: Record<string, number> = {}
   agendaPeriodo.forEach(a => { contagemProf[a.profissional_id] = (contagemProf[a.profissional_id] ?? 0) + 1 })
+  // Sem "ver agendamentos de outros", só o profissional vinculado ao
+  // usuário aparece (o banco já devolve só os agendamentos dele).
+  const profissionaisVisiveis = verAgendamentosOutros ? profissionais : profissionais.filter(p => p.id === meuProfissional)
+
   // Filtro salvo de um profissional que saiu da lista não esconde a agenda.
-  const filtroAtivo = profissionais.some(p => p.id === filterProfId) ? filterProfId : ''
+  const filtroAtivo = profissionaisVisiveis.some(p => p.id === filterProfId) ? filterProfId : ''
   const agendaFiltrada = filtroAtivo ? agenda.filter(a => a.profissional_id === filtroAtivo) : agenda
 
-  // Com um profissional filtrado, o novo agendamento já vem com ele.
+  // O novo agendamento já vem com o profissional filtrado ou, sem
+  // filtro, com o profissional vinculado ao usuário.
   function abrirNovo() {
     setError('')
-    if (filtroAtivo) setForm(f => ({ ...f, profissional_id: filtroAtivo, servico_id: f.profissional_id === filtroAtivo ? f.servico_id : '' }))
+    const vinculado = meuProfissional && profissionaisVisiveis.some(p => p.id === meuProfissional) ? meuProfissional : ''
+    setForm(f => {
+      const prof = filtroAtivo || f.profissional_id || vinculado
+      return prof === f.profissional_id ? f : { ...f, profissional_id: prof, servico_id: '' }
+    })
     setShowModal(true)
   }
 
@@ -893,7 +904,7 @@ export default function Agenda() {
       </div>
 
       <FiltroProfissional
-        profissionais={profissionais}
+        profissionais={profissionaisVisiveis}
         contagem={contagemProf}
         total={agendaPeriodo.length}
         valor={filtroAtivo}
@@ -1027,7 +1038,7 @@ export default function Agenda() {
               <Campo rotulo="Profissional *" span={2}>
                 <select className="input" value={form.profissional_id} onChange={e => setForm(f => ({ ...f, profissional_id: e.target.value, servico_id: '' }))}>
                   <option value="">Selecionar...</option>
-                  {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                  {profissionaisVisiveis.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
                 </select>
               </Campo>
               <Campo rotulo="Serviço *" span={2}>

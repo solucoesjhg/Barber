@@ -113,6 +113,8 @@ export default function Vendas() {
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [profissionais, setProfissionais] = useState<Profissional[]>([])
   const [profissionalId, setProfissionalId] = useState('')
+  // Usuário vinculado a um profissional: a venda já começa com ele.
+  useEffect(() => { if (meuProfissional) setProfissionalId(p => p || meuProfissional) }, [meuProfissional])
 
   const [cart, setCart]           = useState<ItemComanda[]>([])
   const [clienteNome, setClienteNome] = useState('')
@@ -293,7 +295,7 @@ export default function Vendas() {
     setSemComissao(false)
     setEdicao(null)
     setOrigemAgenda(null)
-    setProfissionalId('')
+    setProfissionalId(meuProfissional ?? '')
     setSearch('')
     setError('')
   }

@@ -5,6 +5,7 @@ import type { CardDashboardId, PermissoesUsuario, RelatorioId, TelaId } from '..
 export type RascunhoPermissoes = {
   telas: Record<TelaId, { ver: boolean; editar: boolean }>
   ver_vendas_outros: boolean
+  ver_agendamentos_outros: boolean
   ver_custo_produtos: boolean
   dashboard_cards: CardDashboardId[]
   relatorios: RelatorioId[]
@@ -16,6 +17,7 @@ export function rascunhoDe(p: PermissoesUsuario): RascunhoPermissoes {
   return {
     telas,
     ver_vendas_outros: p.ver_vendas_outros,
+    ver_agendamentos_outros: p.ver_agendamentos_outros ?? true,
     ver_custo_produtos: p.ver_custo_produtos,
     dashboard_cards: [...(p.dashboard_cards ?? [])],
     // Banco sem a migração de relatórios: todos liberados.
@@ -37,17 +39,23 @@ export function relatoriosAlterados(a: RascunhoPermissoes, b: RascunhoPermissoes
 
 export function rascunhosIguais(a: RascunhoPermissoes, b: RascunhoPermissoes) {
   return a.ver_vendas_outros === b.ver_vendas_outros
+    && a.ver_agendamentos_outros === b.ver_agendamentos_outros
     && a.ver_custo_produtos === b.ver_custo_produtos
     && !cardsAlterados(a, b)
     && !relatoriosAlterados(a, b)
     && TELAS.every(t => a.telas[t.id].ver === b.telas[t.id].ver && a.telas[t.id].editar === b.telas[t.id].editar)
 }
 
-const ESPECIAIS: { campo: 'ver_vendas_outros' | 'ver_custo_produtos'; label: string; descricao: string }[] = [
+const ESPECIAIS: { campo: 'ver_vendas_outros' | 'ver_agendamentos_outros' | 'ver_custo_produtos'; label: string; descricao: string }[] = [
   {
     campo: 'ver_vendas_outros',
     label: 'Ver vendas de outros usuários',
     descricao: 'Em Vendas, nos relatórios e no dashboard, vê as vendas de todos. Sem isso, vê só as que ele mesmo fez ou atendeu.',
+  },
+  {
+    campo: 'ver_agendamentos_outros',
+    label: 'Ver agendamentos de outros usuários',
+    descricao: 'Na Agenda e no dashboard, vê os agendamentos de todos os profissionais. Sem isso, vê e agenda só para o profissional vinculado a ele.',
   },
   {
     campo: 'ver_custo_produtos',

@@ -409,6 +409,8 @@ export interface PermissoesUsuario {
   acesso_total: boolean
   gerenciar_equipe: boolean
   ver_vendas_outros: boolean
+  /** Ausente = banco sem a migração (vê todos). */
+  ver_agendamentos_outros?: boolean
   ver_custo_produtos: boolean
   especiais_personalizados: boolean
   /** Cards que aparecem no Dashboard (ids de CARDS_DASHBOARD). */
