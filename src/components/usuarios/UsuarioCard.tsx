@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronDown, Eye, EyeOff, KeyRound, RotateCcw } from 'lucide-react'
+import { ChevronDown, Eye, EyeOff, KeyRound, RotateCcw, Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { initials } from '../../lib/utils'
 import { PAPEL_LABEL, nomeExibicao } from '../../lib/permissoes'
@@ -145,6 +145,17 @@ export default function UsuarioCard({ usuario, aberto, onToggle, papeis, profiss
     setAviso('Permissões voltaram ao padrão do papel.')
   }
 
+  // Excluir de vez (login inclusive). O banco só deixa quem não tem
+  // vendas nem caixas no histórico; com histórico, o caminho é desativar.
+  async function excluir() {
+    if (!window.confirm(`Excluir ${nomeExibicao(usuario)} (${usuario.email}) de vez? O login deixa de existir e o e-mail fica livre. Isso não pode ser desfeito.`)) return
+    setSaving(true); setError('')
+    const { error: err } = await supabase.rpc('excluir_usuario', { p_usuario_id: usuario.usuario_id })
+    setSaving(false)
+    if (err) { setError(err.message); return }
+    onSaved()
+  }
+
   const nome = nomeExibicao(usuario)
   const idCorpo = `usuario-${usuario.usuario_id}`
 
@@ -258,6 +269,11 @@ export default function UsuarioCard({ usuario, aberto, onToggle, papeis, profiss
               {(podeEditar || acoesExtras) && (
                 <div className="usuario-acoes">
                   {acoesExtras}
+                  {podeEditar && (
+                    <button className="btn btn-ghost btn-sm" onClick={excluir} disabled={saving} title="Excluir o usuário de vez (só sem histórico de vendas e caixas)" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <Trash2 size={13} /> Excluir
+                    </button>
+                  )}
                   {podeEditar && comPermissoes && permissoes && !permissoes.acesso_total && (
                     <button className="btn btn-secondary btn-sm" onClick={restaurarPadrao} disabled={saving || !personalizado} title="Apaga as personalizações e volta ao padrão do papel">
                       <RotateCcw size={13} /> Restaurar Padrão
