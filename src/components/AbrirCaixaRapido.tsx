@@ -24,14 +24,14 @@ export default function AbrirCaixaRapido({ onAberto }: {
     setAbrindo(true); setErro('')
     const { error } = await supabase.rpc('abrir_caixa', { p_valor_inicial: Number(String(valor).replace(',', '.')) || 0 })
     setAbrindo(false)
-    // "Já tem um caixa aberto" (aberto em outra aba) também libera a venda.
-    if (error && !/já tem um caixa aberto/i.test(error.message)) { setErro(error.message); return }
+    // Caixa já aberto (por outra pessoa ou em outra aba) também libera a venda.
+    if (error && !/já tem um caixa aberto|já está aberto/i.test(error.message)) { setErro(error.message); return }
     onAberto()
   }
 
   return (
     <div className="aviso-info" style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '12px' }}>
-      <span>O seu caixa está fechado. Abra aqui e a venda é registrada em seguida.</span>
+      <span>O caixa da loja está fechado. Abra aqui e a venda é registrada em seguida.</span>
       <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
         <div className="field" style={{ marginBottom: 0, flex: '1 1 120px' }}>
           <label className="label" htmlFor={idValor}>Valor inicial (troco)</label>

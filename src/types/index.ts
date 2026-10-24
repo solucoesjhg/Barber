@@ -156,6 +156,8 @@ export interface SessaoCaixa {
   diferenca?: number
   observacao_fechamento?: string
   status: SessaoCaixaStatus
+  /** Quem fechou (caixa único da loja: pode ser outra pessoa). */
+  fechado_por?: string | null
 }
 
 export interface DashboardStats {

@@ -210,7 +210,7 @@ export default function Configuracoes() {
             Fechar o caixa automaticamente no horário de fechamento
           </label>
           <p style={{ fontSize: '12px', color: 'var(--c-66)', lineHeight: 1.5, marginTop: '-6px' }}>
-            Quem esquecer o caixa aberto tem ele fechado às {form.horario_fechamento?.slice(0, 5) || 'horário de fechamento'}, com o saldo esperado calculado e o valor contado em branco. Caixa aberto depois desse horário fecha no dia seguinte.
+            Se o caixa da loja ficar aberto, ele é fechado às {form.horario_fechamento?.slice(0, 5) || 'horário de fechamento'}, com o saldo esperado calculado e o valor contado em branco. Caixa aberto depois desse horário fecha no dia seguinte.
           </p>
         </div>
       </motion.div>

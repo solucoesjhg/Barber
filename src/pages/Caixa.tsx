@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Lock, Unlock, ArrowUpRight, ArrowDownRight, X, ArrowDownToLine, ArrowUpFromLine, Wallet, TrendingUp, TrendingDown, Scale } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { carregarNomesUsuarios } from '../lib/usuarios'
 import { formatCurrency, formatDateTime, formatTime } from '../lib/utils'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
 import { confirmarSaldoSuficiente } from '../lib/contasFinanceiras'
@@ -36,7 +37,8 @@ export default function Caixa() {
   const [error, setError] = useState('')
   const [resultadoFechamento, setResultadoFechamento] = useState<SessaoCaixa | null>(null)
   const [movimentoAberto, setMovimentoAberto] = useState<MovimentoCaixa | null>(null)
-  // Último caixa do usuário, quando foi fechado sozinho no horário.
+  const [nomes, setNomes] = useState<Record<string, string>>({})
+  // Último caixa da loja, quando foi fechado sozinho no horário.
   const [fechadoAuto, setFechadoAuto] = useState<SessaoCaixa | null>(null)
   const selecao = useSelecao(movimentos.map(m => m.id))
   const marcados = movimentos.filter(m => selecao.tem(m.id))
@@ -49,18 +51,20 @@ export default function Caixa() {
     // Fecha o caixa que passou do horário de fechamento da loja (se a
     // função ainda não existe no banco, segue sem ela).
     await supabase.rpc('fechar_caixas_no_horario')
+    // O caixa é da loja: um só aberto, onde entram as vendas de todos.
     const { data: sess } = await supabase
       .from('sessoes_caixa')
       .select('*')
-      .eq('usuario_id', user.id)
       .eq('status', 'aberto')
+      .order('aberto_em')
+      .limit(1)
       .maybeSingle()
 
     setSessao((sess as SessaoCaixa) ?? null)
 
     if (!sess) {
       const { data: ultima } = await supabase.from('sessoes_caixa').select('*')
-        .eq('usuario_id', user.id).eq('status', 'fechado')
+        .eq('status', 'fechado')
         .order('fechado_em', { ascending: false }).limit(1).maybeSingle()
       const u = ultima as SessaoCaixa | null
       const recente = !!u?.fechado_em && Date.now() - new Date(u.fechado_em).getTime() < 24 * 3600 * 1000
@@ -83,6 +87,7 @@ export default function Caixa() {
   }, [user])
 
   useEffect(() => { carregar() }, [carregar])
+  useEffect(() => { carregarNomesUsuarios().then(setNomes) }, [])
 
   const entradas = movimentos.filter(m => m.tipo === 'entrada').reduce((s, m) => s + m.valor, 0)
   const saidas   = movimentos.filter(m => m.tipo === 'saida').reduce((s, m) => s + m.valor, 0)
@@ -156,7 +161,9 @@ export default function Caixa() {
         <div>
           <h1 style={{ fontSize: '24px', color: 'var(--c-fff)' }}>Caixa</h1>
           <p style={{ fontSize: '13px', color: 'var(--c-55)', marginTop: '3px' }}>
-            {sessao ? `Aberto desde ${formatDateTime(sessao.aberto_em)}` : 'Nenhum caixa aberto'}
+            {sessao
+              ? `Caixa da loja · aberto desde ${formatDateTime(sessao.aberto_em)}${nomes[sessao.usuario_id] ? ` por ${nomes[sessao.usuario_id]}` : ''}`
+              : 'Nenhum caixa aberto'}
           </p>
         </div>
         {!podeEditar ? null : sessao ? (
@@ -175,12 +182,12 @@ export default function Caixa() {
           <p style={{ fontSize: '14px', color: 'var(--c-55)' }}>O caixa está fechado.</p>
           {fechadoAuto && (
             <p className="aviso-info" style={{ margin: '12px auto 0', maxWidth: '440px', textAlign: 'left' }}>
-              Seu último caixa foi fechado automaticamente em {formatDateTime(fechadoAuto.fechado_em!)}, no horário de fechamento da loja.
+              O último caixa foi fechado automaticamente em {formatDateTime(fechadoAuto.fechado_em!)}, no horário de fechamento da loja.
               Saldo esperado: {formatCurrency(Number(fechadoAuto.saldo_esperado ?? 0))}. Confira a gaveta e avise o gerente se houver diferença.
             </p>
           )}
           <p style={{ fontSize: '12px', color: 'var(--c-44)', marginTop: '6px' }}>
-            {podeEditar ? 'Abra o caixa para poder registrar vendas e movimentos.' : 'Seu usuário não tem permissão para abrir o caixa.'}
+            {podeEditar ? 'Abra o caixa da loja uma vez: todas as vendas e movimentos da equipe entram nele até ele ser fechado.' : 'Peça a quem cuida do caixa para abrir o caixa da loja.'}
           </p>
         </div>
       ) : (

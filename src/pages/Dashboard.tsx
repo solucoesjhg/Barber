@@ -79,7 +79,7 @@ export default function Dashboard() {
 
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return
-      supabase.from('sessoes_caixa').select('*').eq('usuario_id', user.id).eq('status', 'aberto').maybeSingle()
+      supabase.from('sessoes_caixa').select('*').eq('status', 'aberto').order('aberto_em').limit(1).maybeSingle()
         .then(async ({ data: sessao }) => {
           if (!sessao) { setFinanceiro(f => ({ ...f, caixaAberto: false })); return }
           const { data: movs } = await supabase.from('movimentos_caixa').select('tipo, valor').eq('sessao_caixa_id', sessao.id)
