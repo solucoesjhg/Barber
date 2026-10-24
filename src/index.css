@@ -1174,3 +1174,10 @@ button.status-pill:disabled { cursor: default; }
   /* Com um modal aberto, o botão do menu fica atrás dele, não por cima do título */
   body:has(.modal-overlay, .modal-form-fundo) .sidebar-toggle-btn { z-index: 0; }
 }
+
+/* Todo modal cabe na altura da tela (zoom, notebook, janela baixa) e
+   rola por dentro em vez de cortar o conteúdo. */
+.modal-overlay > .card {
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+}

@@ -827,30 +827,32 @@ export default function Vendas() {
         {showPayModal && (
           <motion.div
             className="modal-overlay"
-            style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'var(--overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+            style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'var(--overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
             <motion.div
               ref={modalRef}
               className="card"
-              style={{ width: '100%', maxWidth: '400px', padding: '28px' }}
+              // Cabe na tela mesmo com zoom ou janela baixa: rola por dentro.
+              style={{ width: '100%', maxWidth: '420px', padding: '22px 24px', maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto' }}
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h2 style={{ fontSize: '18px', color: 'var(--c-fff)' }}>Forma de Pagamento</h2>
                 <button className="btn btn-icon" onClick={() => setShowPayModal(false)}><X size={14} /></button>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                 {PAGAMENTOS.map(p => (
                   <button
                     key={p.id}
                     onClick={() => setPagamento(p.id)}
                     style={{
-                      padding: '14px 16px', borderRadius: '8px',
+                      padding: '11px 14px', borderRadius: '8px',
                       border: pagamento === p.id ? '1px solid var(--c-fff)' : '1px solid var(--c-2a)',
                       background: pagamento === p.id ? 'rgba(var(--ink),0.07)' : 'transparent',
                       color: pagamento === p.id ? 'var(--c-fff)' : 'var(--c-66)',
-                      fontSize: '14px', fontWeight: pagamento === p.id ? 600 : 400,
+                      fontSize: '13px', fontWeight: pagamento === p.id ? 600 : 400,
                       cursor: 'pointer', textAlign: 'left',
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                       transition: 'all 0.15s', fontFamily: 'inherit',
@@ -860,6 +862,7 @@ export default function Vendas() {
                     {pagamento === p.id && <Check size={14} />}
                   </button>
                 ))}
+                </div>
                 <PagamentoTaxa forma={pagamento} parcelas={parcelas} onParcelas={setParcelas} maquininhaId={maquininhaId} onMaquininha={escolherMaquininha} repassar={repassar} onRepassar={setRepassar} total={total} taxas={taxas} />
               </div>
               <div style={{ padding: '14px 16px', background: 'rgba(var(--ink),0.04)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', marginBottom: semComissao ? '10px' : '20px' }}>
