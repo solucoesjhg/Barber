@@ -10,6 +10,7 @@ import { carregarNomesUsuarios } from '../lib/usuarios'
 import ScannerCamera from '../components/ScannerCamera'
 import VendaDetalheModal, { type VendaParaEditar } from '../components/VendaDetalheModal'
 import PagamentoTaxa from '../components/PagamentoTaxa'
+import AbrirCaixaRapido, { ehErroSemCaixa } from '../components/AbrirCaixaRapido'
 import { calcularCobranca, carregarTaxas, maquininhaObrigatoria, percentualTaxa, rotuloPagamento, TAXAS_VAZIAS, type TaxasLoja } from '../lib/taxas'
 import FiltroPeriodo from '../components/ui/FiltroPeriodo'
 import Checkbox from '../components/ui/Checkbox'
@@ -866,7 +867,9 @@ export default function Vendas() {
                 <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--c-fff)' }}>{formatCurrency(cobranca.cobrado)}</span>
               </div>
               {semComissao && <p style={{ fontSize: '12px', color: 'var(--c-66)', marginBottom: '16px' }}>Esta venda não vai gerar comissão.</p>}
-              {error && <p style={{ fontSize: '12px', color: 'var(--c-a3)', marginBottom: '12px' }}>{error}</p>}
+              {error && ehErroSemCaixa(error)
+                ? <AbrirCaixaRapido onAberto={() => { setError(''); finalizarVenda() }} />
+                : error && <p style={{ fontSize: '12px', color: 'var(--c-a3)', marginBottom: '12px' }}>{error}</p>}
               <button className="btn btn-primary btn-full" onClick={finalizarVenda} disabled={saving}>
                 {saving ? 'Processando...' : editando ? 'Salvar Edição (F10)' : 'Confirmar Pagamento (F10)'}
               </button>

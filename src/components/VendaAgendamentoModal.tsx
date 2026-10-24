@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Check, Plus, ShoppingCart, Wallet } from 'lucide-react'
+import { Check, Plus, ShoppingCart } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
 import ModalFormulario from './ui/ModalFormulario'
 import { Info, InfoGrade } from './ui/ModalDetalhe'
 import { PAGAMENTO_LABEL } from './VendaDetalheModal'
 import PagamentoTaxa from './PagamentoTaxa'
+import AbrirCaixaRapido, { ehErroSemCaixa } from './AbrirCaixaRapido'
 import { calcularCobranca, carregarTaxas, maquininhaObrigatoria, percentualTaxa, TAXAS_VAZIAS, type TaxasLoja } from '../lib/taxas'
 import type { Agendamento, PagamentoMetodo } from '../types'
 
@@ -27,7 +27,6 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
   onVendido: (comandaId: string, total: number, vinculada: boolean) => void
   onAdicionarItens: () => void
 }) {
-  const navigate = useNavigate()
   const [pagamento, setPagamento] = useState<PagamentoMetodo>('pix')
   const [parcelas, setParcelas] = useState(1)
   const [maquininhaId, setMaquininhaId] = useState('')
@@ -42,7 +41,7 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
   const valor = Number(ag.valor ?? ag.servico?.preco ?? 0)
   const cobranca = calcularCobranca(valor, percentualTaxa(taxas, maquininhaId, pagamento, parcelas), repassar)
   const quando = new Date(ag.data_hora).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
-  const semCaixa = /caixa aberto/i.test(erro)
+  const semCaixa = ehErroSemCaixa(erro)
 
   async function registrar() {
     if (!ag.servico || !ag.servico_id) {
@@ -94,7 +93,7 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
       onSalvar={registrar}
       salvando={salvando}
       rotuloSalvar="Registrar venda"
-      erro={erro}
+      erro={semCaixa ? '' : erro}
       autoFocus={false}
     >
       <InfoGrade>
@@ -121,11 +120,8 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
       <PagamentoTaxa forma={pagamento} parcelas={parcelas} onParcelas={setParcelas} maquininhaId={maquininhaId} onMaquininha={escolherMaquininha} repassar={repassar} onRepassar={setRepassar} total={valor} taxas={taxas} />
 
       {semCaixa && (
-        <div className="aviso-info" style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          <span style={{ flex: '1 1 220px' }}>A venda entra no seu caixa. Abra o caixa e depois volte aqui para registrar.</span>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate('/caixa')}>
-            <Wallet size={13} /> Ir para o Caixa
-          </button>
+        <div style={{ marginTop: '16px' }}>
+          <AbrirCaixaRapido onAberto={() => { setErro(''); registrar() }} />
         </div>
       )}
 
