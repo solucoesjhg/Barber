@@ -19,6 +19,7 @@ interface PermissoesCtx {
   podeEditarVendas: boolean
   verVendasOutros: boolean
   verAgendamentosOutros: boolean
+  podeDarDesconto: boolean
   verCustoProdutos: boolean
   recarregar: () => void
 }
@@ -59,6 +60,7 @@ export function PermissoesProvider({ children }: { children: ReactNode }) {
       podeEditarVendas: !!permissoes?.gerenciar_equipe && !!permissoes?.telas?.pdv?.editar,
       verVendasOutros: !!permissoes?.ver_vendas_outros,
       verAgendamentosOutros: permissoes?.ver_agendamentos_outros ?? true,
+      podeDarDesconto: !!permissoes?.dar_desconto,
       verCustoProdutos: !!permissoes?.ver_custo_produtos,
     }}>
       {children}

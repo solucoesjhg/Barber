@@ -101,3 +101,12 @@ export function rotuloPagamento(forma?: string | null, parcelas?: number | null,
 }
 
 export const formatarPercentual = (v: number) => `${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%`
+
+/** Venda paga em mais de uma forma: "Pix + Cartão Crédito 3x". */
+export function rotuloPagamentos(
+  pagamentos: { forma: string; parcelas?: number | null }[] | null | undefined,
+  forma?: string | null, parcelas?: number | null,
+): string {
+  if (pagamentos && pagamentos.length > 1) return pagamentos.map(p => rotuloPagamento(p.forma, p.parcelas)).join(' + ')
+  return rotuloPagamento(forma, parcelas)
+}

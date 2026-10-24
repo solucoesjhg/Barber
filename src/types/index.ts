@@ -119,8 +119,24 @@ export interface Comanda {
   taxa_valor?: number
   /** Taxa repassada ao cliente: o que ele pagou a mais (total + acréscimo = cobrado). */
   acrescimo?: number
+  /** Desconto dado na venda (o total já vem sem ele). */
+  desconto?: number
   agendamento_id?: string | null
   created_at: string
+  /** Formas usadas no pagamento (venda paga em mais de uma forma). */
+  pagamentos?: PagamentoComanda[]
+}
+
+/** Uma parte do pagamento da venda (comanda_pagamentos). */
+export interface PagamentoComanda {
+  forma: PagamentoMetodo
+  valor: number
+  parcelas: number
+  maquininha_id?: string | null
+  taxa_percentual?: number
+  taxa_valor?: number
+  acrescimo?: number
+  cobrado?: number
 }
 
 export interface MovimentoCaixa {
@@ -132,6 +148,8 @@ export interface MovimentoCaixa {
   data: string
   comanda_id?: string
   sessao_caixa_id?: string
+  /** Venda: forma de pagamento desta entrada (o caixa separa por forma). */
+  forma_pagamento?: PagamentoMetodo | null
   conta_financeira_id?: string
   /** Os dois lados de uma transferência entre contas têm o mesmo id. */
   transferencia_id?: string | null
@@ -417,6 +435,8 @@ export interface PermissoesUsuario {
   ver_vendas_outros: boolean
   /** Ausente = banco sem a migração (vê todos). */
   ver_agendamentos_outros?: boolean
+  /** Ausente = banco sem a migração (sem desconto). */
+  dar_desconto?: boolean
   ver_custo_produtos: boolean
   especiais_personalizados: boolean
   /** Cards que aparecem no Dashboard (ids de CARDS_DASHBOARD). */

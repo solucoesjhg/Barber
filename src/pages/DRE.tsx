@@ -15,6 +15,8 @@ interface DreData {
   comissoes: number
   /** Taxas da maquininha (ausente antes da migração 20261024000001). */
   taxas_pagamento?: number
+  /** Descontos dados nas vendas (já saem da receita bruta). */
+  descontos?: number
   custos_total: number
   lucro_bruto: number
   despesas_por_categoria: { categoria: string; valor: number }[]
@@ -126,6 +128,9 @@ export default function DRE() {
 
           <Linha label="Receita de Serviços" value={dre.receita_servicos} indent pct={dre.receita_bruta ? dre.receita_servicos / dre.receita_bruta * 100 : 0} delta={dreAnterior ? delta(dre.receita_servicos, dreAnterior.receita_servicos) : undefined} />
           <Linha label="Receita de Produtos" value={dre.receita_produtos} indent pct={dre.receita_bruta ? dre.receita_produtos / dre.receita_bruta * 100 : 0} delta={dreAnterior ? delta(dre.receita_produtos, dreAnterior.receita_produtos) : undefined} />
+          {(dre.descontos ?? 0) > 0 && (
+            <Linha label="(−) Descontos nas vendas" value={-(dre.descontos ?? 0)} indent pct={dre.receita_bruta ? (dre.descontos ?? 0) / dre.receita_bruta * 100 : 0} delta={dreAnterior ? delta(dre.descontos ?? 0, dreAnterior.descontos ?? 0) : undefined} />
+          )}
           <Linha label="Outras Receitas" value={dre.outras_receitas} indent pct={dre.receita_bruta ? dre.outras_receitas / dre.receita_bruta * 100 : 0} delta={dreAnterior ? delta(dre.outras_receitas, dreAnterior.outras_receitas) : undefined} />
           <div style={{ marginTop: '4px' }}>
             <Linha label="RECEITA BRUTA" value={dre.receita_bruta} bold pct={100} delta={dreAnterior ? delta(dre.receita_bruta, dreAnterior.receita_bruta) : undefined} />

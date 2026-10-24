@@ -4,9 +4,9 @@ import { supabase } from '../lib/supabase'
 import { formatCurrency, formatDateTime } from '../lib/utils'
 import { carregarNomesUsuarios } from '../lib/usuarios'
 import { usePermissoes } from '../hooks/usePermissoes'
-import { formatarPercentual, rotuloPagamento } from '../lib/taxas'
+import { formatarPercentual, rotuloPagamento, rotuloPagamentos } from '../lib/taxas'
 import ModalDetalhe, { Info, InfoGrade, SecaoDetalhe } from './ui/ModalDetalhe'
-import type { Comanda, ItemComanda } from '../types'
+import type { Comanda, ItemComanda, PagamentoComanda } from '../types'
 
 export const PAGAMENTO_LABEL: Record<string, string> = {
   pix: 'Pix', credito: 'Cartão Crédito', debito: 'Cartão Débito', dinheiro: 'Dinheiro',
@@ -34,6 +34,8 @@ export interface VendaParaEditar {
   itens: ItemComanda[]
   /** A venda está sem comissão (foi tirada): a edição mantém assim. */
   semComissao: boolean
+  /** Formas de pagamento da venda (vazio em vendas antigas). */
+  pagamentos?: PagamentoComanda[]
 }
 
 /**
@@ -58,6 +60,7 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
   const [comanda, setComanda] = useState<Comanda | null>(null)
   const [nomeMaquininha, setNomeMaquininha] = useState<string | null>(null)
   const [itens, setItens] = useState<ItemDetalhe[]>([])
+  const [pagamentos, setPagamentos] = useState<PagamentoComanda[]>([])
   const [comissoes, setComissoes] = useState<ComissaoDetalhe[]>([])
   const [fotos, setFotos] = useState<Record<string, string>>({})
   const [nomes, setNomes] = useState<Record<string, string>>({})
@@ -84,7 +87,9 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
       supabase.from('itens_comanda').select('id, comanda_id, tipo, referencia_id, nome, quantidade, preco_unitario, profissional_id, profissional:profissionais(nome)').eq('comanda_id', comandaId),
       carregarComissoes(),
       carregarNomesUsuarios(),
-    ]).then(async ([{ data: comandaData }, { data: itensData }, comissoesData, nomesData]) => {
+      // Sem a migração de pagamento dividido a tabela não existe: segue sem.
+      supabase.from('comanda_pagamentos').select('forma, valor, parcelas, maquininha_id, taxa_percentual, taxa_valor, acrescimo, cobrado').eq('comanda_id', comandaId).order('created_at'),
+    ]).then(async ([{ data: comandaData }, { data: itensData }, comissoesData, nomesData, { data: pagsData }]) => {
       if (cancelado) return
       const itensCarregados = (itensData ?? []) as unknown as ItemDetalhe[]
       const idsProdutos = [...new Set(itensCarregados.filter(i => i.tipo === 'produto').map(i => i.referencia_id))]
@@ -105,6 +110,7 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
           .then(({ data }) => { if (!cancelado) setNomeMaquininha((data as { nome: string } | null)?.nome ?? null) })
       }
       setItens(itensCarregados)
+      setPagamentos((pagsData ?? []) as PagamentoComanda[])
       setComissoes(comissoesData)
       setNomes(nomesData)
       setFotos(mapaFotos)
@@ -177,7 +183,7 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
           {podeAbrirEdicao && comanda && (
             <button
               className="btn btn-primary"
-              onClick={() => onEditar!({ comanda, itens, semComissao: ativas.length === 0 && retiradas > 0 })}
+              onClick={() => onEditar!({ comanda, itens, semComissao: ativas.length === 0 && retiradas > 0, pagamentos })}
             >
               <Pencil size={13} /> Editar venda
             </button>
@@ -197,7 +203,7 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
       ) : (
         <>
           <InfoGrade>
-            <Info rotulo="Pagamento">{comanda.forma_pagamento ? rotuloPagamento(comanda.forma_pagamento, comanda.parcelas, nomeMaquininha) : undefined}</Info>
+            <Info rotulo="Pagamento">{pagamentos.length > 1 ? rotuloPagamentos(pagamentos) : comanda.forma_pagamento ? rotuloPagamento(comanda.forma_pagamento, comanda.parcelas, nomeMaquininha) : undefined}</Info>
             <Info rotulo="Registrada por">{comanda.usuario_id ? nomes[comanda.usuario_id] : undefined}</Info>
             {comanda.agendamento_id && (
               <Info rotulo="Origem" largo>
@@ -256,10 +262,26 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
                 })}
               </div>
             )}
+            {Number(comanda.desconto ?? 0) > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12px', marginTop: '10px', padding: '0 4px', color: 'var(--c-77)' }}>
+                <span style={{ display: 'flex', justifyContent: 'space-between' }}><span>Itens</span><span className="valor-num">{formatCurrency(total)}</span></span>
+                <span style={{ display: 'flex', justifyContent: 'space-between' }}><span>Desconto</span><span className="valor-num">− {formatCurrency(Number(comanda.desconto))}</span></span>
+              </div>
+            )}
             <div className="detalhe-total">
               <span>Total</span>
               <strong>{formatCurrency(comanda.total ?? total)}</strong>
             </div>
+            {pagamentos.length > 1 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12px', marginTop: '8px', padding: '0 4px' }}>
+                {pagamentos.map((pg, i) => (
+                  <span key={i} style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--c-a3)' }}>
+                    <span>{rotuloPagamento(pg.forma, pg.parcelas)}{Number(pg.acrescimo ?? 0) > 0 ? ` (+ ${formatCurrency(Number(pg.acrescimo))} de taxa repassada)` : ''}</span>
+                    <span className="valor-num">{formatCurrency(Number(pg.cobrado ?? pg.valor))}</span>
+                  </span>
+                ))}
+              </div>
+            )}
             {Number(comanda.taxa_valor ?? 0) > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12px', marginTop: '8px', padding: '0 4px' }}>
                 {Number(comanda.acrescimo ?? 0) > 0 && (

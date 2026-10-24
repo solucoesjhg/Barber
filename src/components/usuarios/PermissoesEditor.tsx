@@ -6,6 +6,7 @@ export type RascunhoPermissoes = {
   telas: Record<TelaId, { ver: boolean; editar: boolean }>
   ver_vendas_outros: boolean
   ver_agendamentos_outros: boolean
+  dar_desconto: boolean
   ver_custo_produtos: boolean
   dashboard_cards: CardDashboardId[]
   relatorios: RelatorioId[]
@@ -18,6 +19,7 @@ export function rascunhoDe(p: PermissoesUsuario): RascunhoPermissoes {
     telas,
     ver_vendas_outros: p.ver_vendas_outros,
     ver_agendamentos_outros: p.ver_agendamentos_outros ?? true,
+    dar_desconto: p.dar_desconto ?? false,
     ver_custo_produtos: p.ver_custo_produtos,
     dashboard_cards: [...(p.dashboard_cards ?? [])],
     // Banco sem a migração de relatórios: todos liberados.
@@ -40,13 +42,14 @@ export function relatoriosAlterados(a: RascunhoPermissoes, b: RascunhoPermissoes
 export function rascunhosIguais(a: RascunhoPermissoes, b: RascunhoPermissoes) {
   return a.ver_vendas_outros === b.ver_vendas_outros
     && a.ver_agendamentos_outros === b.ver_agendamentos_outros
+    && a.dar_desconto === b.dar_desconto
     && a.ver_custo_produtos === b.ver_custo_produtos
     && !cardsAlterados(a, b)
     && !relatoriosAlterados(a, b)
     && TELAS.every(t => a.telas[t.id].ver === b.telas[t.id].ver && a.telas[t.id].editar === b.telas[t.id].editar)
 }
 
-const ESPECIAIS: { campo: 'ver_vendas_outros' | 'ver_agendamentos_outros' | 'ver_custo_produtos'; label: string; descricao: string }[] = [
+const ESPECIAIS: { campo: 'ver_vendas_outros' | 'ver_agendamentos_outros' | 'dar_desconto' | 'ver_custo_produtos'; label: string; descricao: string }[] = [
   {
     campo: 'ver_vendas_outros',
     label: 'Ver vendas de outros usuários',
@@ -56,6 +59,11 @@ const ESPECIAIS: { campo: 'ver_vendas_outros' | 'ver_agendamentos_outros' | 'ver
     campo: 'ver_agendamentos_outros',
     label: 'Ver agendamentos de outros usuários',
     descricao: 'Na Agenda e no dashboard, vê os agendamentos de todos os profissionais. Sem isso, vê e agenda só para o profissional vinculado a ele.',
+  },
+  {
+    campo: 'dar_desconto',
+    label: 'Dar desconto na venda',
+    descricao: 'Pode dar desconto (em R$ ou %) ao registrar ou fechar uma venda.',
   },
   {
     campo: 'ver_custo_produtos',

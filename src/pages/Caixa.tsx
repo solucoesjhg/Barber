@@ -92,6 +92,19 @@ export default function Caixa() {
   const entradas = movimentos.filter(m => m.tipo === 'entrada').reduce((s, m) => s + m.valor, 0)
   const saidas   = movimentos.filter(m => m.tipo === 'saida').reduce((s, m) => s + m.valor, 0)
   const saldoAtual = (sessao?.valor_inicial ?? 0) + entradas - saidas
+  // O que entrou por forma de pagamento. Na gaveta só fica o dinheiro:
+  // vendas em dinheiro, entradas sem forma (suprimento, recebimentos) e
+  // todas as saídas (sangria, pagamentos).
+  const entradaPorForma = (forma: string) => movimentos
+    .filter(m => m.tipo === 'entrada' && m.forma_pagamento === forma).reduce((s, m) => s + Number(m.valor), 0)
+  const dinheiroGaveta = (sessao?.valor_inicial ?? 0)
+    + movimentos.filter(m => m.tipo === 'entrada' && (!m.forma_pagamento || m.forma_pagamento === 'dinheiro')).reduce((s, m) => s + Number(m.valor), 0)
+    - saidas
+  const foraDaGaveta = [
+    { rotulo: 'Pix', valor: entradaPorForma('pix') },
+    { rotulo: 'Cartão débito', valor: entradaPorForma('debito') },
+    { rotulo: 'Cartão crédito', valor: entradaPorForma('credito') },
+  ]
 
   function abrirModal(tipo: ModalTipo) {
     setError(''); setValorInput(''); setDescricaoInput(''); setModal(tipo)
@@ -196,7 +209,21 @@ export default function Caixa() {
             <StatCard rotulo="Valor inicial" icone={Wallet} valor={formatCurrency(sessao.valor_inicial)} />
             <StatCard rotulo="Entradas" icone={TrendingUp} valor={formatCurrency(entradas)} />
             <StatCard rotulo="Saídas" icone={TrendingDown} valor={formatCurrency(saidas)} />
-            <StatCard rotulo="Saldo atual" icone={Scale} valor={formatCurrency(saldoAtual)} />
+            <StatCard rotulo="Saldo atual" icone={Scale} valor={formatCurrency(saldoAtual)} sub="Todas as formas" />
+          </div>
+
+          {/* Por forma: a gaveta só tem o dinheiro; Pix e cartão vão para a conta. */}
+          <div className="caixa-formas">
+            <div className="caixa-forma destaque">
+              <span>Dinheiro na gaveta</span>
+              <strong className="valor-num">{formatCurrency(dinheiroGaveta)}</strong>
+            </div>
+            {foraDaGaveta.map(f => (
+              <div key={f.rotulo} className="caixa-forma">
+                <span>{f.rotulo}</span>
+                <strong className="valor-num">{formatCurrency(f.valor)}</strong>
+              </div>
+            ))}
           </div>
 
           {podeEditar && <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
@@ -288,12 +315,15 @@ export default function Caixa() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 {modal === 'fechar' && (
                   <div style={{ padding: '14px 16px', background: 'rgba(var(--ink),0.04)', borderRadius: '8px', fontSize: '13px', color: 'var(--c-a3)' }}>
-                    Saldo esperado no sistema: <strong style={{ color: 'var(--c-fff)' }}>{formatCurrency(saldoAtual)}</strong>
+                    Dinheiro esperado na gaveta: <strong style={{ color: 'var(--c-fff)' }}>{formatCurrency(dinheiroGaveta)}</strong>
+                    <span style={{ display: 'block', fontSize: '11px', color: 'var(--c-66)', marginTop: '4px' }}>
+                      Conte só o dinheiro. {foraDaGaveta.filter(f => f.valor > 0).map(f => `${f.rotulo}: ${formatCurrency(f.valor)}`).join(' · ') || 'Nada entrou em Pix ou cartão.'}
+                    </span>
                   </div>
                 )}
                 <div className="field">
                   <label className="label">
-                    {modal === 'abrir' ? 'Valor inicial (R$)' : modal === 'fechar' ? 'Valor contado no caixa (R$)' : 'Valor (R$)'}
+                    {modal === 'abrir' ? 'Valor inicial (R$)' : modal === 'fechar' ? 'Dinheiro contado na gaveta (R$)' : 'Valor (R$)'}
                   </label>
                   <input className="input" type="number" min={0} step={0.01} placeholder="0,00" value={valorInput} onChange={e => setValorInput(e.target.value)} />
                 </div>

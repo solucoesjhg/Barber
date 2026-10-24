@@ -91,16 +91,22 @@ export default function Dashboard() {
         })
     })
 
+    // Banco sem a coluna de desconto: busca sem ela.
     supabase
       .from('itens_comanda')
-      .select('tipo, nome, preco_unitario, quantidade, profissional:profissionais(nome), comanda:comandas(data, status)')
+      .select('tipo, nome, preco_unitario, quantidade, profissional:profissionais(nome), comanda:comandas(data, status, total, desconto)')
+      .then(async res => res.error
+        ? supabase.from('itens_comanda').select('tipo, nome, preco_unitario, quantidade, profissional:profissionais(nome), comanda:comandas(data, status)')
+        : res)
       .then(({ data }) => {
         const rows = ((data ?? []) as any[]).filter(i => i.comanda?.status === 'fechada' && i.comanda?.data >= primeiroDiaMes)
 
         const servicos: Record<string, number> = {}
         const profissionaisMap: Record<string, number> = {}
         rows.forEach(i => {
-          const valor = i.preco_unitario * i.quantidade
+          // Com desconto na venda, o item entra proporcional ao cobrado.
+          const tv = Number(i.comanda?.total ?? 0), dv = Number(i.comanda?.desconto ?? 0)
+          const valor = i.preco_unitario * i.quantidade * (dv > 0 && tv + dv > 0 ? tv / (tv + dv) : 1)
           if (i.tipo === 'servico') servicos[i.nome] = (servicos[i.nome] ?? 0) + valor
           if (i.profissional?.nome) profissionaisMap[i.profissional.nome] = (profissionaisMap[i.profissional.nome] ?? 0) + valor
         })

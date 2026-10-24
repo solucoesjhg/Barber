@@ -1246,3 +1246,40 @@ button.status-pill:disabled { cursor: default; }
   border: 1.5px dashed var(--c-fff); border-radius: 5px; background: rgba(var(--ink), 0.06);
   font-size: 10px; font-weight: 600; color: var(--text); padding: 3px 6px; font-variant-numeric: tabular-nums;
 }
+
+/* Venda paga em mais de uma forma */
+.pagamento-linha { border: 1px solid var(--border); border-radius: var(--radius-lg, 10px); padding: 12px 14px; background: rgba(var(--ink), 0.02); }
+.pagamento-linha-corpo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+@media (max-width: 640px) { .pagamento-linha-corpo { grid-template-columns: minmax(0, 1fr); } }
+
+/* Desconto no carrinho da venda */
+.pdv-desconto { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 12px; color: var(--c-a3); }
+.pdv-desconto > span { flex: 1; }
+.pdv-desconto input {
+  width: 90px; font-size: 13px; font-family: inherit; padding: 5px 8px; border-radius: 6px; text-align: right;
+  background: var(--c-11); color: var(--text); border: 1px solid var(--c-2a); font-variant-numeric: tabular-nums;
+}
+.pdv-desconto input:focus { outline: none; border-color: var(--border-strong); }
+.pdv-desconto-tipo { display: inline-flex; border: 1px solid var(--c-2a); border-radius: 6px; overflow: hidden; }
+.pdv-desconto-tipo button { font-family: inherit; font-size: 11px; font-weight: 600; padding: 5px 8px; border: none; background: transparent; color: var(--c-66); cursor: pointer; }
+.pdv-desconto-tipo button.ativo { background: rgba(var(--ink), 0.1); color: var(--text); }
+
+/* Comandas abertas (Vendas) */
+.comandas-abertas { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.comanda-aberta { position: relative; }
+.comanda-aberta-corpo {
+  width: 100%; display: flex; flex-direction: column; gap: 4px; text-align: left; font-family: inherit; cursor: pointer;
+  padding: 12px 40px 12px 14px; border-radius: var(--radius-lg, 10px); background: var(--surface);
+  border: 1px solid var(--border); border-left: 3px solid #f59e0b; transition: border-color .15s, transform .15s;
+}
+.comanda-aberta-corpo:hover:not(:disabled) { border-color: var(--border-strong); transform: translateY(-1px); }
+.comanda-aberta-corpo:disabled { cursor: default; }
+
+/* Caixa: entradas por forma de pagamento */
+.caixa-formas { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 12px 0 20px; }
+.caixa-forma { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); background: rgba(var(--ink), 0.02); }
+.caixa-forma span { font-size: 11px; color: var(--c-66); }
+.caixa-forma strong { font-size: 15px; color: var(--text); }
+.caixa-forma.destaque { border-color: var(--border-strong); background: rgba(var(--ink), 0.05); }
+.pagamento-restante { font-size: 12px; color: var(--c-a3); padding: 10px 12px; border-radius: 8px; border: 1px dashed var(--c-2a); }
+.pagamento-restante strong { color: var(--text); font-size: 14px; }

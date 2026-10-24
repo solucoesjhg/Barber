@@ -161,7 +161,7 @@ export default function Relatorios() {
       nomes,
     ] = await Promise.all([
       supabase.from('itens_comanda')
-        .select('tipo, nome, referencia_id, preco_unitario, quantidade, profissional_id, profissional:profissionais(nome), comanda:comandas!inner(id, data, status, forma_pagamento, parcelas, taxa_percentual, acrescimo, cliente_id, cliente_nome)')
+        .select('tipo, nome, referencia_id, preco_unitario, quantidade, profissional_id, profissional:profissionais(nome), comanda:comandas!inner(id, data, status, forma_pagamento, parcelas, taxa_percentual, acrescimo, total, desconto, cliente_id, cliente_nome, pagamentos:comanda_pagamentos(forma, valor))')
         .eq('comanda.status', 'fechada').gte('comanda.data', inicio).lte('comanda.data', fim),
       supabase.from('sessoes_caixa').select('*').gte('aberto_em', inicioTS).lte('aberto_em', fimTS).order('aberto_em', { ascending: false }),
       supabase.from('comissoes').select('*, profissional:profissionais(nome), item:itens_comanda(nome, quantidade), comanda:comandas(id, data, cliente_nome, total, forma_pagamento, parcelas)').neq('status', 'cancelada').gte('created_at', inicioTS).lte('created_at', fimTS),
@@ -179,7 +179,7 @@ export default function Relatorios() {
     if (itensFiltrados.error) {
       const r = await supabase.from('itens_comanda')
         .select('tipo, nome, referencia_id, preco_unitario, quantidade, profissional_id, profissional:profissionais(nome), comanda:comandas(id, data, status, forma_pagamento, parcelas, taxa_percentual, acrescimo, cliente_id, cliente_nome)')
-      itens = r.data
+      itens = r.data as typeof itens
     }
     setItensVenda((itens ?? []).filter((i: any) => i.comanda?.status === 'fechada' && i.comanda?.data >= inicio && i.comanda?.data <= fim))
     setSessoesCaixa((sessoes ?? []) as any[])
@@ -202,7 +202,8 @@ export default function Relatorios() {
   // ── Filtros aplicados ──────────────────────────────────────
   const itensVendaFiltrados = itensVenda.filter((i: any) =>
     (!profFiltro || i.profissional_id === profFiltro) &&
-    (!filtroFormaPagamento || i.comanda?.forma_pagamento === filtroFormaPagamento)
+    (!filtroFormaPagamento || i.comanda?.forma_pagamento === filtroFormaPagamento
+      || (i.comanda?.pagamentos ?? []).some((pg: any) => pg.forma === filtroFormaPagamento))
   )
   const comissoesFiltradas = comissoesPeriodo.filter((c: any) =>
     (restrito ? (c.profissional_id === meuProfissional && !!meuProfissional) || c.usuario_id === user?.id : true) &&
@@ -217,16 +218,20 @@ export default function Relatorios() {
   const nomeForma = (f: string) => PAGAMENTO_LABEL[f] ?? f
 
   // ── Agregações de vendas ──────────────────────────────────
-  const comandaMap = new Map<string, { total: number; taxa: number; forma_pagamento: string; cliente_nome: string }>()
+  const comandaMap = new Map<string, { total: number; taxa: number; forma_pagamento: string; cliente_nome: string; pagamentos: { forma: string; valor: number }[] }>()
   const porServico: Record<string, LinhaVal> = {}
   const porProduto: Record<string, LinhaVal> = {}
   // Por profissional: faturamento dos itens dele e atendimentos = vendas distintas em que atendeu.
   const porProfissional: Record<string, { nome: string; total: number; vendas: Set<string>; servicos: number }> = {}
   itensVendaFiltrados.forEach((i: any) => {
-    const valor = i.preco_unitario * i.quantidade
+    // Com desconto na venda, cada item vale proporcionalmente menos.
+    const totalVenda = Number(i.comanda?.total ?? 0)
+    const descontoVenda = Number(i.comanda?.desconto ?? 0)
+    const fator = descontoVenda > 0 && totalVenda + descontoVenda > 0 ? totalVenda / (totalVenda + descontoVenda) : 1
+    const valor = i.preco_unitario * i.quantidade * fator
     const cId = i.comanda?.id
     if (cId) {
-      const ex = comandaMap.get(cId) ?? { total: 0, taxa: 0, forma_pagamento: i.comanda.forma_pagamento ?? '—', cliente_nome: i.comanda.cliente_nome ?? 'Balcão' }
+      const ex = comandaMap.get(cId) ?? { total: 0, taxa: 0, forma_pagamento: i.comanda.forma_pagamento ?? '—', cliente_nome: i.comanda.cliente_nome ?? 'Balcão', pagamentos: i.comanda.pagamentos ?? [] }
       ex.total += valor
       // Taxa da maquininha proporcional ao item (com filtro de profissional, só a parte dele).
       // Taxa repassada ao cliente não custa nada para a loja.
@@ -252,9 +257,16 @@ export default function Relatorios() {
   const porFormaPagamento: Record<string, LinhaVal> = {}
   const porCliente: Record<string, LinhaVal> = {}
   comandaMap.forEach(c => {
-    if (!porFormaPagamento[c.forma_pagamento]) porFormaPagamento[c.forma_pagamento] = { nome: nomeForma(c.forma_pagamento), total: 0, qtd: 0 }
-    porFormaPagamento[c.forma_pagamento].total += c.total
-    porFormaPagamento[c.forma_pagamento].qtd += 1
+    // Venda paga em mais de uma forma: o total se divide entre elas.
+    const partes = c.pagamentos.length > 1
+      ? c.pagamentos.map(pg => ({ forma: pg.forma, peso: Number(pg.valor) }))
+      : [{ forma: c.forma_pagamento, peso: 1 }]
+    const somaPesos = partes.reduce((s, pt) => s + pt.peso, 0) || 1
+    partes.forEach(pt => {
+      if (!porFormaPagamento[pt.forma]) porFormaPagamento[pt.forma] = { nome: nomeForma(pt.forma), total: 0, qtd: 0 }
+      porFormaPagamento[pt.forma].total += c.total * pt.peso / somaPesos
+      porFormaPagamento[pt.forma].qtd += 1
+    })
     if (!porCliente[c.cliente_nome]) porCliente[c.cliente_nome] = { nome: c.cliente_nome, total: 0, qtd: 0 }
     porCliente[c.cliente_nome].total += c.total
     porCliente[c.cliente_nome].qtd += 1

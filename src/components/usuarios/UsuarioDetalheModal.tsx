@@ -44,6 +44,7 @@ function ResumoAcesso({ permissoes: p }: { permissoes: PermissoesUsuario }) {
       )}
       <InfoGrade>
         <Info rotulo="Vendas">{p.ver_vendas_outros ? 'Vê as de todos' : 'Vê só as próprias'}</Info>
+        <Info rotulo="Desconto na venda">{p.dar_desconto ? 'Pode dar' : 'Não pode'}</Info>
         <Info rotulo="Agendamentos">{p.ver_agendamentos_outros ?? true ? 'Vê os de todos' : 'Vê só os próprios'}</Info>
         <Info rotulo="Custo dos produtos">{p.ver_custo_produtos ? 'Vê' : 'Não vê'}</Info>
         {p.telas.dashboard?.ver && <Info rotulo="Cards do Dashboard">{`${p.dashboard_cards.length} de ${CARDS_DASHBOARD.length}`}</Info>}
