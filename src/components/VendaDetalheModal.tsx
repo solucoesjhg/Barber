@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Package, Scissors, Trash2, Pencil, X, ShoppingCart, CalendarDays } from 'lucide-react'
+import { Package, Scissors, Trash2, Pencil, X, ShoppingCart, CalendarDays, Percent } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency, formatDateTime } from '../lib/utils'
 import { carregarNomesUsuarios } from '../lib/usuarios'
@@ -23,6 +23,7 @@ interface ComissaoDetalhe {
   taxa_valor?: number | null
   status: string
   profissional_id: string | null
+  item_comanda_id?: string | null
   usuario_id: string | null
   profissional?: { nome: string } | null
 }
@@ -68,7 +69,7 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
   const carregarComissoes = useCallback(async () => {
     const { data } = await supabase
       .from('comissoes')
-      .select('id, valor_comissao, percentual, valor_base, taxa_valor, status, profissional_id, usuario_id, profissional:profissionais(nome)')
+      .select('id, valor_comissao, percentual, valor_base, taxa_valor, status, profissional_id, item_comanda_id, usuario_id, profissional:profissionais(nome)')
       .eq('comanda_id', comandaId)
       .order('created_at')
     return (data ?? []) as unknown as ComissaoDetalhe[]
@@ -116,6 +117,11 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
   const ativas = comissoes.filter(c => c.status !== 'cancelada')
   const retiradas = comissoes.length - ativas.length
   const totalComissoes = ativas.reduce((s, c) => s + Number(c.valor_comissao), 0)
+  // Comissão aparece no próprio item; as que não são de um item (comissão
+  // da venda para o usuário) ficam numa linha embaixo do total.
+  const comissoesDoItem = (itemId: string) => ativas.filter(c => c.item_comanda_id === itemId)
+  const idsItens = new Set(itens.map(i => i.id))
+  const comissoesAvulsas = ativas.filter(c => !c.item_comanda_id || !idsItens.has(c.item_comanda_id))
 
   async function handleExcluir() {
     if (!onDelete) return
@@ -202,10 +208,14 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
             )}
           </InfoGrade>
 
-          {/* Itens à esquerda e comissões à direita (no celular, uma coluna). */}
-          <div className={comissoes.length > 0 ? 'detalhe-colunas' : undefined}>
-          <div>
-          <SecaoDetalhe titulo={`Itens (${itens.length})`}>
+          <SecaoDetalhe
+            titulo={`Itens (${itens.length})${ativas.length > 0 ? ` · comissões ${formatCurrency(totalComissoes)}` : retiradas > 0 ? ' · comissão retirada' : ''}`}
+            acao={podeTirarComissao && ativas.length > 0 ? (
+              <button className="btn btn-ghost btn-sm" onClick={() => tirarComissao(ativas.map(c => c.id))} disabled={salvandoComissao} style={{ textTransform: 'none', letterSpacing: 0 }}>
+                Tirar comissão da venda
+              </button>
+            ) : undefined}
+          >
             {itens.length === 0 ? (
               <p style={{ fontSize: '12px', color: 'var(--c-55)' }}>Nenhum item encontrado.</p>
             ) : (
@@ -234,6 +244,9 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
                         <p className="subtexto">
                           {item.quantidade}x {formatCurrency(item.preco_unitario)}{item.profissional?.nome ? ` · ${item.profissional.nome}` : ''}
                         </p>
+                        {comissoesDoItem(item.id).map(c => (
+                          <LinhaComissao key={c.id} comissao={c} podeTirar={podeTirarComissao} salvando={salvandoComissao} onTirar={() => tirarComissao([c.id])} />
+                        ))}
                       </div>
                       <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-a3)', flexShrink: 0 }}>
                         {formatCurrency(item.preco_unitario * item.quantidade)}
@@ -271,50 +284,45 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
                 </span>
               </div>
             )}
+            {comissoesAvulsas.length > 0 && (
+              <div style={{ marginTop: '10px', padding: '0 4px' }}>
+                {comissoesAvulsas.map(c => (
+                  <LinhaComissao key={c.id} comissao={c} rotulo={nomeComissao(c)} podeTirar={podeTirarComissao} salvando={salvandoComissao} onTirar={() => tirarComissao([c.id])} />
+                ))}
+              </div>
+            )}
           </SecaoDetalhe>
-
-          </div>
-          {comissoes.length > 0 && (
-            <div>
-            <SecaoDetalhe
-              titulo={ativas.length > 0 ? `Comissões · ${formatCurrency(totalComissoes)}` : 'Comissões'}
-              acao={podeTirarComissao && ativas.length > 0 ? (
-                <button className="btn btn-ghost btn-sm" onClick={() => tirarComissao(ativas.map(c => c.id))} disabled={salvandoComissao} style={{ textTransform: 'none', letterSpacing: 0 }}>
-                  Tirar comissão da venda
-                </button>
-              ) : undefined}
-            >
-              {ativas.length === 0 ? (
-                <p style={{ fontSize: '12px', color: 'var(--c-66)' }}>A comissão desta venda foi retirada.</p>
-              ) : (
-                <div className="detalhe-lista">
-                  {ativas.map(c => (
-                    <div key={c.id} className="detalhe-lista-item">
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p className="texto-cortado" style={{ fontSize: '13px', color: 'var(--c-fff)' }}>{nomeComissao(c)}</p>
-                        <p className="subtexto">
-                          {Number(c.percentual)}% de {formatCurrency(Number(c.valor_base))}
-                          {Number(c.taxa_valor ?? 0) > 0 && ` (já sem a taxa de ${formatCurrency(Number(c.taxa_valor))})`}
-                        </p>
-                      </div>
-                      <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)' }}>{formatCurrency(Number(c.valor_comissao))}</span>
-                      {podeTirarComissao && (
-                        <button className="btn btn-icon" title="Tirar esta comissão" aria-label="Tirar esta comissão" onClick={() => tirarComissao([c.id])} disabled={salvandoComissao} style={{ width: '28px', height: '28px' }}>
-                          <X size={12} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </SecaoDetalhe>
-            </div>
-          )}
-          </div>
 
           {error && <p className="aviso-erro" style={{ marginTop: '14px' }}>{error}</p>}
         </>
       )}
     </ModalDetalhe>
+  )
+}
+
+/** Linha compacta da comissão dentro do item: "Comissão R$ 30,00 · 100% de R$ 30,00  ×". */
+function LinhaComissao({ comissao: c, rotulo, podeTirar, salvando, onTirar }: {
+  comissao: ComissaoDetalhe
+  rotulo?: string
+  podeTirar: boolean
+  salvando: boolean
+  onTirar: () => void
+}) {
+  const taxa = Number(c.taxa_valor ?? 0)
+  return (
+    <p className="linha-comissao">
+      <Percent size={10} />
+      <span>
+        {rotulo ? `${rotulo}: ` : 'Comissão '}
+        <strong>{formatCurrency(Number(c.valor_comissao))}</strong>
+        {' · '}{Number(c.percentual)}% de {formatCurrency(Number(c.valor_base))}
+        {taxa > 0 && ` (sem a taxa de ${formatCurrency(taxa)})`}
+      </span>
+      {podeTirar && (
+        <button type="button" title="Tirar esta comissão" aria-label="Tirar esta comissão" onClick={onTirar} disabled={salvando}>
+          <X size={10} />
+        </button>
+      )}
+    </p>
   )
 }
