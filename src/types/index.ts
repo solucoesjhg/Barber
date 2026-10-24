@@ -107,6 +107,11 @@ export interface Comanda {
   itens: ItemComanda[]
   total: number
   forma_pagamento?: PagamentoMetodo
+  /** Crédito: número de parcelas (1 = à vista). */
+  parcelas?: number
+  /** Taxa da maquininha gravada na venda (% e R$). */
+  taxa_percentual?: number
+  taxa_valor?: number
   agendamento_id?: string | null
   created_at: string
 }
@@ -121,6 +126,8 @@ export interface MovimentoCaixa {
   comanda_id?: string
   sessao_caixa_id?: string
   conta_financeira_id?: string
+  /** Os dois lados de uma transferência entre contas têm o mesmo id. */
+  transferencia_id?: string | null
   created_at: string
 }
 
@@ -210,12 +217,14 @@ export interface Comissao {
   comanda_id?: string
   item_comanda_id?: string
   valor_base: number
+  /** Parte da taxa do cartão descontada da base. */
+  taxa_valor?: number
   percentual: number
   valor_comissao: number
   status: ComissaoStatus
   created_at: string
   profissional?: Profissional
-  comanda?: { id: string; data: string; cliente_nome?: string | null; total: number } | null
+  comanda?: { id: string; data: string; cliente_nome?: string | null; total: number; forma_pagamento?: string | null; parcelas?: number | null } | null
 }
 
 export interface MovimentacaoEstoque {
@@ -299,6 +308,9 @@ export interface Configuracoes {
   duracao_padrao_min: number
   tolerancia_atraso_min: number
   regras_cancelamento?: string
+  fechamento_automatico?: boolean
+  comissao_desconta_taxa?: boolean
+  parcelas_maximas?: number
   updated_at: string
 }
 

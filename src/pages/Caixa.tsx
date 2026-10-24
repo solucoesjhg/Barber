@@ -36,6 +36,8 @@ export default function Caixa() {
   const [error, setError] = useState('')
   const [resultadoFechamento, setResultadoFechamento] = useState<SessaoCaixa | null>(null)
   const [movimentoAberto, setMovimentoAberto] = useState<MovimentoCaixa | null>(null)
+  // Último caixa do usuário, quando foi fechado sozinho no horário.
+  const [fechadoAuto, setFechadoAuto] = useState<SessaoCaixa | null>(null)
   const selecao = useSelecao(movimentos.map(m => m.id))
   const marcados = movimentos.filter(m => selecao.tem(m.id))
   const entradasMarcadas = marcados.filter(m => m.tipo === 'entrada').reduce((s, m) => s + Number(m.valor), 0)
@@ -44,6 +46,9 @@ export default function Caixa() {
   const carregar = useCallback(async () => {
     if (!user) return
     setLoading(true)
+    // Fecha o caixa que passou do horário de fechamento da loja (se a
+    // função ainda não existe no banco, segue sem ela).
+    await supabase.rpc('fechar_caixas_no_horario')
     const { data: sess } = await supabase
       .from('sessoes_caixa')
       .select('*')
@@ -52,6 +57,17 @@ export default function Caixa() {
       .maybeSingle()
 
     setSessao((sess as SessaoCaixa) ?? null)
+
+    if (!sess) {
+      const { data: ultima } = await supabase.from('sessoes_caixa').select('*')
+        .eq('usuario_id', user.id).eq('status', 'fechado')
+        .order('fechado_em', { ascending: false }).limit(1).maybeSingle()
+      const u = ultima as SessaoCaixa | null
+      const recente = !!u?.fechado_em && Date.now() - new Date(u.fechado_em).getTime() < 24 * 3600 * 1000
+      setFechadoAuto(u && recente && /automaticamente/i.test(u.observacao_fechamento ?? '') ? u : null)
+    } else {
+      setFechadoAuto(null)
+    }
 
     if (sess) {
       const { data: movs } = await supabase
@@ -157,6 +173,12 @@ export default function Caixa() {
       {!sessao ? (
         <div className="card" style={{ padding: '56px', textAlign: 'center' }}>
           <p style={{ fontSize: '14px', color: 'var(--c-55)' }}>O caixa está fechado.</p>
+          {fechadoAuto && (
+            <p className="aviso-info" style={{ margin: '12px auto 0', maxWidth: '440px', textAlign: 'left' }}>
+              Seu último caixa foi fechado automaticamente em {formatDateTime(fechadoAuto.fechado_em!)}, no horário de fechamento da loja.
+              Saldo esperado: {formatCurrency(Number(fechadoAuto.saldo_esperado ?? 0))}. Confira a gaveta e avise o gerente se houver diferença.
+            </p>
+          )}
           <p style={{ fontSize: '12px', color: 'var(--c-44)', marginTop: '6px' }}>
             {podeEditar ? 'Abra o caixa para poder registrar vendas e movimentos.' : 'Seu usuário não tem permissão para abrir o caixa.'}
           </p>

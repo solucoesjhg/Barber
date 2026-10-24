@@ -57,7 +57,8 @@ export default function Dashboard() {
 
     const primeiroDiaMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
 
-    supabase.from('movimentos_caixa').select('tipo, valor').gte('data', primeiroDiaMes)
+    // Transferência entre contas não é faturamento nem despesa.
+    supabase.from('movimentos_caixa').select('tipo, valor').gte('data', primeiroDiaMes).neq('categoria', 'transferencia')
       .then(({ data }) => {
         const rows = (data ?? []) as { tipo: string; valor: number }[]
         const faturamentoMes = rows.filter(r => r.tipo === 'entrada').reduce((s, r) => s + r.valor, 0)

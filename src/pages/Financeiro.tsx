@@ -24,7 +24,7 @@ import type { MovimentoCaixa, ContaFinanceira } from '../types'
 const CATEGORIA_LABEL: Record<string, string> = {
   venda: 'Venda', sangria: 'Sangria', suprimento: 'Suprimento', capital_inicial: 'Saldo inicial',
   conta_a_pagar: 'Conta paga', conta_a_receber: 'Conta recebida', compra_mercadoria: 'Compra de mercadoria',
-  entrada: 'Entrada', saida: 'Saída',
+  entrada: 'Entrada', saida: 'Saída', transferencia: 'Transferência', taxa_cartao: 'Taxa de cartão',
 }
 
 interface SaldoConta { conta_id: string; nome: string; tipo: string; padrao: boolean; saldo: number }
@@ -55,6 +55,8 @@ export default function Financeiro() {
   const [aPagar, setAPagar] = useState({ aberto: 0, vencido: 0 })
   const [aReceber, setAReceber] = useState({ aberto: 0, vencido: 0 })
   const [showModal, setShowModal]   = useState(false)
+  const [showTransferencia, setShowTransferencia] = useState(false)
+  const [transf, setTransf] = useState({ origem: '', destino: '', valor: '', descricao: '' })
   const [form, setForm] = useState({ tipo: 'saida', categoria: '', descricao: '', valor: '', contaId: '' })
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
@@ -72,9 +74,12 @@ export default function Financeiro() {
   const fim = periodo.fim
 
   const hoje = dataLocalISO()
-  const movHoje    = movimentos.filter(m => m.data === hoje)
-  const entradas   = movimentos.filter(m => m.tipo === 'entrada').reduce((s, m) => s + m.valor, 0)
-  const saidas     = movimentos.filter(m => m.tipo === 'saida').reduce((s, m) => s + m.valor, 0)
+  // Transferência entre contas só move dinheiro de uma conta para outra:
+  // aparece na lista, mas não conta como entrada nem saída.
+  const reais      = movimentos.filter(m => m.categoria !== 'transferencia')
+  const movHoje    = reais.filter(m => m.data === hoje)
+  const entradas   = reais.filter(m => m.tipo === 'entrada').reduce((s, m) => s + m.valor, 0)
+  const saidas     = reais.filter(m => m.tipo === 'saida').reduce((s, m) => s + m.valor, 0)
   const lucro      = entradas - saidas
   const entradasHoje = movHoje.filter(m => m.tipo === 'entrada').reduce((s, m) => s + m.valor, 0)
 
@@ -118,7 +123,7 @@ export default function Financeiro() {
 
   useEffect(() => {
     const seteDiasAtras = dataLocalISO(new Date(Date.now() - 6 * 86400000))
-    supabase.from('movimentos_caixa').select('tipo, valor, data').gte('data', seteDiasAtras)
+    supabase.from('movimentos_caixa').select('tipo, valor, data').gte('data', seteDiasAtras).neq('categoria', 'transferencia')
       .then(({ data }) => {
         const porDia: Record<string, { entrada: number; saida: number }> = {}
         for (let i = 6; i >= 0; i--) {
@@ -171,12 +176,41 @@ export default function Financeiro() {
     setShowModal(false)
   }
 
+  function abrirTransferencia() {
+    // Sugestão comum: do Caixa (gaveta) para o Banco.
+    const origem = contas.find(c => c.tipo === 'caixa') ?? contas[0]
+    const destino = contas.find(c => c.conta_id !== origem?.conta_id && c.tipo === 'banco') ?? contas.find(c => c.conta_id !== origem?.conta_id)
+    setTransf({ origem: origem?.conta_id ?? '', destino: destino?.conta_id ?? '', valor: '', descricao: '' })
+    setFormError('')
+    setShowTransferencia(true)
+  }
+
+  async function handleTransferir() {
+    if (saving) return
+    const valor = Number(transf.valor)
+    if (!transf.origem || !transf.destino) { setFormError('Escolha a conta de origem e a de destino.'); return }
+    if (transf.origem === transf.destino) { setFormError('A conta de origem e a de destino precisam ser diferentes.'); return }
+    if (!(valor > 0)) { setFormError('Informe um valor maior que zero.'); return }
+    setSaving(true); setFormError('')
+    if (!(await confirmarSaldoSuficiente(transf.origem, valor))) { setSaving(false); return }
+    const { error: err } = await supabase.rpc('transferir_entre_contas', {
+      p_origem: transf.origem, p_destino: transf.destino, p_valor: valor, p_descricao: transf.descricao || null,
+    })
+    setSaving(false)
+    if (err) { setFormError(err.message); return }
+    carregarMovimentos()
+    carregarContas()
+    setShowTransferencia(false)
+  }
+
   async function handleExcluirLancamento() {
     if (!lancamentoSelecionado) return
     const { error: err } = await supabase.rpc('excluir_movimento_caixa', { p_id: lancamentoSelecionado.id })
     if (err) throw new Error(err.message)
-    setMovimentos(prev => prev.filter(m => m.id !== lancamentoSelecionado.id))
     setLancamentoSelecionado(null)
+    // A transferência sai inteira (os dois lados) e a venda leva a taxa junto.
+    carregarMovimentos()
+    carregarContas()
   }
 
   return (
@@ -189,6 +223,11 @@ export default function Financeiro() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <FiltroPeriodo valor={periodo} onChange={v => v && setPeriodo(v)} />
+          {podeEditar && contas.length > 1 && (
+            <button className="btn btn-secondary btn-sm" onClick={abrirTransferencia} style={{ display: 'flex', alignItems: 'center', gap: '8px', minHeight: '36px' }}>
+              <ArrowLeftRight size={13} /> Transferir
+            </button>
+          )}
           {podeEditar && (
             <button className="btn btn-secondary btn-sm" onClick={() => { setFormError(''); setShowModal(true) }} style={{ display: 'flex', alignItems: 'center', gap: '8px', minHeight: '36px' }}>
               <Plus size={13} /> Novo Lançamento
@@ -450,6 +489,42 @@ export default function Financeiro() {
                   <option value="">Conta padrão da loja</option>
                   {contas.map(c => <option key={c.conta_id} value={c.conta_id}>{c.nome}</option>)}
                 </select>
+              </Campo>
+            </FormGrade>
+          </ModalFormulario>
+        )}
+      </AnimatePresence>
+
+      {/* Transferência entre contas */}
+      <AnimatePresence>
+        {showTransferencia && (
+          <ModalFormulario
+            tamanho="pequeno"
+            icone={<ArrowLeftRight size={18} />}
+            titulo="Transferir entre contas"
+            descricao="Move dinheiro de uma conta para outra (ex.: depósito do Caixa no Banco). Não conta como entrada nem saída da loja."
+            onClose={() => setShowTransferencia(false)}
+            onSalvar={handleTransferir}
+            salvando={saving}
+            rotuloSalvar="Transferir"
+            erro={formError}
+          >
+            <FormGrade colunas={2}>
+              <Campo rotulo="Sai da conta *">
+                <select className="input" value={transf.origem} onChange={e => setTransf(t => ({ ...t, origem: e.target.value }))}>
+                  {contas.map(c => <option key={c.conta_id} value={c.conta_id}>{c.nome} · {formatCurrency(c.saldo)}</option>)}
+                </select>
+              </Campo>
+              <Campo rotulo="Entra na conta *">
+                <select className="input" value={transf.destino} onChange={e => setTransf(t => ({ ...t, destino: e.target.value }))}>
+                  {contas.map(c => <option key={c.conta_id} value={c.conta_id}>{c.nome} · {formatCurrency(c.saldo)}</option>)}
+                </select>
+              </Campo>
+              <Campo rotulo="Valor (R$) *">
+                <input className="input" type="number" min={0} step={0.01} placeholder="0,00" value={transf.valor} onChange={e => setTransf(t => ({ ...t, valor: e.target.value }))} />
+              </Campo>
+              <Campo rotulo="Observação">
+                <input className="input" placeholder="Ex: depósito do dia" value={transf.descricao} onChange={e => setTransf(t => ({ ...t, descricao: e.target.value }))} />
               </Campo>
             </FormGrade>
           </ModalFormulario>

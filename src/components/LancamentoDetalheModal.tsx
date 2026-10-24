@@ -8,7 +8,7 @@ import type { MovimentoCaixa } from '../types'
 const CATEGORIA_LABEL: Record<string, string> = {
   venda: 'Venda', sangria: 'Sangria', suprimento: 'Suprimento', capital_inicial: 'Saldo inicial',
   conta_a_pagar: 'Conta paga', conta_a_receber: 'Conta recebida', compra_mercadoria: 'Compra de mercadoria',
-  entrada: 'Entrada', saida: 'Saída',
+  entrada: 'Entrada', saida: 'Saída', transferencia: 'Transferência', taxa_cartao: 'Taxa de cartão',
 }
 
 // Detalhe de um lançamento sem venda associada (manual, sangria,
@@ -31,7 +31,10 @@ export default function LancamentoDetalheModal({ movimento, onClose, onDelete }:
 
   async function handleExcluir() {
     if (!onDelete) return
-    if (!window.confirm('Excluir este lançamento? Essa ação não pode ser desfeita.')) return
+    const msg = movimento.transferencia_id
+      ? 'Excluir esta transferência? Os dois lançamentos (saída e entrada) são excluídos. Essa ação não pode ser desfeita.'
+      : 'Excluir este lançamento? Essa ação não pode ser desfeita.'
+    if (!window.confirm(msg)) return
     setExcluindo(true); setError('')
     try {
       await onDelete()

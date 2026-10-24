@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Check, Plus, ShoppingCart, Wallet } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -6,6 +6,8 @@ import { formatCurrency } from '../lib/utils'
 import ModalFormulario from './ui/ModalFormulario'
 import { Info, InfoGrade } from './ui/ModalDetalhe'
 import { PAGAMENTO_LABEL } from './VendaDetalheModal'
+import PagamentoTaxa from './PagamentoTaxa'
+import { carregarTaxas, TAXAS_VAZIAS, type TaxasLoja } from '../lib/taxas'
 import type { Agendamento, PagamentoMetodo } from '../types'
 
 const FORMAS: PagamentoMetodo[] = ['pix', 'credito', 'debito', 'dinheiro']
@@ -27,6 +29,9 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
 }) {
   const navigate = useNavigate()
   const [pagamento, setPagamento] = useState<PagamentoMetodo>('pix')
+  const [parcelas, setParcelas] = useState(1)
+  const [taxas, setTaxas] = useState<TaxasLoja>(TAXAS_VAZIAS)
+  useEffect(() => { carregarTaxas().then(setTaxas) }, [])
   const [semComissao, setSemComissao] = useState(false)
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
@@ -49,6 +54,7 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
         tipo: 'servico', referencia_id: ag.servico_id, nome: ag.servico.nome,
         quantidade: 1, preco_unitario: valor, profissional_id: ag.profissional_id,
       }],
+      ...(pagamento === 'credito' && parcelas > 1 ? { p_parcelas: parcelas } : {}),
     })
     if (error || !data) {
       setSalvando(false)
@@ -105,6 +111,7 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
           </button>
         ))}
       </div>
+      <PagamentoTaxa forma={pagamento} parcelas={parcelas} onParcelas={setParcelas} total={valor} taxas={taxas} />
 
       {semCaixa && (
         <div className="aviso-info" style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>

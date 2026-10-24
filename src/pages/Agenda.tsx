@@ -750,6 +750,7 @@ export default function Agenda() {
 
   async function handleSave() {
     if (!form.profissional_id) { setError('Selecione um profissional.'); return }
+    if (!form.servico_id) { setError('Selecione o serviço.'); return }
     setSaving(true); setError('')
     const data_hora = `${form.data}T${form.hora}:00`
     const servicoSelecionado = servicos.find(s => s.id === form.servico_id)
@@ -825,8 +826,12 @@ export default function Agenda() {
 
   const showCalFilters = viewMode === 'semanal' || viewMode === 'mensal'
 
-  const servicosFiltrados = form.profissional_id && Object.keys(profServMap).length > 0
-    ? servicos.filter(s => (profServMap[form.profissional_id] ?? []).includes(s.id))
+  // Só os serviços que o profissional faz; profissional sem nenhum
+  // serviço vinculado vê todos (antes ficava com a lista vazia e o
+  // agendamento era salvo sem serviço, e a venda não trazia o item).
+  const servicosDoProf = profServMap[form.profissional_id] ?? []
+  const servicosFiltrados = form.profissional_id && servicosDoProf.length > 0
+    ? servicos.filter(s => servicosDoProf.includes(s.id))
     : servicos
 
   return (
@@ -1048,7 +1053,7 @@ export default function Agenda() {
                   {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
                 </select>
               </Campo>
-              <Campo rotulo="Serviço" span={2}>
+              <Campo rotulo="Serviço *" span={2}>
                 <select className="input" value={form.servico_id} onChange={e => setForm(f => ({ ...f, servico_id: e.target.value }))}>
                   <option value="">Selecionar...</option>
                   {servicosFiltrados.map(s => <option key={s.id} value={s.id}>{s.nome} · {formatCurrency(s.preco)}</option>)}

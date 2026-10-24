@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Percent, Receipt, Wallet, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { rotuloPagamento } from '../lib/taxas'
 import { formatCurrency, formatDateTime } from '../lib/utils'
 import { intervaloMes, rotuloIntervalo, type Intervalo } from '../lib/periodo'
 import { carregarNomesUsuarios } from '../lib/usuarios'
@@ -36,7 +37,7 @@ export default function Comissoes() {
     setLoading(true); setErro('')
     supabase
       .from('comissoes')
-      .select('*, profissional:profissionais(nome), comanda:comandas(id, data, cliente_nome, total)')
+      .select('*, profissional:profissionais(nome), comanda:comandas(id, data, cliente_nome, total, forma_pagamento, parcelas)')
       .neq('status', 'cancelada')
       .gte('created_at', `${periodo.inicio}T00:00:00`)
       .lte('created_at', `${periodo.fim}T23:59:59`)
@@ -158,9 +159,12 @@ export default function Comissoes() {
             </div>
             <div style={{ minWidth: 0 }}>
               <p className="texto-cortado" style={{ fontSize: '12px', color: 'var(--c-a3)' }}>{c.comanda?.cliente_nome ?? (c.comanda_id ? 'Balcão' : '—')}</p>
-              {c.comanda && <p className="subtexto">Total {formatCurrency(Number(c.comanda.total))}</p>}
+              {c.comanda && <p className="subtexto">Total {formatCurrency(Number(c.comanda.total))} · {rotuloPagamento(c.comanda.forma_pagamento, c.comanda.parcelas)}</p>}
             </div>
-            <span className="valor-num" style={{ fontSize: '12px', color: 'var(--c-77)', textAlign: 'right' }}><b className="mobile-only-label">Base: </b>{formatCurrency(Number(c.valor_base))}</span>
+            <span className="valor-num" style={{ fontSize: '12px', color: 'var(--c-77)', textAlign: 'right' }}>
+              <b className="mobile-only-label">Base: </b>{formatCurrency(Number(c.valor_base))}
+              {Number(c.taxa_valor ?? 0) > 0 && <span className="subtexto" style={{ display: 'block' }}>taxa −{formatCurrency(Number(c.taxa_valor))}</span>}
+            </span>
             <span className="valor-num" style={{ fontSize: '12px', color: 'var(--c-77)', textAlign: 'right' }}><b className="mobile-only-label">Percentual: </b>{Number(c.percentual)}%</span>
             <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)', textAlign: 'right' }}><b className="mobile-only-label">Comissão: </b>{formatCurrency(Number(c.valor_comissao))}</span>
             {podeGerenciar && (

@@ -8,6 +8,10 @@ import { useLoja } from '../hooks/useLoja'
 import type { Configuracoes as ConfigRow } from '../types'
 
 const TAMANHO_MAX_ARQUIVO = 5 * 1024 * 1024
+const PARCELAS = Array.from({ length: 12 }, (_, i) => i + 1)
+
+/** Campos de % da tela: '' = sem taxa. Chaves: pix, debito, c1..c12. */
+type TaxasForm = Record<string, string>
 
 /**
  * Reduz a imagem do logo (máx. 256px no lado maior) e devolve em data
@@ -51,6 +55,7 @@ export default function Configuracoes() {
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
   const [processandoLogo, setProcessandoLogo] = useState(false)
+  const [taxas, setTaxas] = useState<TaxasForm>({})
   const logoInputRef = useRef<HTMLInputElement>(null)
 
   async function escolherLogo(e: ChangeEvent<HTMLInputElement>) {
@@ -73,7 +78,29 @@ export default function Configuracoes() {
     if (!empresaId) { setLoading(false); return }
     supabase.from('configuracoes').select('*').eq('empresa_id', empresaId).single()
       .then(({ data }) => { if (data) setForm(data as ConfigRow); setLoading(false) })
+    supabase.from('taxas_pagamento').select('forma_pagamento, parcelas, percentual')
+      .then(({ data }) => {
+        const t: TaxasForm = {}
+        for (const l of (data ?? []) as { forma_pagamento: string; parcelas: number; percentual: number }[]) {
+          const chave = l.forma_pagamento === 'credito' ? `c${l.parcelas}` : l.forma_pagamento
+          t[chave] = Number(l.percentual) > 0 ? String(Number(l.percentual)) : ''
+        }
+        setTaxas(t)
+      })
   }, [empresaId])
+
+  function campoTaxa(chave: string, rotulo: string) {
+    return (
+      <div className="field" key={chave}>
+        <label className="label">{rotulo}</label>
+        <input
+          className="input" type="number" min={0} max={99} step={0.01} placeholder="0"
+          value={taxas[chave] ?? ''}
+          onChange={e => setTaxas(t => ({ ...t, [chave]: e.target.value }))}
+        />
+      </div>
+    )
+  }
 
   async function handleSave() {
     if (!empresaId) return
@@ -89,10 +116,28 @@ export default function Configuracoes() {
       duracao_padrao_min: Number(form.duracao_padrao_min) || 30,
       tolerancia_atraso_min: Number(form.tolerancia_atraso_min) || 10,
       regras_cancelamento: form.regras_cancelamento || null,
+      fechamento_automatico: form.fechamento_automatico ?? true,
+      comissao_desconta_taxa: form.comissao_desconta_taxa ?? true,
+      parcelas_maximas: Number(form.parcelas_maximas) || 12,
       updated_at: new Date().toISOString(),
     }).eq('empresa_id', empresaId)
+    if (err) { setSaving(false); setError(err.message); return }
+
+    const linhas = [
+      { forma_pagamento: 'pix', parcelas: 1, chave: 'pix' },
+      { forma_pagamento: 'debito', parcelas: 1, chave: 'debito' },
+      ...PARCELAS.map(n => ({ forma_pagamento: 'credito', parcelas: n, chave: `c${n}` })),
+    ].map(({ chave, ...l }) => ({ ...l, empresa_id: empresaId, percentual: Number(String(taxas[chave] ?? '').replace(',', '.')) || 0, updated_at: new Date().toISOString() }))
+    const invalida = linhas.find(l => l.percentual < 0 || l.percentual >= 100)
+    if (invalida) { setSaving(false); setError('As taxas precisam ficar entre 0% e 99,99%.'); return }
+    const { error: errTaxas } = await supabase.from('taxas_pagamento').upsert(linhas, { onConflict: 'empresa_id,forma_pagamento,parcelas' })
     setSaving(false)
-    if (err) { setError(err.message); return }
+    if (errTaxas) {
+      setError(/taxas_pagamento/.test(errTaxas.message)
+        ? 'As taxas ainda não estão ativas no banco de dados. Peça para rodar a atualização do banco (migração 20261024000001) no Supabase.'
+        : errTaxas.message)
+      return
+    }
     // Nome e logo do topo do menu atualizam na hora.
     recarregarLoja()
     setSaved(true)
@@ -201,6 +246,45 @@ export default function Configuracoes() {
             <label className="label">Regras de cancelamento</label>
             <input className="input" placeholder="Ex: cancelamento com até 2h de antecedência" value={form.regras_cancelamento ?? ''} onChange={e => setForm(f => ({ ...f, regras_cancelamento: e.target.value }))} />
           </div>
+          <label className="check-rotulo" title="O caixa que ficar aberto fecha sozinho no horário de fechamento">
+            <input type="checkbox" checked={form.fechamento_automatico ?? true} onChange={e => setForm(f => ({ ...f, fechamento_automatico: e.target.checked }))} />
+            Fechar o caixa automaticamente no horário de fechamento
+          </label>
+          <p style={{ fontSize: '12px', color: 'var(--c-66)', lineHeight: 1.5, marginTop: '-6px' }}>
+            Quem esquecer o caixa aberto tem ele fechado às {form.horario_fechamento?.slice(0, 5) || 'horário de fechamento'}, com o saldo esperado calculado e o valor contado em branco. Caixa aberto depois desse horário fecha no dia seguinte.
+          </p>
+        </div>
+      </motion.div>
+
+      <motion.div className="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} style={{ marginBottom: '20px' }}>
+        <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)', marginBottom: '6px' }}>Taxas da maquininha (%)</p>
+        <p style={{ fontSize: '12px', color: 'var(--c-66)', lineHeight: 1.5, marginBottom: '16px' }}>
+          O cliente paga o valor da venda; a taxa sai do que a loja recebe. Na venda aparecem a taxa e o líquido, e a taxa entra no Financeiro e na DRE. Deixe em branco o que não tem taxa.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            {campoTaxa('pix', 'Pix')}
+            {campoTaxa('debito', 'Cartão Débito')}
+          </div>
+          <div>
+            <p className="label" style={{ marginBottom: '8px' }}>Cartão Crédito, por parcelas</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(92px, 1fr))', gap: '10px' }}>
+              {PARCELAS.map(n => campoTaxa(`c${n}`, n === 1 ? '1x (à vista)' : `${n}x`))}
+            </div>
+          </div>
+          <div className="field">
+            <label className="label">Parcelamento máximo no crédito</label>
+            <select className="input" value={form.parcelas_maximas ?? 12} onChange={e => setForm(f => ({ ...f, parcelas_maximas: Number(e.target.value) }))}>
+              {PARCELAS.map(n => <option key={n} value={n}>{n === 1 ? 'Só à vista (1x)' : `Até ${n}x`}</option>)}
+            </select>
+          </div>
+          <label className="check-rotulo" title="A base da comissão de cada item fica sem a parte da taxa">
+            <input type="checkbox" checked={form.comissao_desconta_taxa ?? true} onChange={e => setForm(f => ({ ...f, comissao_desconta_taxa: e.target.checked }))} />
+            Descontar a taxa da comissão do profissional
+          </label>
+          <p style={{ fontSize: '12px', color: 'var(--c-66)', lineHeight: 1.5, marginTop: '-6px' }}>
+            Ex.: corte de R$ 40,00 no crédito 3x com taxa de 5%: a comissão de 50% é calculada sobre R$ 38,00 (R$ 19,00). Desmarcado, é sobre R$ 40,00 (R$ 20,00). Vale para as vendas novas.
+          </p>
         </div>
       </motion.div>
 

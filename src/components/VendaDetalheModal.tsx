@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { formatCurrency, formatDateTime } from '../lib/utils'
 import { carregarNomesUsuarios } from '../lib/usuarios'
 import { usePermissoes } from '../hooks/usePermissoes'
+import { formatarPercentual, rotuloPagamento } from '../lib/taxas'
 import ModalDetalhe, { Info, InfoGrade, SecaoDetalhe } from './ui/ModalDetalhe'
 import type { Comanda, ItemComanda } from '../types'
 
@@ -19,6 +20,7 @@ interface ComissaoDetalhe {
   valor_comissao: number
   percentual: number
   valor_base: number
+  taxa_valor?: number | null
   status: string
   profissional_id: string | null
   usuario_id: string | null
@@ -65,7 +67,7 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
   const carregarComissoes = useCallback(async () => {
     const { data } = await supabase
       .from('comissoes')
-      .select('id, valor_comissao, percentual, valor_base, status, profissional_id, usuario_id, profissional:profissionais(nome)')
+      .select('id, valor_comissao, percentual, valor_base, taxa_valor, status, profissional_id, usuario_id, profissional:profissionais(nome)')
       .eq('comanda_id', comandaId)
       .order('created_at')
     return (data ?? []) as unknown as ComissaoDetalhe[]
@@ -184,7 +186,7 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
       ) : (
         <>
           <InfoGrade>
-            <Info rotulo="Pagamento">{comanda.forma_pagamento ? PAGAMENTO_LABEL[comanda.forma_pagamento] ?? comanda.forma_pagamento : undefined}</Info>
+            <Info rotulo="Pagamento">{comanda.forma_pagamento ? rotuloPagamento(comanda.forma_pagamento, comanda.parcelas) : undefined}</Info>
             <Info rotulo="Registrada por">{comanda.usuario_id ? nomes[comanda.usuario_id] : undefined}</Info>
             {comanda.agendamento_id && (
               <Info rotulo="Origem" largo>
@@ -237,6 +239,18 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
               <span>Total</span>
               <strong>{formatCurrency(comanda.total ?? total)}</strong>
             </div>
+            {Number(comanda.taxa_valor ?? 0) > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12px', marginTop: '8px', padding: '0 4px' }}>
+                <span style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--c-77)' }}>
+                  <span>Taxa da maquininha ({formatarPercentual(Number(comanda.taxa_percentual ?? 0))})</span>
+                  <span className="valor-num">− {formatCurrency(Number(comanda.taxa_valor))}</span>
+                </span>
+                <span style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--c-a3)', fontWeight: 600 }}>
+                  <span>Líquido para a loja</span>
+                  <span className="valor-num">{formatCurrency(Number(comanda.total) - Number(comanda.taxa_valor))}</span>
+                </span>
+              </div>
+            )}
           </SecaoDetalhe>
 
           {comissoes.length > 0 && (
@@ -256,7 +270,10 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
                     <div key={c.id} className="detalhe-lista-item">
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p className="texto-cortado" style={{ fontSize: '13px', color: 'var(--c-fff)' }}>{nomeComissao(c)}</p>
-                        <p className="subtexto">{Number(c.percentual)}% de {formatCurrency(Number(c.valor_base))}</p>
+                        <p className="subtexto">
+                          {Number(c.percentual)}% de {formatCurrency(Number(c.valor_base))}
+                          {Number(c.taxa_valor ?? 0) > 0 && ` (já sem a taxa de ${formatCurrency(Number(c.taxa_valor))})`}
+                        </p>
                       </div>
                       <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)' }}>{formatCurrency(Number(c.valor_comissao))}</span>
                       {podeTirarComissao && (

@@ -7,7 +7,9 @@ import { formatCurrency, formatDate, formatDateTime } from '../lib/utils'
 import { intervaloMes, rotuloIntervalo, type Intervalo } from '../lib/periodo'
 import { carregarNomesUsuarios } from '../lib/usuarios'
 import ScannerCamera from '../components/ScannerCamera'
-import VendaDetalheModal, { PAGAMENTO_LABEL, type VendaParaEditar } from '../components/VendaDetalheModal'
+import VendaDetalheModal, { type VendaParaEditar } from '../components/VendaDetalheModal'
+import PagamentoTaxa from '../components/PagamentoTaxa'
+import { carregarTaxas, rotuloPagamento, TAXAS_VAZIAS, type TaxasLoja } from '../lib/taxas'
 import FiltroPeriodo from '../components/ui/FiltroPeriodo'
 import Checkbox from '../components/ui/Checkbox'
 import BarraSelecao, { ItemSelecao } from '../components/ui/BarraSelecao'
@@ -108,6 +110,8 @@ export default function Vendas() {
   const [cart, setCart]           = useState<ItemComanda[]>([])
   const [clienteNome, setClienteNome] = useState('')
   const [pagamento, setPagamento] = useState<PagamentoMetodo>('pix')
+  const [parcelas, setParcelas] = useState(1)
+  const [taxas, setTaxas] = useState<TaxasLoja>(TAXAS_VAZIAS)
   const [semComissao, setSemComissao] = useState(false)
   const [edicao, setEdicao] = useState<Comanda | null>(null)
   const [origemAgenda, setOrigemAgenda] = useState<OrigemAgenda | null>(null)
@@ -131,6 +135,7 @@ export default function Vendas() {
     carregarProdutos()
     supabase.from('profissionais').select('*').eq('ativo', true).order('nome')
       .then(({ data }) => { if (data) setProfissionais(data as Profissional[]) })
+    carregarTaxas().then(setTaxas)
   }, [])
 
   // Venda aberta pela Agenda (/vendas?agendamento=<id>): já vem com o
@@ -262,6 +267,7 @@ export default function Vendas() {
     setCart([])
     setClienteNome('')
     setPagamento('pix')
+    setParcelas(1)
     setSemComissao(false)
     setEdicao(null)
     setOrigemAgenda(null)
@@ -285,6 +291,7 @@ export default function Vendas() {
     })))
     setClienteNome(venda.comanda.cliente_nome && venda.comanda.cliente_nome !== 'Balcão' ? venda.comanda.cliente_nome : '')
     setPagamento((venda.comanda.forma_pagamento ?? 'pix') as PagamentoMetodo)
+    setParcelas(Number(venda.comanda.parcelas ?? 1))
     setSemComissao(venda.semComissao)
     setEdicao(venda.comanda)
     setOrigemAgenda(null)
@@ -302,6 +309,10 @@ export default function Vendas() {
     profissional_id: i.profissional_id ?? null,
   }))
 
+  // Só manda as parcelas quando é parcelado (à vista funciona mesmo com o
+  // banco ainda sem a migração 20261024000001).
+  const parcelasPayload = () => (pagamento === 'credito' && parcelas > 1 ? { p_parcelas: parcelas } : {})
+
   async function finalizarVenda() {
     if (saving) return
     setSaving(true); setError('')
@@ -313,6 +324,7 @@ export default function Vendas() {
         p_forma_pagamento: pagamento,
         p_itens: itensPayload(),
         p_sem_comissao: semComissao,
+        ...parcelasPayload(),
       })
       setSaving(false)
       if (err) {
@@ -330,6 +342,7 @@ export default function Vendas() {
       p_cliente_id: origemAgenda?.clienteId ?? null,
       p_forma_pagamento: pagamento,
       p_itens: itensPayload(),
+      ...parcelasPayload(),
     })
     if (err) { setSaving(false); setError(err.message); return }
 
@@ -465,7 +478,10 @@ export default function Vendas() {
               {modoProfissional
                 ? <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)' }}>{formatCurrency(valorMeusItens(v))}</span>
                 : <span className="texto-cortado" style={{ fontSize: '12px', color: 'var(--c-a3)' }}>{nomeUsuarioVenda(v.usuario_id)}</span>}
-              <span style={{ fontSize: '12px', color: 'var(--c-a3)' }}>{v.forma_pagamento ? PAGAMENTO_LABEL[v.forma_pagamento] ?? v.forma_pagamento : '—'}</span>
+              <div style={{ minWidth: 0 }}>
+                <p className="texto-cortado" style={{ fontSize: '12px', color: 'var(--c-a3)' }}>{rotuloPagamento(v.forma_pagamento, v.parcelas)}</p>
+                {Number(v.taxa_valor ?? 0) > 0 && <p className="subtexto">taxa {formatCurrency(Number(v.taxa_valor))}</p>}
+              </div>
               <span className={STATUS_CLASS[v.status] ?? 'badge badge-pending'}>{STATUS_LABEL[v.status] ?? v.status}</span>
               <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)', textAlign: 'right' }}>{formatCurrency(v.total)}</span>
             </motion.div>
@@ -494,7 +510,9 @@ export default function Vendas() {
                 </div>
                 <div className="entity-divider" style={{ height: '1px', background: 'var(--c-22)', margin: '12px 0' }} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '12px', color: 'var(--c-a3)' }}>{v.forma_pagamento ? PAGAMENTO_LABEL[v.forma_pagamento] ?? v.forma_pagamento : '—'}</span>
+                  <span style={{ fontSize: '12px', color: 'var(--c-a3)' }}>
+                    {rotuloPagamento(v.forma_pagamento, v.parcelas)}{Number(v.taxa_valor ?? 0) > 0 ? ` · taxa ${formatCurrency(Number(v.taxa_valor))}` : ''}
+                  </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {v.status !== 'fechada' && <span className={STATUS_CLASS[v.status] ?? 'badge badge-pending'}>{STATUS_LABEL[v.status] ?? v.status}</span>}
                     <span className="valor-num" style={{ fontSize: '15px', fontWeight: 700, color: 'var(--c-fff)' }}>{formatCurrency(v.total)}</span>
@@ -802,6 +820,7 @@ export default function Vendas() {
                     {pagamento === p.id && <Check size={14} />}
                   </button>
                 ))}
+                <PagamentoTaxa forma={pagamento} parcelas={parcelas} onParcelas={setParcelas} total={total} taxas={taxas} />
               </div>
               <div style={{ padding: '14px 16px', background: 'rgba(var(--ink),0.04)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', marginBottom: semComissao ? '10px' : '20px' }}>
                 <span style={{ fontSize: '13px', color: 'var(--c-a3)' }}>Total a cobrar</span>

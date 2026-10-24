@@ -157,10 +157,10 @@ export default function Relatorios() {
       nomes,
     ] = await Promise.all([
       supabase.from('itens_comanda')
-        .select('tipo, nome, referencia_id, preco_unitario, quantidade, profissional_id, profissional:profissionais(nome), comanda:comandas!inner(id, data, status, forma_pagamento, cliente_id, cliente_nome)')
+        .select('tipo, nome, referencia_id, preco_unitario, quantidade, profissional_id, profissional:profissionais(nome), comanda:comandas!inner(id, data, status, forma_pagamento, parcelas, taxa_percentual, cliente_id, cliente_nome)')
         .eq('comanda.status', 'fechada').gte('comanda.data', inicio).lte('comanda.data', fim),
       supabase.from('sessoes_caixa').select('*').gte('aberto_em', inicioTS).lte('aberto_em', fimTS).order('aberto_em', { ascending: false }),
-      supabase.from('comissoes').select('*, profissional:profissionais(nome), item:itens_comanda(nome, quantidade), comanda:comandas(id, data, cliente_nome, total)').neq('status', 'cancelada').gte('created_at', inicioTS).lte('created_at', fimTS),
+      supabase.from('comissoes').select('*, profissional:profissionais(nome), item:itens_comanda(nome, quantidade), comanda:comandas(id, data, cliente_nome, total, forma_pagamento, parcelas)').neq('status', 'cancelada').gte('created_at', inicioTS).lte('created_at', fimTS),
       supabase.from('clientes').select('*'),
       supabase.from('produtos').select(COLUNAS_PRODUTO),
       supabase.from('movimentacoes_estoque').select('*, produto:produtos(nome)').gte('created_at', inicioTS).lte('created_at', fimTS).order('created_at', { ascending: false }).limit(100),
@@ -174,7 +174,7 @@ export default function Relatorios() {
     let itens = itensFiltrados.data
     if (itensFiltrados.error) {
       const r = await supabase.from('itens_comanda')
-        .select('tipo, nome, referencia_id, preco_unitario, quantidade, profissional_id, profissional:profissionais(nome), comanda:comandas(id, data, status, forma_pagamento, cliente_id, cliente_nome)')
+        .select('tipo, nome, referencia_id, preco_unitario, quantidade, profissional_id, profissional:profissionais(nome), comanda:comandas(id, data, status, forma_pagamento, parcelas, taxa_percentual, cliente_id, cliente_nome)')
       itens = r.data
     }
     setItensVenda((itens ?? []).filter((i: any) => i.comanda?.status === 'fechada' && i.comanda?.data >= inicio && i.comanda?.data <= fim))
@@ -213,7 +213,7 @@ export default function Relatorios() {
   const nomeForma = (f: string) => PAGAMENTO_LABEL[f] ?? f
 
   // ── Agregações de vendas ──────────────────────────────────
-  const comandaMap = new Map<string, { total: number; forma_pagamento: string; cliente_nome: string }>()
+  const comandaMap = new Map<string, { total: number; taxa: number; forma_pagamento: string; cliente_nome: string }>()
   const porServico: Record<string, LinhaVal> = {}
   const porProduto: Record<string, LinhaVal> = {}
   // Por profissional: faturamento dos itens dele e atendimentos = vendas distintas em que atendeu.
@@ -222,8 +222,10 @@ export default function Relatorios() {
     const valor = i.preco_unitario * i.quantidade
     const cId = i.comanda?.id
     if (cId) {
-      const ex = comandaMap.get(cId) ?? { total: 0, forma_pagamento: i.comanda.forma_pagamento ?? '—', cliente_nome: i.comanda.cliente_nome ?? 'Balcão' }
+      const ex = comandaMap.get(cId) ?? { total: 0, taxa: 0, forma_pagamento: i.comanda.forma_pagamento ?? '—', cliente_nome: i.comanda.cliente_nome ?? 'Balcão' }
       ex.total += valor
+      // Taxa da maquininha proporcional ao item (com filtro de profissional, só a parte dele).
+      ex.taxa += valor * Number(i.comanda.taxa_percentual ?? 0) / 100
       comandaMap.set(cId, ex)
     }
     const alvo = i.tipo === 'servico' ? porServico : porProduto
@@ -240,6 +242,7 @@ export default function Relatorios() {
   })
   const totalVendido = [...comandaMap.values()].reduce((s, c) => s + c.total, 0)
   const numVendas = comandaMap.size
+  const totalTaxas = [...comandaMap.values()].reduce((s, c) => s + c.taxa, 0)
   const ticketMedio = numVendas > 0 ? totalVendido / numVendas : 0
   const porFormaPagamento: Record<string, LinhaVal> = {}
   const porCliente: Record<string, LinhaVal> = {}
@@ -430,6 +433,7 @@ export default function Relatorios() {
                   <div className="stat-grid-auto">
                     <StatCard rotulo="Total vendido" icone={TrendingUp} valor={formatCurrency(totalVendido)} />
                     <StatCard rotulo="Vendas" icone={Receipt} valor={String(numVendas)} />
+                    <StatCard rotulo="Taxas de cartão" icone={Wallet} valor={formatCurrency(totalTaxas)} sub={`Líquido ${formatCurrency(totalVendido - totalTaxas)}`} />
                     <StatCard rotulo="Ticket médio" icone={ShoppingCart} valor={formatCurrency(ticketMedio)} />
                     <StatCard rotulo="Serviços / Produtos" icone={Scissors} valor={`${soma(servs).qtd} / ${soma(prods).qtd}`} sub={`${formatCurrency(soma(servs).total)} · ${formatCurrency(soma(prods).total)}`} />
                   </div>
@@ -479,7 +483,7 @@ export default function Relatorios() {
                     s.saldo_esperado != null ? formatCurrency(s.saldo_esperado) : '—',
                     s.valor_informado != null ? formatCurrency(s.valor_informado) : '—',
                     s.diferenca != null ? formatCurrency(s.diferenca) : '—',
-                    s.status === 'aberto' ? 'Aberto' : 'Fechado',
+                    s.status === 'aberto' ? 'Aberto' : /automaticamente/i.test(s.observacao_fechamento ?? '') ? 'Fechado (auto)' : 'Fechado',
                   ])}
                   total={['Total', `${sessoesCaixa.length} sessões`, formatCurrency(totalInicial), formatCurrency(totalEsperado), formatCurrency(totalInformado), formatCurrency(totalDiferencas), '']}
                 />
@@ -501,7 +505,7 @@ export default function Relatorios() {
                 />
                 <Titulo>Comissões detalhadas</Titulo>
                 <Tabela
-                  colunas={['Venda', 'Data', 'Item', 'Quem', 'Base', '%', 'Comissão']}
+                  colunas={['Venda', 'Data', 'Item', 'Quem', 'Taxa', 'Base', '%', 'Comissão']}
                   texto={4}
                   vazio="Nenhuma comissão no período."
                   linhas={comissoesDetalhadas.map((c: any) => [
@@ -509,11 +513,12 @@ export default function Relatorios() {
                     formatDate(c.comanda?.data ?? c.created_at),
                     c.item ? (Number(c.item.quantidade) > 1 ? `${c.item.nome} ×${Number(c.item.quantidade)}` : c.item.nome) : 'Total da venda',
                     nomeQuem(c),
+                    Number(c.taxa_valor ?? 0) > 0 ? `−${formatCurrency(Number(c.taxa_valor))}` : '—',
                     formatCurrency(Number(c.valor_base)),
                     `${Number(c.percentual)}%`,
                     formatCurrency(Number(c.valor_comissao)),
                   ])}
-                  total={[`${comissoesDetalhadas.length} comissões`, '', '', '', formatCurrency(totalBaseComissoes), '', formatCurrency(totalComissoes)]}
+                  total={[`${comissoesDetalhadas.length} comissões`, '', '', '', `−${formatCurrency(comissoesDetalhadas.reduce((s: number, c: any) => s + Number(c.taxa_valor ?? 0), 0))}`, formatCurrency(totalBaseComissoes), '', formatCurrency(totalComissoes)]}
                   aoClicar={i => { const id = comissoesDetalhadas[i].comanda_id; if (id) setVendaAbertaId(id) }}
                   dica="Ver a venda desta comissão"
                 />

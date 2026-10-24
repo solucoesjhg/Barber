@@ -5,6 +5,7 @@ import { ChevronRight, Bell, Search, PanelLeftClose, PanelLeftOpen } from 'lucid
 import Sidebar from './Sidebar'
 import { usePerfil } from '../../hooks/usePerfil'
 import { useLoja } from '../../hooks/useLoja'
+import { supabase } from '../../lib/supabase'
 
 const SIDEBAR_KEY = 'barberos-sidebar-hidden'
 
@@ -60,6 +61,17 @@ export default function AppLayout() {
 
   const semLoja = !perfilLoading && papel !== null && papel !== 'super_admin' && !empresaId && location.pathname !== '/empresas'
   const desativado = !perfilLoading && papel !== null && papel !== 'super_admin' && !!empresaId && !ativo
+
+  // Caixa esquecido aberto fecha no horário de fechamento da loja. O banco
+  // também faz isso pelo pg_cron (quando ligado) e antes de vender; aqui
+  // cobre quem só está com o sistema aberto.
+  useEffect(() => {
+    if (!empresaId || papel === 'super_admin') return
+    const fechar = () => { supabase.rpc('fechar_caixas_no_horario').then(() => undefined) }
+    fechar()
+    const id = window.setInterval(fechar, 5 * 60 * 1000)
+    return () => window.clearInterval(id)
+  }, [empresaId, papel])
 
   useEffect(() => {
     if (window.innerWidth <= 768) setSidebarHidden(true)
