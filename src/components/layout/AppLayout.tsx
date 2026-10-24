@@ -11,6 +11,7 @@ const SIDEBAR_KEY = 'barberos-sidebar-hidden'
 
 const PAGE_NAMES: Record<string, string> = {
   '/empresas':      'Empresas',
+  '/cobrancas':     'Cobranças',
   '/dashboard':     'Dashboard',
   '/agenda':        'Agenda',
   '/vendas':        'Vendas',
@@ -61,6 +62,15 @@ export default function AppLayout() {
 
   const semLoja = !perfilLoading && papel !== null && papel !== 'super_admin' && !empresaId && location.pathname !== '/empresas'
   const desativado = !perfilLoading && papel !== null && papel !== 'super_admin' && !!empresaId && !ativo
+  // Loja bloqueada pelo administrador da plataforma (ex.: mensalidade em atraso).
+  const [bloqueio, setBloqueio] = useState<{ loja?: string; motivo?: string | null } | null>(null)
+  useEffect(() => {
+    if (!empresaId || papel === 'super_admin') { setBloqueio(null); return }
+    supabase.rpc('situacao_minha_loja').then(({ data }) => {
+      const s = data as { situacao?: string; loja?: string; motivo?: string | null } | null
+      setBloqueio(s?.situacao === 'bloqueada' ? s : null)
+    })
+  }, [empresaId, papel, location.pathname])
 
   // Caixa esquecido aberto fecha no horário de fechamento da loja. O banco
   // também faz isso pelo pg_cron (quando ligado) e antes de vender; aqui
@@ -198,6 +208,14 @@ export default function AppLayout() {
           >
             {perfilLoading ? (
               <div style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>Carregando...</div>
+            ) : bloqueio ? (
+              <div style={{ padding: '80px 40px', textAlign: 'center', maxWidth: '460px', margin: '0 auto' }}>
+                <h2 style={{ fontSize: '18px', color: 'var(--c-fff)', marginBottom: '10px' }}>Acesso suspenso</h2>
+                <p style={{ fontSize: '13px', color: 'var(--c-a3)', lineHeight: 1.6 }}>
+                  O acesso {bloqueio.loja ? `da loja ${bloqueio.loja}` : 'desta loja'} ao Barber está suspenso{bloqueio.motivo ? `: ${bloqueio.motivo}` : '.'}
+                </p>
+                <p style={{ fontSize: '13px', color: 'var(--c-a3)', lineHeight: 1.6, marginTop: '8px' }}>Fale com o suporte para liberar.</p>
+              </div>
             ) : desativado ? (
               <div style={{ padding: '80px 40px', textAlign: 'center', maxWidth: '440px', margin: '0 auto' }}>
                 <h2 style={{ fontSize: '18px', color: 'var(--c-fff)', marginBottom: '10px' }}>Usuário desativado</h2>

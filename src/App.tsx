@@ -4,6 +4,7 @@ import AppLayout from './components/layout/AppLayout'
 import Login from './pages/Login'
 import Empresas from './pages/Empresas'
 import EmpresaDetalhe from './pages/EmpresaDetalhe'
+import Cobrancas from './pages/Cobrancas'
 import Dashboard from './pages/Dashboard'
 import Agenda from './pages/Agenda'
 import Vendas from './pages/Vendas'
@@ -69,6 +70,7 @@ export default function App() {
         <Route element={<PrivateRoute><PermissoesProvider><LojaProvider><AppLayout /></LojaProvider></PermissoesProvider></PrivateRoute>}>
           <Route path="/empresas"       element={<RotaPermitida superAdmin><Empresas /></RotaPermitida>} />
           <Route path="/empresas/:id"   element={<RotaPermitida superAdmin><EmpresaDetalhe /></RotaPermitida>} />
+          <Route path="/cobrancas"      element={<RotaPermitida superAdmin><Cobrancas /></RotaPermitida>} />
           <Route path="/dashboard"      element={<RotaPermitida tela="dashboard"><Dashboard /></RotaPermitida>} />
           <Route path="/agenda"         element={<RotaPermitida tela="agenda"><Agenda /></RotaPermitida>} />
           <Route path="/vendas"         element={<RotaPermitida tela="pdv"><Vendas /></RotaPermitida>} />

@@ -176,8 +176,48 @@ export interface Empresa {
   cnpj?: string
   telefone?: string
   email?: string
+  /** false = loja bloqueada: a equipe não acessa nada. */
   ativo: boolean
   created_at: string
+  responsavel?: string | null
+  endereco?: string | null
+  cidade?: string | null
+  observacoes?: string | null
+  motivo_bloqueio?: string | null
+  bloqueada_em?: string | null
+  /** Cobrança da plataforma (mensalidade do Barber). */
+  plano?: string | null
+  valor_mensalidade?: number
+  dia_vencimento?: number
+  cobranca_ativa?: boolean
+}
+
+/** Uma linha do painel do super admin (painel_empresas). */
+export interface PainelEmpresa extends Empresa {
+  usuarios_ativos: number
+  ultimo_acesso: string | null
+  vendas_mes: number
+  faturamento_mes: number
+  mensalidades_atrasadas: number
+  valor_atrasado: number
+  proximo_vencimento: string | null
+}
+
+export interface Mensalidade {
+  id: string
+  empresa_id: string
+  tipo: 'mensalidade' | 'avulsa'
+  competencia: string
+  descricao?: string | null
+  valor: number
+  vencimento: string
+  status: 'pendente' | 'paga' | 'cancelada'
+  pago_em?: string | null
+  valor_pago?: number | null
+  forma_pagamento?: string | null
+  observacao?: string | null
+  created_at: string
+  empresa?: { nome: string } | null
 }
 export type CategoriaFinanceiraTipo = 'receita' | 'despesa'
 

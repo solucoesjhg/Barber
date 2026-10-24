@@ -1195,3 +1195,6 @@ button.status-pill:disabled { cursor: default; }
 @media (max-width: 760px) {
   .pagamento-colunas { grid-template-columns: minmax(0, 1fr); gap: 4px; }
 }
+
+/* Mensalidade em atraso: o único destaque em cor do painel ADM. */
+.badge-atrasada { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.35); }

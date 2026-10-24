@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Calendar, ShoppingCart, Wallet, Users,
   Scissors, Package, Truck, BarChart2, ArrowDownCircle, ArrowUpCircle,
   Percent, FileBarChart, FileText, ClipboardList, Settings, UserCog, LogOut, Sun, Moon, Building2, Tags,
-  ChevronDown, ChevronRight, FolderOpen, ArrowLeftRight,
+  ChevronDown, ChevronRight, FolderOpen, ArrowLeftRight, Receipt,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { usePerfil } from '../../hooks/usePerfil'
@@ -19,6 +19,7 @@ import type { TelaId } from '../../types'
 
 const NAV_SUPER_ADMIN = [
   { to: '/empresas',     icon: Building2,       label: 'Empresas'      },
+  { to: '/cobrancas',    icon: Receipt,         label: 'Cobranças'     },
 ]
 
 // tela: permissão de "ver" que libera o item; gestao: só administrador/gerente.
