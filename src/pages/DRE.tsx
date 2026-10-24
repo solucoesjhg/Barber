@@ -134,7 +134,7 @@ export default function DRE() {
           <div style={{ marginTop: '18px' }}>
             <Linha label="Custo dos Produtos Vendidos (CMV)" value={-dre.cmv} indent pct={dre.receita_bruta ? dre.cmv / dre.receita_bruta * 100 : 0} delta={dreAnterior ? delta(dre.cmv, dreAnterior.cmv) : undefined} />
             <Linha label="Comissões" value={-dre.comissoes} indent pct={dre.receita_bruta ? dre.comissoes / dre.receita_bruta * 100 : 0} delta={dreAnterior ? delta(dre.comissoes, dreAnterior.comissoes) : undefined} />
-            <Linha label="Taxas de cartão / Pix" value={-(dre.taxas_pagamento ?? 0)} indent pct={dre.receita_bruta ? (dre.taxas_pagamento ?? 0) / dre.receita_bruta * 100 : 0} delta={dreAnterior ? delta(dre.taxas_pagamento ?? 0, dreAnterior.taxas_pagamento ?? 0) : undefined} />
+            <Linha label="Taxas de cartão / Pix (absorvidas)" value={-(dre.taxas_pagamento ?? 0)} indent pct={dre.receita_bruta ? (dre.taxas_pagamento ?? 0) / dre.receita_bruta * 100 : 0} delta={dreAnterior ? delta(dre.taxas_pagamento ?? 0, dreAnterior.taxas_pagamento ?? 0) : undefined} />
             <Linha label="LUCRO BRUTO" value={dre.lucro_bruto} bold pct={dre.receita_bruta ? dre.lucro_bruto / dre.receita_bruta * 100 : 0} delta={dreAnterior ? delta(dre.lucro_bruto, dreAnterior.lucro_bruto) : undefined} />
           </div>
 

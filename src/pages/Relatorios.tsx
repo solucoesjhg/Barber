@@ -161,7 +161,7 @@ export default function Relatorios() {
       nomes,
     ] = await Promise.all([
       supabase.from('itens_comanda')
-        .select('tipo, nome, referencia_id, preco_unitario, quantidade, profissional_id, profissional:profissionais(nome), comanda:comandas!inner(id, data, status, forma_pagamento, parcelas, taxa_percentual, cliente_id, cliente_nome)')
+        .select('tipo, nome, referencia_id, preco_unitario, quantidade, profissional_id, profissional:profissionais(nome), comanda:comandas!inner(id, data, status, forma_pagamento, parcelas, taxa_percentual, acrescimo, cliente_id, cliente_nome)')
         .eq('comanda.status', 'fechada').gte('comanda.data', inicio).lte('comanda.data', fim),
       supabase.from('sessoes_caixa').select('*').gte('aberto_em', inicioTS).lte('aberto_em', fimTS).order('aberto_em', { ascending: false }),
       supabase.from('comissoes').select('*, profissional:profissionais(nome), item:itens_comanda(nome, quantidade), comanda:comandas(id, data, cliente_nome, total, forma_pagamento, parcelas)').neq('status', 'cancelada').gte('created_at', inicioTS).lte('created_at', fimTS),
@@ -178,7 +178,7 @@ export default function Relatorios() {
     let itens = itensFiltrados.data
     if (itensFiltrados.error) {
       const r = await supabase.from('itens_comanda')
-        .select('tipo, nome, referencia_id, preco_unitario, quantidade, profissional_id, profissional:profissionais(nome), comanda:comandas(id, data, status, forma_pagamento, parcelas, taxa_percentual, cliente_id, cliente_nome)')
+        .select('tipo, nome, referencia_id, preco_unitario, quantidade, profissional_id, profissional:profissionais(nome), comanda:comandas(id, data, status, forma_pagamento, parcelas, taxa_percentual, acrescimo, cliente_id, cliente_nome)')
       itens = r.data
     }
     setItensVenda((itens ?? []).filter((i: any) => i.comanda?.status === 'fechada' && i.comanda?.data >= inicio && i.comanda?.data <= fim))
@@ -229,7 +229,8 @@ export default function Relatorios() {
       const ex = comandaMap.get(cId) ?? { total: 0, taxa: 0, forma_pagamento: i.comanda.forma_pagamento ?? '—', cliente_nome: i.comanda.cliente_nome ?? 'Balcão' }
       ex.total += valor
       // Taxa da maquininha proporcional ao item (com filtro de profissional, só a parte dele).
-      ex.taxa += valor * Number(i.comanda.taxa_percentual ?? 0) / 100
+      // Taxa repassada ao cliente não custa nada para a loja.
+      if (!(Number(i.comanda.acrescimo ?? 0) > 0)) ex.taxa += valor * Number(i.comanda.taxa_percentual ?? 0) / 100
       comandaMap.set(cId, ex)
     }
     const alvo = i.tipo === 'servico' ? porServico : porProduto

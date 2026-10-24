@@ -11,14 +11,18 @@ export interface Maquininha {
   credito: Record<number, number>
 }
 
+/** Quando a venda já vem com "repassar a taxa ao cliente" marcado. */
+export type RepassePadrao = 'nunca' | 'credito_parcelado' | 'sempre'
+
 export interface TaxasLoja {
   /** Só as ativas (as que aparecem na venda). */
   maquininhas: Maquininha[]
   parcelasMaximas: number
   descontaComissao: boolean
+  repassePadrao: RepassePadrao
 }
 
-export const TAXAS_VAZIAS: TaxasLoja = { maquininhas: [], parcelasMaximas: 12, descontaComissao: true }
+export const TAXAS_VAZIAS: TaxasLoja = { maquininhas: [], parcelasMaximas: 12, descontaComissao: true, repassePadrao: 'nunca' }
 
 export async function carregarMaquininhas(todas = false): Promise<Maquininha[]> {
   const [{ data: maqs }, { data: linhas }] = await Promise.all([
@@ -49,7 +53,25 @@ export async function carregarTaxas(): Promise<TaxasLoja> {
     maquininhas,
     parcelasMaximas: Number(cfg?.parcelas_maximas ?? 12),
     descontaComissao: cfg?.comissao_desconta_taxa ?? true,
+    repassePadrao: (cfg?.repasse_taxa_padrao as RepassePadrao) ?? 'nunca',
   }
+}
+
+export function repasseSugerido(taxas: TaxasLoja, forma: PagamentoMetodo, parcelas: number): boolean {
+  if (taxas.repassePadrao === 'sempre') return forma !== 'dinheiro'
+  if (taxas.repassePadrao === 'credito_parcelado') return forma === 'credito' && parcelas > 1
+  return false
+}
+
+/**
+ * Mesmo cálculo do banco (calcular_cobranca). Com repasse o cliente paga
+ * total / (1 − taxa%): depois do desconto da maquininha a loja fica com
+ * o total cheio.
+ */
+export function calcularCobranca(total: number, pct: number, repassar: boolean) {
+  const cobrado = repassar && pct > 0 ? arredondar(total / (1 - pct / 100)) : total
+  const taxa = arredondar(cobrado * pct / 100)
+  return { cobrado, acrescimo: arredondar(cobrado - total), taxa, liquido: arredondar(cobrado - taxa) }
 }
 
 /** Débito e crédito passam pela maquininha; no Pix ela é opcional. */

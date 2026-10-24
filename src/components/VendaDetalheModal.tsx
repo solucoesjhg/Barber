@@ -247,13 +247,25 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
             </div>
             {Number(comanda.taxa_valor ?? 0) > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12px', marginTop: '8px', padding: '0 4px' }}>
+                {Number(comanda.acrescimo ?? 0) > 0 && (
+                  <>
+                    <span style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--c-77)' }}>
+                      <span>Taxa repassada ao cliente</span>
+                      <span className="valor-num">+ {formatCurrency(Number(comanda.acrescimo))}</span>
+                    </span>
+                    <span style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--c-a3)' }}>
+                      <span>Cliente pagou</span>
+                      <span className="valor-num">{formatCurrency(Number(comanda.total) + Number(comanda.acrescimo))}</span>
+                    </span>
+                  </>
+                )}
                 <span style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--c-77)' }}>
                   <span>Taxa da maquininha ({formatarPercentual(Number(comanda.taxa_percentual ?? 0))})</span>
                   <span className="valor-num">− {formatCurrency(Number(comanda.taxa_valor))}</span>
                 </span>
                 <span style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--c-a3)', fontWeight: 600 }}>
                   <span>Líquido para a loja</span>
-                  <span className="valor-num">{formatCurrency(Number(comanda.total) - Number(comanda.taxa_valor))}</span>
+                  <span className="valor-num">{formatCurrency(Number(comanda.total) + Number(comanda.acrescimo ?? 0) - Number(comanda.taxa_valor))}</span>
                 </span>
               </div>
             )}

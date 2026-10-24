@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Tags, Wallet, Pencil, Trash2, Power } from 'lucide-react'
+import { Plus, Tags, Wallet, Pencil, Trash2, Power, CreditCard } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import MaquininhasEditor from '../components/MaquininhasEditor'
 import { supabase } from '../lib/supabase'
 import { formatDate } from '../lib/utils'
 import { usePermissoes } from '../hooks/usePermissoes'
@@ -8,7 +10,7 @@ import ModalDetalhe, { Info, InfoGrade, SecaoDetalhe } from '../components/ui/Mo
 import ModalFormulario, { Campo, FormGrade } from '../components/ui/ModalFormulario'
 import type { CategoriaFinanceira, CategoriaFinanceiraTipo, FormaPagamentoCadastro } from '../types'
 
-type Secao = 'categorias' | 'formas'
+type Secao = 'categorias' | 'formas' | 'maquininhas'
 
 const CAT_FORM_INICIAL = { nome: '', tipo: 'despesa' as CategoriaFinanceiraTipo, categoria_pai_id: '' }
 const FORMA_FORM_INICIAL = { nome: '' }
@@ -108,7 +110,12 @@ function FormaDetalhe({ forma: f, podeEditar, onClose, onEditar, onAlternarAtivo
 export default function Categorias() {
   const { podeEditar: podeEditarTela } = usePermissoes()
   const podeEditar = podeEditarTela('categorias')
-  const [secao, setSecao] = useState<Secao>('categorias')
+  // ?secao=maquininhas abre direto a aba (link de Configurações).
+  const [searchParams] = useSearchParams()
+  const [secao, setSecao] = useState<Secao>(() => {
+    const s = searchParams.get('secao')
+    return s === 'formas' || s === 'maquininhas' ? s : 'categorias'
+  })
 
   const [categorias, setCategorias] = useState<CategoriaFinanceira[]>([])
   const [showCatModal, setShowCatModal] = useState(false)
@@ -215,10 +222,10 @@ export default function Categorias() {
         <div>
           <h1 style={{ fontSize: '24px', color: 'var(--c-fff)' }}>Categorias & Pagamentos</h1>
           <p style={{ fontSize: '13px', color: 'var(--c-55)', marginTop: '3px' }}>
-            {secao === 'categorias' ? 'Categorias financeiras da sua loja' : 'Formas de pagamento aceitas'}
+            {secao === 'categorias' ? 'Categorias financeiras da sua loja' : secao === 'formas' ? 'Formas de pagamento aceitas' : 'Maquininhas de cartão e as taxas de cada uma'}
           </p>
         </div>
-        {!podeEditar ? null : secao === 'categorias' ? (
+        {!podeEditar || secao === 'maquininhas' ? null : secao === 'categorias' ? (
           <button className="btn btn-primary" onClick={abrirNovaCategoria} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Plus size={14} strokeWidth={2.5} /> Nova Categoria
           </button>
@@ -229,8 +236,8 @@ export default function Categorias() {
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: '2px', padding: '4px', background: 'var(--c-1a)', border: '1px solid var(--c-25)', borderRadius: '9px', width: 'fit-content', marginBottom: '24px' }}>
-        {(['categorias', 'formas'] as Secao[]).map(sVal => (
+      <div style={{ display: 'flex', gap: '2px', padding: '4px', background: 'var(--c-1a)', border: '1px solid var(--c-25)', borderRadius: '9px', width: 'fit-content', maxWidth: '100%', flexWrap: 'wrap', marginBottom: '24px' }}>
+        {(['categorias', 'formas', 'maquininhas'] as Secao[]).map(sVal => (
           <button
             key={sVal}
             onClick={() => setSecao(sVal)}
@@ -244,7 +251,7 @@ export default function Categorias() {
               cursor: 'pointer', transition: 'all 0.15s ease', fontFamily: 'inherit',
             }}
           >
-            {sVal === 'categorias' ? <><Tags size={13} /> Categorias</> : <><Wallet size={13} /> Formas de Pagamento</>}
+            {sVal === 'categorias' ? <><Tags size={13} /> Categorias</> : sVal === 'formas' ? <><Wallet size={13} /> Formas de Pagamento</> : <><CreditCard size={13} /> Maquininhas</>}
           </button>
         ))}
       </div>
@@ -264,6 +271,10 @@ export default function Categorias() {
                 <ListaCategorias itens={despesas} onAbrir={c => setCatAbertaId(c.id)} onEditar={abrirEditarCategoria} podeEditar={podeEditar} onToggle={toggleAtivoCategoria} onExcluir={excluirCategoria} vazio="Nenhuma categoria de despesa." />
               </>
             )}
+          </motion.div>
+        ) : secao === 'maquininhas' ? (
+          <motion.div key="maquininhas" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+            <MaquininhasEditor podeEditar={podeEditar} />
           </motion.div>
         ) : (
           <motion.div key="formas" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>

@@ -7,7 +7,7 @@ import ModalFormulario from './ui/ModalFormulario'
 import { Info, InfoGrade } from './ui/ModalDetalhe'
 import { PAGAMENTO_LABEL } from './VendaDetalheModal'
 import PagamentoTaxa from './PagamentoTaxa'
-import { carregarTaxas, maquininhaObrigatoria, TAXAS_VAZIAS, type TaxasLoja } from '../lib/taxas'
+import { calcularCobranca, carregarTaxas, maquininhaObrigatoria, percentualTaxa, TAXAS_VAZIAS, type TaxasLoja } from '../lib/taxas'
 import type { Agendamento, PagamentoMetodo } from '../types'
 
 const FORMAS: PagamentoMetodo[] = ['pix', 'credito', 'debito', 'dinheiro']
@@ -31,6 +31,7 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
   const [pagamento, setPagamento] = useState<PagamentoMetodo>('pix')
   const [parcelas, setParcelas] = useState(1)
   const [maquininhaId, setMaquininhaId] = useState('')
+  const [repassar, setRepassar] = useState(false)
   const [taxas, setTaxas] = useState<TaxasLoja>(TAXAS_VAZIAS)
   useEffect(() => { carregarTaxas().then(setTaxas) }, [])
   const escolherMaquininha = useCallback((id: string) => { setMaquininhaId(id); setErro('') }, [])
@@ -39,6 +40,7 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
   const [erro, setErro] = useState('')
 
   const valor = Number(ag.valor ?? ag.servico?.preco ?? 0)
+  const cobranca = calcularCobranca(valor, percentualTaxa(taxas, maquininhaId, pagamento, parcelas), repassar)
   const quando = new Date(ag.data_hora).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
   const semCaixa = /caixa aberto/i.test(erro)
 
@@ -59,6 +61,7 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
       }],
       ...(pagamento === 'credito' && parcelas > 1 ? { p_parcelas: parcelas } : {}),
       ...(pagamento !== 'dinheiro' && maquininhaId ? { p_maquininha_id: maquininhaId } : {}),
+      ...(repassar && cobranca.acrescimo > 0 ? { p_repassar_taxa: true } : {}),
     })
     if (error || !data) {
       setSalvando(false)
@@ -103,7 +106,7 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
 
       <div className="detalhe-total">
         <span>Total a cobrar</span>
-        <strong>{formatCurrency(valor)}</strong>
+        <strong>{formatCurrency(cobranca.cobrado)}</strong>
       </div>
 
       <p className="label" style={{ margin: '20px 0 8px' }}>Forma de pagamento</p>
@@ -115,7 +118,7 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
           </button>
         ))}
       </div>
-      <PagamentoTaxa forma={pagamento} parcelas={parcelas} onParcelas={setParcelas} maquininhaId={maquininhaId} onMaquininha={escolherMaquininha} total={valor} taxas={taxas} />
+      <PagamentoTaxa forma={pagamento} parcelas={parcelas} onParcelas={setParcelas} maquininhaId={maquininhaId} onMaquininha={escolherMaquininha} repassar={repassar} onRepassar={setRepassar} total={valor} taxas={taxas} />
 
       {semCaixa && (
         <div className="aviso-info" style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>

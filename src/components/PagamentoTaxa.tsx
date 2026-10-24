@@ -1,20 +1,23 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { formatCurrency } from '../lib/utils'
-import { arredondar, formatarPercentual, maquininhaObrigatoria, percentualTaxa, usaMaquininha, type TaxasLoja } from '../lib/taxas'
+import {
+  calcularCobranca, formatarPercentual, maquininhaObrigatoria, percentualTaxa, repasseSugerido, usaMaquininha, type TaxasLoja,
+} from '../lib/taxas'
 import type { PagamentoMetodo } from '../types'
 
 /**
  * Abaixo das formas de pagamento: a maquininha (débito e crédito; no Pix
- * é opcional), as parcelas (no crédito) e, quando há taxa, quanto fica
- * de taxa e quanto a loja recebe. O cliente paga o total; a taxa sai do
- * que a loja recebe.
+ * é opcional), as parcelas (no crédito), se a taxa é repassada ao cliente
+ * e quanto fica de taxa e quanto a loja recebe.
  */
-export default function PagamentoTaxa({ forma, parcelas, onParcelas, maquininhaId, onMaquininha, total, taxas }: {
+export default function PagamentoTaxa({ forma, parcelas, onParcelas, maquininhaId, onMaquininha, repassar, onRepassar, total, taxas }: {
   forma: PagamentoMetodo
   parcelas: number
   onParcelas: (n: number) => void
   maquininhaId: string
   onMaquininha: (id: string) => void
+  repassar: boolean
+  onRepassar: (v: boolean) => void
   total: number
   taxas: TaxasLoja
 }) {
@@ -27,10 +30,24 @@ export default function PagamentoTaxa({ forma, parcelas, onParcelas, maquininhaI
     if (obrigatoria && !maquininhaId && maqs.length === 1) onMaquininha(maqs[0].id)
   }, [obrigatoria, maquininhaId, maqs, onMaquininha])
 
+  // Repasse sugerido pela loja ao trocar a forma ou as parcelas (não na
+  // abertura, para a edição de uma venda manter o que ela tinha).
+  const primeira = useRef(true)
+  useEffect(() => {
+    if (primeira.current) { primeira.current = false; return }
+    onRepassar(repasseSugerido(taxas, forma, parcelas))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [forma, parcelas, taxas.repassePadrao])
+
   const maq = maqs.find(m => m.id === maquininhaId)
   const pct = percentualTaxa(taxas, maquininhaId, forma, parcelas)
-  const taxa = arredondar(total * pct / 100)
+  const c = calcularCobranca(total, pct, repassar)
   const opcoes = Array.from({ length: taxas.parcelasMaximas }, (_, i) => i + 1)
+  const linha = (rotulo: string, valor: string, forte = false) => (
+    <span style={{ display: 'flex', justifyContent: 'space-between', color: forte ? 'var(--c-a3)' : 'var(--c-77)', fontWeight: forte ? 600 : 400 }}>
+      <span>{rotulo}</span><span className="valor-num">{valor}</span>
+    </span>
+  )
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
@@ -52,9 +69,10 @@ export default function PagamentoTaxa({ forma, parcelas, onParcelas, maquininhaI
           <select className="input" value={parcelas} onChange={e => onParcelas(Number(e.target.value))}>
             {opcoes.map(n => {
               const p = maq?.credito[n] ?? 0
+              const valorParcela = calcularCobranca(total, p, repassar).cobrado / n
               return (
                 <option key={n} value={n}>
-                  {n === 1 ? '1x (à vista)' : `${n}x de ${formatCurrency(total / n)}`}{p > 0 ? ` · taxa ${formatarPercentual(p)}` : ''}
+                  {n === 1 ? '1x (à vista)' : `${n}x de ${formatCurrency(valorParcela)}`}{p > 0 ? ` · taxa ${formatarPercentual(p)}` : ''}
                 </option>
               )
             })}
@@ -63,15 +81,14 @@ export default function PagamentoTaxa({ forma, parcelas, onParcelas, maquininhaI
       )}
       {pct > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12px', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--c-25)' }}>
-          <span style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--c-77)' }}>
-            <span>Taxa {maq ? maq.nome : 'da maquininha'} ({formatarPercentual(pct)})</span>
-            <span className="valor-num">− {formatCurrency(taxa)}</span>
-          </span>
-          <span style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--c-a3)', fontWeight: 600 }}>
-            <span>A loja recebe</span>
-            <span className="valor-num">{formatCurrency(total - taxa)}</span>
-          </span>
-          {taxas.descontaComissao && <span style={{ color: 'var(--c-66)' }}>A taxa é descontada da base da comissão.</span>}
+          <label className="check-rotulo" style={{ marginBottom: '4px' }} title="O cliente paga a taxa: o valor cobrado sobe para a loja receber o valor cheio">
+            <input type="checkbox" checked={repassar} onChange={e => onRepassar(e.target.checked)} />
+            Repassar a taxa ao cliente
+          </label>
+          {repassar && linha('Acréscimo da taxa (cliente paga)', `+ ${formatCurrency(c.acrescimo)}`)}
+          {linha(`Taxa ${maq ? maq.nome : 'da maquininha'} (${formatarPercentual(pct)})`, `− ${formatCurrency(c.taxa)}`)}
+          {linha('A loja recebe', formatCurrency(c.liquido), true)}
+          {!repassar && taxas.descontaComissao && <span style={{ color: 'var(--c-66)' }}>A taxa é descontada da base da comissão.</span>}
         </div>
       )}
     </div>

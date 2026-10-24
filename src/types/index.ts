@@ -113,6 +113,8 @@ export interface Comanda {
   /** Taxa da maquininha gravada na venda (% e R$). */
   taxa_percentual?: number
   taxa_valor?: number
+  /** Taxa repassada ao cliente: o que ele pagou a mais (total + acréscimo = cobrado). */
+  acrescimo?: number
   agendamento_id?: string | null
   created_at: string
 }

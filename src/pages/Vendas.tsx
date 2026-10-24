@@ -10,7 +10,7 @@ import { carregarNomesUsuarios } from '../lib/usuarios'
 import ScannerCamera from '../components/ScannerCamera'
 import VendaDetalheModal, { type VendaParaEditar } from '../components/VendaDetalheModal'
 import PagamentoTaxa from '../components/PagamentoTaxa'
-import { carregarTaxas, maquininhaObrigatoria, rotuloPagamento, TAXAS_VAZIAS, type TaxasLoja } from '../lib/taxas'
+import { calcularCobranca, carregarTaxas, maquininhaObrigatoria, percentualTaxa, rotuloPagamento, TAXAS_VAZIAS, type TaxasLoja } from '../lib/taxas'
 import FiltroPeriodo from '../components/ui/FiltroPeriodo'
 import Checkbox from '../components/ui/Checkbox'
 import BarraSelecao, { ItemSelecao } from '../components/ui/BarraSelecao'
@@ -49,6 +49,10 @@ type ItemCatalogo =
   | { tipo: 'produto'; dado: Produto }
 
 interface OrigemAgenda { id: string; descricao: string; clienteId: string | null }
+
+
+/** Quantos atalhos de produto/serviço a tela de venda mostra sem busca. */
+const TOP_CATALOGO = 10
 
 export default function Vendas() {
   const { podeEditar, verVendasOutros } = usePermissoes()
@@ -114,7 +118,9 @@ export default function Vendas() {
   const [pagamento, setPagamento] = useState<PagamentoMetodo>('pix')
   const [parcelas, setParcelas] = useState(1)
   const [maquininhaId, setMaquininhaId] = useState('')
+  const [repassar, setRepassar] = useState(false)
   const [taxas, setTaxas] = useState<TaxasLoja>(TAXAS_VAZIAS)
+  const [maisVendidos, setMaisVendidos] = useState<Record<string, number>>({})
   const [semComissao, setSemComissao] = useState(false)
   const [edicao, setEdicao] = useState<Comanda | null>(null)
   const [origemAgenda, setOrigemAgenda] = useState<OrigemAgenda | null>(null)
@@ -139,6 +145,10 @@ export default function Vendas() {
     supabase.from('profissionais').select('*').eq('ativo', true).order('nome')
       .then(({ data }) => { if (data) setProfissionais(data as Profissional[]) })
     carregarTaxas().then(setTaxas)
+    supabase.rpc('mais_vendidos', { p_limite: TOP_CATALOGO }).then(({ data }) => {
+      setMaisVendidos(Object.fromEntries(((data ?? []) as { tipo: string; referencia_id: string; quantidade: number }[])
+        .map(m => [`${m.tipo}:${m.referencia_id}`, Number(m.quantidade)])))
+    })
   }, [])
 
   // Venda aberta pela Agenda (/vendas?agendamento=<id>): já vem com o
@@ -185,11 +195,17 @@ export default function Vendas() {
     [produtos, search]
   )
 
+  // Sem busca: só os 10 mais vendidos (completando com os outros, em
+  // ordem alfabética, se a loja ainda vendeu pouco). Com busca: todos.
+  const buscando = search.trim().length > 0
   const itensCatalogo = useMemo<ItemCatalogo[]>(() => {
     const s: ItemCatalogo[] = servicosFiltrados.map(dado => ({ tipo: 'servico', dado }))
     const p: ItemCatalogo[] = produtosFiltrados.map(dado => ({ tipo: 'produto', dado }))
-    return [...s, ...p].sort((a, b) => a.dado.nome.localeCompare(b.dado.nome))
-  }, [servicosFiltrados, produtosFiltrados])
+    const todos = [...s, ...p].sort((a, b) => a.dado.nome.localeCompare(b.dado.nome))
+    if (buscando) return todos
+    const vendidos = (i: ItemCatalogo) => maisVendidos[`${i.tipo}:${i.dado.id}`] ?? 0
+    return [...todos].sort((a, b) => vendidos(b) - vendidos(a)).slice(0, TOP_CATALOGO)
+  }, [servicosFiltrados, produtosFiltrados, buscando, maisVendidos])
 
   function buscarPorCodigo(codigo: string): Produto | undefined {
     const alvo = codigo.trim().toLowerCase()
@@ -272,6 +288,7 @@ export default function Vendas() {
     setPagamento('pix')
     setParcelas(1)
     setMaquininhaId('')
+    setRepassar(false)
     setSemComissao(false)
     setEdicao(null)
     setOrigemAgenda(null)
@@ -297,6 +314,7 @@ export default function Vendas() {
     setPagamento((venda.comanda.forma_pagamento ?? 'pix') as PagamentoMetodo)
     setParcelas(Number(venda.comanda.parcelas ?? 1))
     setMaquininhaId(venda.comanda.maquininha_id ?? '')
+    setRepassar(Number(venda.comanda.acrescimo ?? 0) > 0)
     setSemComissao(venda.semComissao)
     setEdicao(venda.comanda)
     setOrigemAgenda(null)
@@ -321,7 +339,10 @@ export default function Vendas() {
   const parcelasPayload = () => ({
     ...(pagamento === 'credito' && parcelas > 1 ? { p_parcelas: parcelas } : {}),
     ...(pagamento !== 'dinheiro' && maquininhaId ? { p_maquininha_id: maquininhaId } : {}),
+    ...(repassar && cobranca.acrescimo > 0 ? { p_repassar_taxa: true } : {}),
   })
+  // O que o cliente paga (com a taxa embutida quando ela é repassada).
+  const cobranca = calcularCobranca(total, percentualTaxa(taxas, maquininhaId, pagamento, parcelas), repassar)
 
   async function finalizarVenda() {
     if (saving) return
@@ -491,7 +512,9 @@ export default function Vendas() {
                 : <span className="texto-cortado" style={{ fontSize: '12px', color: 'var(--c-a3)' }}>{nomeUsuarioVenda(v.usuario_id)}</span>}
               <div style={{ minWidth: 0 }}>
                 <p className="texto-cortado" style={{ fontSize: '12px', color: 'var(--c-a3)' }}>{rotuloPagamento(v.forma_pagamento, v.parcelas)}</p>
-                {Number(v.taxa_valor ?? 0) > 0 && <p className="subtexto">taxa {formatCurrency(Number(v.taxa_valor))}</p>}
+                {Number(v.taxa_valor ?? 0) > 0 && (
+                  <p className="subtexto">{Number(v.acrescimo ?? 0) > 0 ? `taxa repassada +${formatCurrency(Number(v.acrescimo))}` : `taxa ${formatCurrency(Number(v.taxa_valor))}`}</p>
+                )}
               </div>
               <span className={STATUS_CLASS[v.status] ?? 'badge badge-pending'}>{STATUS_LABEL[v.status] ?? v.status}</span>
               <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)', textAlign: 'right' }}>{formatCurrency(v.total)}</span>
@@ -559,20 +582,20 @@ export default function Vendas() {
   const editando = modo === 'editar' && !!edicao
 
   return (
-    <div className="page pdv-layout" style={{ display: 'flex', gap: '24px', height: 'calc(100vh - 64px)', paddingBottom: '0', overflow: 'hidden' }}>
+    <div className="page pdv-layout" style={{ display: 'flex', gap: '16px', height: 'calc(100vh - 64px)', padding: '20px 24px 0', overflow: 'hidden' }}>
 
       {/* Left — catalog */}
       <div className="pdv-catalog" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         <button
           onClick={sairDaVenda}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--c-66)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '14px', flexShrink: 0, fontFamily: 'inherit' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--c-66)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '10px', flexShrink: 0, fontFamily: 'inherit' }}
         >
           <ArrowLeft size={13} /> {editando ? 'Cancelar edição' : origemAgenda ? 'Voltar para a Agenda' : 'Vendas'}
         </button>
 
         {/* Search */}
-        <div className="pdv-toolbar" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', flexShrink: 0 }}>
+        <div className="pdv-toolbar" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', flexShrink: 0 }}>
           <div style={{
             flex: 1,
             display: 'flex', alignItems: 'center', gap: '8px',
@@ -617,7 +640,12 @@ export default function Vendas() {
 
         {/* Content area — produtos e serviços juntos, sem separação */}
         <div className="pdv-catalog-content" style={{ flex: 1, overflowY: 'auto', paddingBottom: '16px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '12px' }}>
+          {!buscando && (
+            <p style={{ fontSize: '11px', color: 'var(--c-55)', marginBottom: '8px' }}>
+              Os {TOP_CATALOGO} mais vendidos · use a busca (ou o leitor de código) para os demais
+            </p>
+          )}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(138px, 1fr))', gap: '8px' }}>
             {itensCatalogo.length === 0 ? (
               <div style={{ gridColumn: '1/-1', padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>
                 Nenhum produto ou serviço encontrado.
@@ -629,23 +657,23 @@ export default function Vendas() {
                   key={`${item.tipo}-${item.dado.id}`}
                   onClick={() => item.tipo === 'servico' ? addServico(item.dado) : addProduto(item.dado)}
                   className="card-sm"
-                  style={{ cursor: 'pointer', border: '1px solid var(--c-2a)', textAlign: 'left', transition: 'all 0.15s', fontFamily: 'inherit', width: '100%' }}
+                  style={{ cursor: 'pointer', border: '1px solid var(--c-2a)', textAlign: 'left', transition: 'all 0.15s', fontFamily: 'inherit', width: '100%', padding: '9px 11px' }}
                   whileHover={{ borderColor: 'var(--c-44)', background: 'var(--c-24)' }}
                   whileTap={{ scale: 0.97 }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '3px' }}>
                     {item.tipo === 'servico' ? <Scissors size={11} style={{ color: 'var(--c-55)' }} /> : <Package size={11} style={{ color: 'var(--c-55)' }} />}
                     <span style={{ fontSize: '9px', color: 'var(--c-55)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                       {item.tipo === 'servico' ? 'Serviço' : 'Produto'}
                     </span>
                   </div>
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)', marginBottom: '4px' }}>{item.dado.nome}</p>
-                  <p style={{ fontSize: '11px', color: baixo ? 'var(--c-a3)' : 'var(--c-55)' }}>
+                  <p className="texto-cortado" title={item.dado.nome} style={{ fontSize: '12px', fontWeight: 600, color: 'var(--c-fff)', marginBottom: '2px' }}>{item.dado.nome}</p>
+                  <p style={{ fontSize: '10px', color: baixo ? 'var(--c-a3)' : 'var(--c-55)' }}>
                     {item.tipo === 'servico'
                       ? `${item.dado.duracao_minutos} min`
                       : `${item.dado.estoque_atual} ${item.dado.unidade} em estoque`}
                   </p>
-                  <p style={{ fontSize: '16px', fontWeight: 700, color: 'var(--c-fff)', marginTop: '10px' }}>
+                  <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--c-fff)', marginTop: '5px' }}>
                     {formatCurrency(item.tipo === 'servico' ? item.dado.preco : item.dado.preco_venda)}
                   </p>
                 </motion.button>
@@ -657,7 +685,7 @@ export default function Vendas() {
 
       {/* Right — cart */}
       <div className="pdv-cart" style={{
-        width: '320px', flexShrink: 0,
+        width: '300px', flexShrink: 0,
         background: 'var(--c-1a)',
         border: '1px solid var(--c-25)',
         borderRadius: '12px',
@@ -831,11 +859,11 @@ export default function Vendas() {
                     {pagamento === p.id && <Check size={14} />}
                   </button>
                 ))}
-                <PagamentoTaxa forma={pagamento} parcelas={parcelas} onParcelas={setParcelas} maquininhaId={maquininhaId} onMaquininha={escolherMaquininha} total={total} taxas={taxas} />
+                <PagamentoTaxa forma={pagamento} parcelas={parcelas} onParcelas={setParcelas} maquininhaId={maquininhaId} onMaquininha={escolherMaquininha} repassar={repassar} onRepassar={setRepassar} total={total} taxas={taxas} />
               </div>
               <div style={{ padding: '14px 16px', background: 'rgba(var(--ink),0.04)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', marginBottom: semComissao ? '10px' : '20px' }}>
                 <span style={{ fontSize: '13px', color: 'var(--c-a3)' }}>Total a cobrar</span>
-                <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--c-fff)' }}>{formatCurrency(total)}</span>
+                <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--c-fff)' }}>{formatCurrency(cobranca.cobrado)}</span>
               </div>
               {semComissao && <p style={{ fontSize: '12px', color: 'var(--c-66)', marginBottom: '16px' }}>Esta venda não vai gerar comissão.</p>}
               {error && <p style={{ fontSize: '12px', color: 'var(--c-a3)', marginBottom: '12px' }}>{error}</p>}
