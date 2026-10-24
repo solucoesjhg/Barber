@@ -64,13 +64,25 @@ export default function AppLayout() {
   const desativado = !perfilLoading && papel !== null && papel !== 'super_admin' && !!empresaId && !ativo
   // Loja bloqueada pelo administrador da plataforma (ex.: mensalidade em atraso).
   const [bloqueio, setBloqueio] = useState<{ loja?: string; motivo?: string | null } | null>(null)
+  // Super admin dentro da loja pelo painel (modo suporte): nome da loja.
+  const [suporte, setSuporte] = useState<string | null>(null)
+  const [saindoSuporte, setSaindoSuporte] = useState(false)
   useEffect(() => {
-    if (!empresaId || papel === 'super_admin') { setBloqueio(null); return }
+    if (!empresaId || papel === 'super_admin') { setBloqueio(null); setSuporte(null); return }
     supabase.rpc('situacao_minha_loja').then(({ data }) => {
-      const s = data as { situacao?: string; loja?: string; motivo?: string | null } | null
+      const s = data as { situacao?: string; loja?: string; motivo?: string | null; suporte?: boolean } | null
       setBloqueio(s?.situacao === 'bloqueada' ? s : null)
+      setSuporte(s?.suporte ? (s.loja ?? 'loja') : null)
     })
   }, [empresaId, papel, location.pathname])
+
+  async function sairDoSuporte() {
+    setSaindoSuporte(true)
+    const { error } = await supabase.rpc('sair_suporte')
+    if (error) { setSaindoSuporte(false); window.alert(error.message); return }
+    // Recarrega para o perfil e as permissões voltarem a ser de super admin.
+    window.location.href = '/empresas'
+  }
 
   // Caixa esquecido aberto fecha no horário de fechamento da loja. O banco
   // também faz isso pelo pg_cron (quando ligado) e antes de vender; aqui
@@ -195,6 +207,13 @@ export default function AppLayout() {
             </button>
           </div>
         </div>
+
+        {suporte && (
+          <div className="faixa-suporte" role="status">
+            <span>Modo suporte: você está dentro de <strong>{suporte}</strong> como administrador. O que fizer aqui vale para a loja.</span>
+            <button className="btn btn-sm" onClick={sairDoSuporte} disabled={saindoSuporte}>{saindoSuporte ? 'Saindo...' : 'Sair do suporte'}</button>
+          </div>
+        )}
 
         {/* Page content */}
         <AnimatePresence mode="wait">

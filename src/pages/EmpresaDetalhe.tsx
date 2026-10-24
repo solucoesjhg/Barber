@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Building2, Copy, Check, UserCheck, Plus, Lock, Unlock, Trash2, Save, Receipt, LayoutDashboard, Users, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Building2, Copy, Check, UserCheck, Plus, Lock, Unlock, Trash2, Save, Receipt, LayoutDashboard, Users, AlertTriangle, LogIn } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency, formatDate, formatDateTime } from '../lib/utils'
 import { nomeExibicao, papeisQuePossoAtribuir } from '../lib/permissoes'
@@ -76,6 +76,17 @@ export default function EmpresaDetalhe() {
   }
 
   useEffect(() => { setLoading(true); carregar() }, [id])
+
+  const [entrando, setEntrando] = useState(false)
+  // Modo suporte: entra na loja como administrador dela (sem senha).
+  async function entrarNaLoja() {
+    if (!empresa || entrando) return
+    if (!window.confirm(`Entrar em ${empresa.nome} como administrador (modo suporte)? Você vê e mexe em tudo da loja até clicar em "Sair do suporte".`)) return
+    setEntrando(true)
+    const { error: err } = await supabase.rpc('entrar_suporte', { p_empresa_id: empresa.id })
+    if (err) { setEntrando(false); window.alert(err.message); return }
+    window.location.href = '/dashboard'
+  }
 
   function copiarCodigo() {
     if (!empresa?.codigo) return
@@ -181,6 +192,9 @@ export default function EmpresaDetalhe() {
             Desde {formatDate(empresa.created_at)} · {empresa.email ?? 'sem e-mail de contato'}
           </p>
         </div>
+        <button className="btn btn-primary btn-sm" onClick={entrarNaLoja} disabled={entrando} title="Ver e operar o sistema como o administrador desta loja" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+          <LogIn size={13} /> {entrando ? 'Entrando...' : 'Entrar como a loja'}
+        </button>
         <button className="btn btn-secondary btn-sm" onClick={copiarCodigo} title="Copiar código da loja" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontFamily: 'monospace' }}>
           {codigoCopiado ? <Check size={13} /> : <Copy size={13} />}
           {empresa.codigo ?? '—'}

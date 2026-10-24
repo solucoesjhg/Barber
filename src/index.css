@@ -1292,3 +1292,11 @@ button.status-pill:disabled { cursor: default; }
 .fechamento-lista > span:last-child { border-bottom: none; }
 .fechamento-lista > span > .valor-num { color: var(--text); font-weight: 600; flex-shrink: 0; }
 .fechamento-lista > .subtexto { padding: 10px; }
+
+/* Modo suporte (super admin dentro da loja) */
+.faixa-suporte {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 8px 20px; background: #f59e0b; color: #1a1205; font-size: 12px;
+}
+.faixa-suporte strong { font-weight: 700; }
+.faixa-suporte .btn { background: #1a1205; color: #fff; border: none; }
