@@ -1283,3 +1283,12 @@ button.status-pill:disabled { cursor: default; }
 .caixa-forma.destaque { border-color: var(--border-strong); background: rgba(var(--ink), 0.05); }
 .pagamento-restante { font-size: 12px; color: var(--c-a3); padding: 10px 12px; border-radius: 8px; border: 1px dashed var(--c-2a); }
 .pagamento-restante strong { color: var(--text); font-size: 14px; }
+
+/* Fechamento de comissão */
+.fechamento-previa { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 20px; margin: 16px 0; }
+@media (max-width: 720px) { .fechamento-previa { grid-template-columns: minmax(0, 1fr); } }
+.fechamento-lista { display: flex; flex-direction: column; max-height: 260px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+.fechamento-lista > span { display: flex; justify-content: space-between; gap: 10px; padding: 7px 10px; font-size: 12px; color: var(--c-a3); border-bottom: 1px solid var(--c-1f); }
+.fechamento-lista > span:last-child { border-bottom: none; }
+.fechamento-lista > span > .valor-num { color: var(--text); font-weight: 600; flex-shrink: 0; }
+.fechamento-lista > .subtexto { padding: 10px; }

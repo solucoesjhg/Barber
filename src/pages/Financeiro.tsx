@@ -25,6 +25,7 @@ const CATEGORIA_LABEL: Record<string, string> = {
   venda: 'Venda', sangria: 'Sangria', suprimento: 'Suprimento', capital_inicial: 'Saldo inicial',
   conta_a_pagar: 'Conta paga', conta_a_receber: 'Conta recebida', compra_mercadoria: 'Compra de mercadoria',
   entrada: 'Entrada', saida: 'Saída', transferencia: 'Transferência', taxa_cartao: 'Taxa de cartão',
+  vale: 'Vale de profissional', comissao: 'Pagamento de comissão',
 }
 
 interface SaldoConta { conta_id: string; nome: string; tipo: string; padrao: boolean; saldo: number }

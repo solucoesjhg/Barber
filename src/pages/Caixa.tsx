@@ -19,6 +19,7 @@ import type { SessaoCaixa, MovimentoCaixa } from '../types'
 const CATEGORIA_LABEL: Record<string, string> = {
   venda: 'Venda', sangria: 'Sangria', suprimento: 'Suprimento',
   conta_a_pagar: 'Conta paga', conta_a_receber: 'Conta recebida',
+  vale: 'Vale', comissao: 'Comissão paga',
 }
 
 type ModalTipo = null | 'abrir' | 'sangria' | 'suprimento' | 'fechar'

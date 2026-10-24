@@ -290,7 +290,10 @@ export interface Comissao {
   valor_comissao: number
   status: ComissaoStatus
   created_at: string
+  /** Fechamento em que a comissão foi paga. */
+  fechamento_id?: string | null
   profissional?: Profissional
+  item?: { nome: string; quantidade: number } | null
   comanda?: { id: string; data: string; cliente_nome?: string | null; total: number; forma_pagamento?: string | null; parcelas?: number | null } | null
 }
 
@@ -448,4 +451,33 @@ export interface PermissoesUsuario {
   telas: Record<TelaId, PermissaoTela>
   /** Só em permissoes_usuario(): quem está logado pode alterar esse usuário. */
   pode_configurar?: boolean
+}
+
+/** Fechamento de comissão de um período (o "holerite" do profissional). */
+export interface FechamentoComissao {
+  id: string
+  profissional_id: string
+  inicio: string
+  fim: string
+  total_comissoes: number
+  total_vales: number
+  valor_pago: number
+  observacao?: string | null
+  usuario_id?: string | null
+  created_at: string
+  profissional?: { nome: string } | null
+}
+
+/** Vale (adiantamento) dado ao profissional, descontado no fechamento. */
+export interface ValeProfissional {
+  id: string
+  profissional_id: string
+  valor: number
+  data: string
+  descricao?: string | null
+  status: 'aberto' | 'descontado'
+  fechamento_id?: string | null
+  gerado_por_fechamento?: string | null
+  created_at: string
+  profissional?: { nome: string } | null
 }
