@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Check, Plus, ShoppingCart, Wallet } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -7,7 +7,7 @@ import ModalFormulario from './ui/ModalFormulario'
 import { Info, InfoGrade } from './ui/ModalDetalhe'
 import { PAGAMENTO_LABEL } from './VendaDetalheModal'
 import PagamentoTaxa from './PagamentoTaxa'
-import { carregarTaxas, TAXAS_VAZIAS, type TaxasLoja } from '../lib/taxas'
+import { carregarTaxas, maquininhaObrigatoria, TAXAS_VAZIAS, type TaxasLoja } from '../lib/taxas'
 import type { Agendamento, PagamentoMetodo } from '../types'
 
 const FORMAS: PagamentoMetodo[] = ['pix', 'credito', 'debito', 'dinheiro']
@@ -30,8 +30,10 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
   const navigate = useNavigate()
   const [pagamento, setPagamento] = useState<PagamentoMetodo>('pix')
   const [parcelas, setParcelas] = useState(1)
+  const [maquininhaId, setMaquininhaId] = useState('')
   const [taxas, setTaxas] = useState<TaxasLoja>(TAXAS_VAZIAS)
   useEffect(() => { carregarTaxas().then(setTaxas) }, [])
+  const escolherMaquininha = useCallback((id: string) => { setMaquininhaId(id); setErro('') }, [])
   const [semComissao, setSemComissao] = useState(false)
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
@@ -45,6 +47,7 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
       setErro('Este agendamento não tem serviço. Use "Adicionar produtos ou serviços" para montar a venda.')
       return
     }
+    if (maquininhaObrigatoria(pagamento, taxas) && !maquininhaId) { setErro('Escolha a maquininha do cartão.'); return }
     setSalvando(true); setErro('')
     const { data, error } = await supabase.rpc('finalizar_venda', {
       p_cliente_nome: ag.cliente?.nome ?? null,
@@ -55,6 +58,7 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
         quantidade: 1, preco_unitario: valor, profissional_id: ag.profissional_id,
       }],
       ...(pagamento === 'credito' && parcelas > 1 ? { p_parcelas: parcelas } : {}),
+      ...(pagamento !== 'dinheiro' && maquininhaId ? { p_maquininha_id: maquininhaId } : {}),
     })
     if (error || !data) {
       setSalvando(false)
@@ -111,7 +115,7 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
           </button>
         ))}
       </div>
-      <PagamentoTaxa forma={pagamento} parcelas={parcelas} onParcelas={setParcelas} total={valor} taxas={taxas} />
+      <PagamentoTaxa forma={pagamento} parcelas={parcelas} onParcelas={setParcelas} maquininhaId={maquininhaId} onMaquininha={escolherMaquininha} total={valor} taxas={taxas} />
 
       {semCaixa && (
         <div className="aviso-info" style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>

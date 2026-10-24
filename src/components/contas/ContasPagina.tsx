@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import VencimentosParcelas, { useVencimentos } from '../ui/VencimentosParcelas'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, X, AlertTriangle, Search, ArrowUpCircle, ArrowDownCircle } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
@@ -148,8 +149,11 @@ export default function ContasPagina({ tipo }: { tipo: TipoConta }) {
 
   const contaAberta = contaAbertaId ? contas.find(c => c.id === contaAbertaId) ?? null : null
 
+  const venc = useVencimentos(form.data_vencimento, Math.min(36, Math.max(1, Math.floor(Number(form.total_parcelas) || 1))))
+
   async function handleSave() {
     if (!form.descricao.trim() || !form.valor) { setError('Descrição e valor são obrigatórios.'); return }
+    if (venc.erro) { setError(venc.erro); return }
     if (saving) return
     setSaving(true); setError('')
     const { error: err } = await supabase.rpc(cfg.rpcCriar, {
@@ -160,6 +164,7 @@ export default function ContasPagina({ tipo }: { tipo: TipoConta }) {
       p_data_vencimento: form.data_vencimento,
       p_total_parcelas: Number(form.total_parcelas) || 1,
       p_observacao: form.observacao || null,
+      ...venc.payload,
     })
     setSaving(false)
     if (err) { setError(err.message); return }
@@ -391,7 +396,7 @@ export default function ContasPagina({ tipo }: { tipo: TipoConta }) {
             <ModalFormulario
               icone={<Icone size={18} />}
               titulo={cfg.novoTitulo}
-              descricao="Com mais de uma parcela, o valor é dividido em partes iguais, com vencimento a cada mês."
+              descricao="Com mais de uma parcela, o valor é dividido em partes iguais. As datas começam mês a mês e você pode mudar a de cada parcela."
               onClose={() => setShowModal(false)}
               onSalvar={handleSave}
               salvando={saving}
@@ -430,6 +435,11 @@ export default function ContasPagina({ tipo }: { tipo: TipoConta }) {
                 <Campo rotulo="Observação" span={2}>
                   <input className="input" placeholder="opcional" value={form.observacao} onChange={e => setForm(f => ({ ...f, observacao: e.target.value }))} />
                 </Campo>
+                {parcelas > 1 && (
+                  <div className="field span-total">
+                    <VencimentosParcelas datas={venc.datas} valorTotal={valor} onMudar={venc.mudar} erro={venc.erro} />
+                  </div>
+                )}
               </FormGrade>
             </ModalFormulario>
           )

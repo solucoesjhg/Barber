@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useLoja } from '../hooks/useLoja'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { LucideIcon } from 'lucide-react'
 import {
@@ -17,6 +18,7 @@ import { useAuth } from '../hooks/useAuth'
 import FiltroPeriodo from '../components/ui/FiltroPeriodo'
 import StatCard from '../components/ui/StatCard'
 import VendaDetalheModal, { PAGAMENTO_LABEL } from '../components/VendaDetalheModal'
+import VendasProfissionalModal, { type VendaDoProfissional } from '../components/relatorios/VendasProfissionalModal'
 import type { RelatorioId } from '../types'
 
 const ICONES: Record<RelatorioId, LucideIcon> = {
@@ -108,6 +110,7 @@ function Tabela({ colunas, linhas, vazio, total, texto = 1, aoClicar, dica }: {
 
 export default function Relatorios() {
   const { podeVerRelatorio, verVendasOutros } = usePermissoes()
+  const { controlaEstoqueMinimo } = useLoja()
   const { profissionalId: meuProfissional } = usePerfil()
   const { user } = useAuth()
   // Quem não vê as vendas dos outros vê só os próprios números (o banco já
@@ -139,6 +142,7 @@ export default function Relatorios() {
   const [filtroStatusAgenda, setFiltroStatusAgenda] = useState('')
   const [buscaCliente, setBuscaCliente] = useState('')
   const [vendaAbertaId, setVendaAbertaId] = useState<string | null>(null)
+  const [funcionarioAberto, setFuncionarioAberto] = useState<{ id: string; nome: string } | null>(null)
 
   const carregar = useCallback(async () => {
     setLoading(true)
@@ -289,7 +293,7 @@ export default function Relatorios() {
   const porClienteFiltrado = ordenar(porCliente).filter(c => c.nome.toLowerCase().includes(buscaCliente.toLowerCase()))
 
   // ── Produtos ─────────────────────────────────────────────
-  const estoqueBaixo = produtosFiltrados.filter(p => p.estoque_atual <= p.estoque_minimo && p.ativo)
+  const estoqueBaixo = controlaEstoqueMinimo ? produtosFiltrados.filter(p => p.estoque_atual <= p.estoque_minimo && p.ativo) : []
   const idsVendidos = new Set(itensVenda.filter((i: any) => i.tipo === 'produto').map((i: any) => i.referencia_id))
   const produtosSemVenda = produtosFiltrados.filter(p => p.ativo && !idsVendidos.has(p.id))
   const categoriaDoProduto = new Map(produtos.map((p: any) => [p.nome, p.categoria]))
@@ -310,6 +314,27 @@ export default function Relatorios() {
   })
     .filter(p => !profFiltro || p.id === profFiltro)
     .sort((a, b) => b.faturamento - a.faturamento)
+  // Vendas que formam os números de um profissional (clique na linha).
+  function vendasDoProfissional(id: string): VendaDoProfissional[] {
+    const porVenda = new Map<string, VendaDoProfissional>()
+    // Mesmos itens que somam a linha do relatório (com os mesmos filtros).
+    itensVendaFiltrados.forEach((i: any) => {
+      if (i.profissional_id !== id || !i.comanda?.id) return
+      const v = porVenda.get(i.comanda.id) ?? {
+        comandaId: i.comanda.id, data: i.comanda.data, cliente: i.comanda.cliente_nome || 'Balcão', itens: '', valor: 0, comissao: 0,
+      }
+      v.itens = [v.itens, i.quantidade > 1 ? `${i.nome} ×${i.quantidade}` : i.nome].filter(Boolean).join(', ')
+      v.valor += i.preco_unitario * i.quantidade
+      porVenda.set(i.comanda.id, v)
+    })
+    comissoesFiltradas.forEach((c: any) => {
+      if (c.profissional_id !== id || !c.comanda_id) return
+      const v = porVenda.get(c.comanda_id)
+      if (v) v.comissao += Number(c.valor_comissao)
+    })
+    return [...porVenda.values()].sort((a, b) => b.data.localeCompare(a.data))
+  }
+
   const totFunc = relatorioProfissionais.reduce((s, p) => ({
     atendimentos: s.atendimentos + p.atendimentos, servicos: s.servicos + p.servicos,
     faturamento: s.faturamento + p.faturamento, comissao: s.comissao + p.comissao,
@@ -547,7 +572,7 @@ export default function Relatorios() {
               <>
                 <div className="stat-grid-auto">
                   <StatCard rotulo="Vendidos (un.)" icone={Package} valor={String(soma(vendidosFiltrados).qtd)} sub={formatCurrency(soma(vendidosFiltrados).total)} />
-                  <StatCard rotulo="Estoque baixo" icone={AlertTriangle} valor={String(estoqueBaixo.length)} />
+                  {controlaEstoqueMinimo && <StatCard rotulo="Estoque baixo" icone={AlertTriangle} valor={String(estoqueBaixo.length)} />}
                   <StatCard rotulo="Sem venda no período" icone={Package} valor={String(produtosSemVenda.length)} />
                   <StatCard rotulo="Movimentações" icone={TrendingUp} valor={String(movimentacoes.length)} />
                 </div>
@@ -555,10 +580,14 @@ export default function Relatorios() {
                 <Tabela colunas={['Produto', 'Qtd', 'Total']} vazio="Sem vendas no período."
                   linhas={vendidosFiltrados.map(f => [f.nome, f.qtd, formatCurrency(f.total)])}
                   total={['Total', soma(vendidosFiltrados).qtd, formatCurrency(soma(vendidosFiltrados).total)]} />
-                <Titulo>Estoque baixo</Titulo>
-                <Tabela colunas={['Produto', 'Atual', 'Mínimo']} vazio="Nenhum produto abaixo do mínimo."
-                  linhas={estoqueBaixo.map(p => [p.nome, p.estoque_atual, p.estoque_minimo])}
-                  total={[`${estoqueBaixo.length} produtos`, estoqueBaixo.reduce((s, p) => s + Number(p.estoque_atual), 0), estoqueBaixo.reduce((s, p) => s + Number(p.estoque_minimo), 0)]} />
+                {controlaEstoqueMinimo && (
+                  <>
+                    <Titulo>Estoque baixo</Titulo>
+                    <Tabela colunas={['Produto', 'Atual', 'Mínimo']} vazio="Nenhum produto abaixo do mínimo."
+                      linhas={estoqueBaixo.map(p => [p.nome, p.estoque_atual, p.estoque_minimo])}
+                      total={[`${estoqueBaixo.length} produtos`, estoqueBaixo.reduce((s, p) => s + Number(p.estoque_atual), 0), estoqueBaixo.reduce((s, p) => s + Number(p.estoque_minimo), 0)]} />
+                  </>
+                )}
                 <Titulo>Sem venda no período</Titulo>
                 <Tabela colunas={['Produto', 'Estoque atual']} vazio="Todos os produtos ativos venderam no período."
                   linhas={produtosSemVenda.map(p => [p.nome, p.estoque_atual])}
@@ -582,6 +611,8 @@ export default function Relatorios() {
                   vazio="Sem dados no período."
                   linhas={relatorioProfissionais.map(p => [p.nome, p.atendimentos, p.servicos, formatCurrency(p.faturamento), formatCurrency(p.comissao), formatCurrency(p.ticketMedio)])}
                   total={['Total', totFunc.atendimentos, totFunc.servicos, formatCurrency(totFunc.faturamento), formatCurrency(totFunc.comissao), formatCurrency(totFunc.atendimentos > 0 ? totFunc.faturamento / totFunc.atendimentos : 0)]}
+                  aoClicar={i => setFuncionarioAberto({ id: relatorioProfissionais[i].id, nome: relatorioProfissionais[i].nome })}
+                  dica="Ver as vendas deste profissional"
                 />
               </>
             )}
@@ -607,10 +638,22 @@ export default function Relatorios() {
       )}
 
       <AnimatePresence>
+        {funcionarioAberto && (
+          <VendasProfissionalModal
+            nome={funcionarioAberto.nome}
+            periodo={rotuloIntervalo(periodo)}
+            vendas={vendasDoProfissional(funcionarioAberto.id)}
+            onAbrirVenda={setVendaAbertaId}
+            onClose={() => setFuncionarioAberto(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {vendaAbertaId && (
           <VendaDetalheModal
             comandaId={vendaAbertaId}
-            destacarProfissionalId={soMeu ? meuProfissional : null}
+            destacarProfissionalId={funcionarioAberto?.id ?? (soMeu ? meuProfissional : null)}
             onClose={() => setVendaAbertaId(null)}
             onAlterado={carregar}
           />

@@ -55,6 +55,7 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
   const { podeEditar, podeEditarVendas } = usePermissoes()
   const podeTirarComissao = podeEditar('comissoes')
   const [comanda, setComanda] = useState<Comanda | null>(null)
+  const [nomeMaquininha, setNomeMaquininha] = useState<string | null>(null)
   const [itens, setItens] = useState<ItemDetalhe[]>([])
   const [comissoes, setComissoes] = useState<ComissaoDetalhe[]>([])
   const [fotos, setFotos] = useState<Record<string, string>>({})
@@ -97,6 +98,11 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
       }
       if (cancelado) return
       setComanda((comandaData ?? null) as Comanda | null)
+      const maqId = (comandaData as Comanda | null)?.maquininha_id
+      if (maqId) {
+        supabase.from('maquininhas').select('nome').eq('id', maqId).maybeSingle()
+          .then(({ data }) => { if (!cancelado) setNomeMaquininha((data as { nome: string } | null)?.nome ?? null) })
+      }
       setItens(itensCarregados)
       setComissoes(comissoesData)
       setNomes(nomesData)
@@ -186,7 +192,7 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
       ) : (
         <>
           <InfoGrade>
-            <Info rotulo="Pagamento">{comanda.forma_pagamento ? rotuloPagamento(comanda.forma_pagamento, comanda.parcelas) : undefined}</Info>
+            <Info rotulo="Pagamento">{comanda.forma_pagamento ? rotuloPagamento(comanda.forma_pagamento, comanda.parcelas, nomeMaquininha) : undefined}</Info>
             <Info rotulo="Registrada por">{comanda.usuario_id ? nomes[comanda.usuario_id] : undefined}</Info>
             {comanda.agendamento_id && (
               <Info rotulo="Origem" largo>

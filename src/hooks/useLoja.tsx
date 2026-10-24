@@ -7,6 +7,8 @@ interface Loja {
   nome: string | null
   /** Logo cadastrado em Configurações (imagem em data URL). null = logo padrão. */
   logoUrl: string | null
+  /** A loja trabalha com estoque mínimo e máximo (Configurações). */
+  controlaEstoqueMinimo: boolean
 }
 
 interface LojaCtx extends Loja {
@@ -14,15 +16,16 @@ interface LojaCtx extends Loja {
 }
 
 const Ctx = createContext<LojaCtx | null>(null)
+const LOJA_VAZIA: Loja = { nome: null, logoUrl: null, controlaEstoqueMinimo: true }
 const chaveCache = (empresaId: string) => `barberos-loja-${empresaId}`
 
 function lerCache(empresaId: string | null): Loja {
-  if (!empresaId) return { nome: null, logoUrl: null }
+  if (!empresaId) return { ...LOJA_VAZIA }
   try {
     const salvo = localStorage.getItem(chaveCache(empresaId))
-    if (salvo) return JSON.parse(salvo) as Loja
+    if (salvo) return { ...LOJA_VAZIA, ...(JSON.parse(salvo) as Partial<Loja>) }
   } catch { /* sem cache */ }
-  return { nome: null, logoUrl: null }
+  return { ...LOJA_VAZIA }
 }
 
 // Nome e logo da loja para o menu e o cabeçalho. Fica em cache no
@@ -32,12 +35,17 @@ export function LojaProvider({ children }: { children: ReactNode }) {
   const [loja, setLoja] = useState<Loja>(() => lerCache(empresaId))
 
   const recarregar = useCallback(() => {
-    if (!empresaId) { setLoja({ nome: null, logoUrl: null }); return }
+    if (!empresaId) { setLoja({ ...LOJA_VAZIA }); return }
     setLoja(lerCache(empresaId))
-    supabase.from('configuracoes').select('nome_empresa, logo_url').eq('empresa_id', empresaId).maybeSingle()
+    // select('*'): funciona antes e depois da coluna controla_estoque_minimo existir.
+    supabase.from('configuracoes').select('*').eq('empresa_id', empresaId).maybeSingle()
       .then(({ data, error }) => {
         if (error) return
-        const nova: Loja = { nome: data?.nome_empresa?.trim() || null, logoUrl: data?.logo_url || null }
+        const nova: Loja = {
+          nome: data?.nome_empresa?.trim() || null,
+          logoUrl: data?.logo_url || null,
+          controlaEstoqueMinimo: data?.controla_estoque_minimo ?? true,
+        }
         setLoja(nova)
         try { localStorage.setItem(chaveCache(empresaId), JSON.stringify(nova)) } catch { /* cheio ou bloqueado */ }
       })

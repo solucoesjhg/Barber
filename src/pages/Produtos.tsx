@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, type ChangeEvent } from 'react'
+import { useLoja } from '../hooks/useLoja'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, X, AlertTriangle, Package, Scissors, Check, Tag, Pencil, Download, Upload, ClipboardList } from 'lucide-react'
 import * as XLSX from 'xlsx'
@@ -99,6 +100,8 @@ async function lerPlanilhaProdutos(arquivo: File): Promise<{ validas: LinhaImpor
 
 export default function Produtos() {
   const { podeEditar: podeEditarTela, verCustoProdutos: verCusto } = usePermissoes()
+  // Loja sem estoque mínimo/máximo (Configurações): sem campos e sem alertas.
+  const { controlaEstoqueMinimo } = useLoja()
   const podeEditar = podeEditarTela('produtos')
   const [secao, setSecao] = useState<Secao>('produtos')
 
@@ -135,9 +138,9 @@ export default function Produtos() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const selecao = useSelecao(produtos.map(p => p.id))
 
-  const alertas = produtos.filter(p => p.estoque_atual <= p.estoque_minimo)
+  const alertas = controlaEstoqueMinimo ? produtos.filter(p => p.estoque_atual <= p.estoque_minimo) : []
   // Colunas enxutas: SKU, margem e comissão vão numa 2ª linha embaixo do
-  // nome e o mínimo aparece junto do estoque.
+  // nome.
   const colunasTabela = verCusto
     ? '22px minmax(220px, 1fr) 92px 96px 96px 104px 70px 72px'
     : '22px minmax(220px, 1fr) 92px 96px 104px 70px 72px'
@@ -504,7 +507,7 @@ export default function Produtos() {
                   Nenhum produto cadastrado.
                 </div>
               ) : produtos.map((p, i) => {
-                const baixo  = p.estoque_atual <= p.estoque_minimo
+                const baixo  = controlaEstoqueMinimo && p.estoque_atual <= p.estoque_minimo
                 const margem = verCusto && p.preco_custo > 0 ? ((p.preco_venda - p.preco_custo) / p.preco_custo * 100).toFixed(0) : null
                 const detalhes = [p.sku && `#${p.sku}`, margem && `+${margem}% margem`, p.comissao_percentual != null && `comissão ${p.comissao_percentual}%`].filter(Boolean).join(' · ')
                 return (
@@ -552,7 +555,6 @@ export default function Produtos() {
                         {p.estoque_atual} {p.unidade}
                         {baixo && <AlertTriangle size={11} style={{ color: 'var(--c-77)' }} />}
                       </p>
-                      <p className="subtexto">mín. {p.estoque_minimo}</p>
                     </div>
                     <button
                       className={`status-pill${p.ativo ? '' : ' inativo'}`}
@@ -583,7 +585,7 @@ export default function Produtos() {
             {produtos.length > 0 && (
               <div className="entity-grid mobile-only-grid" style={{ gap: '16px' }}>
                 {produtos.map((p, i) => {
-                  const baixo  = p.estoque_atual <= p.estoque_minimo
+                  const baixo  = controlaEstoqueMinimo && p.estoque_atual <= p.estoque_minimo
                   const margem = verCusto && p.preco_custo > 0 ? ((p.preco_venda - p.preco_custo) / p.preco_custo * 100).toFixed(0) : null
                   const detalhes = [p.sku && `#${p.sku}`, margem && `+${margem}% margem`, p.comissao_percentual != null && `comissão ${p.comissao_percentual}%`].filter(Boolean).join(' · ')
                   return (
@@ -909,12 +911,16 @@ export default function Produtos() {
                 <Campo rotulo="Estoque Atual">
                   <input className="input" type="number" min={0} placeholder="0" value={prodForm.estoque_atual} onChange={e => setProdForm(f => ({ ...f, estoque_atual: e.target.value }))} />
                 </Campo>
-                <Campo rotulo="Estoque Mínimo">
-                  <input className="input" type="number" min={0} placeholder="5" value={prodForm.estoque_minimo} onChange={e => setProdForm(f => ({ ...f, estoque_minimo: e.target.value }))} />
-                </Campo>
-                <Campo rotulo="Estoque Máximo">
-                  <input className="input" type="number" min={0} placeholder="opcional" value={prodForm.estoque_maximo} onChange={e => setProdForm(f => ({ ...f, estoque_maximo: e.target.value }))} />
-                </Campo>
+                {controlaEstoqueMinimo && (
+                  <>
+                    <Campo rotulo="Estoque Mínimo">
+                      <input className="input" type="number" min={0} placeholder="5" value={prodForm.estoque_minimo} onChange={e => setProdForm(f => ({ ...f, estoque_minimo: e.target.value }))} />
+                    </Campo>
+                    <Campo rotulo="Estoque Máximo">
+                      <input className="input" type="number" min={0} placeholder="opcional" value={prodForm.estoque_maximo} onChange={e => setProdForm(f => ({ ...f, estoque_maximo: e.target.value }))} />
+                    </Campo>
+                  </>
+                )}
               </FormGrade>
             </ModalFormulario>
           )

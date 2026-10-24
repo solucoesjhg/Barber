@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import VencimentosParcelas, { useVencimentos } from './ui/VencimentosParcelas'
 import { motion } from 'framer-motion'
 import { Plus, Trash2, X, Package, Check, RotateCcw } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -69,6 +70,7 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
     return d.toISOString().split('T')[0]
   })
   const [parcelas, setParcelas] = useState('1')
+  const venc = useVencimentos(dataVencimento, Math.min(24, Math.max(1, Math.floor(Number(parcelas) || 1))))
 
   useEffect(() => {
     supabase.from('contas_financeiras').select('*').eq('ativo', true).order('nome')
@@ -146,6 +148,7 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
   async function handleSalvar() {
     if (itensValidos.length === 0) { setError('Adicione ao menos um item com nome, quantidade e valor pago.'); return }
     if (aVista && !contaFinanceiraId) { setError('Selecione a conta que vai pagar essa entrada.'); return }
+    if (!aVista && venc.erro) { setError(venc.erro); return }
     if (saving) return
     setSaving(true); setError('')
     // Mesmo total que o banco lança: peças + frete + despesas − desconto.
@@ -170,6 +173,7 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
       p_fornecedor_id: fornecedorId || null,
       p_data_vencimento: aVista ? null : dataVencimento,
       p_parcelas: aVista ? 1 : (Number(parcelas) || 1),
+      ...(aVista ? {} : venc.payload),
     })
     setSaving(false)
     if (err) { setError(err.message); return }
@@ -400,7 +404,7 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
                   </select>
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <div className="field" style={{ flex: 1 }}>
-                      <label className="label">Vencimento</label>
+                      <label className="label">1º Vencimento</label>
                       <input className="input" type="date" value={dataVencimento} onChange={e => setDataVencimento(e.target.value)} />
                     </div>
                     <div className="field" style={{ width: '110px' }}>
@@ -408,6 +412,7 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
                       <input className="input" type="number" min={1} max={24} value={parcelas} onChange={e => setParcelas(e.target.value)} />
                     </div>
                   </div>
+                  <VencimentosParcelas datas={venc.datas} valorTotal={totalPago + totalExtra} onMudar={venc.mudar} erro={venc.erro} />
                 </div>
               )}
             </div>

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, type ChangeEvent } from 'react'
 import { motion } from 'framer-motion'
-import { Save, Upload, Trash2, ImageIcon } from 'lucide-react'
+import { Save, Upload, Trash2, ImageIcon, Plus } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { carregarMaquininhas } from '../lib/taxas'
 import { usePerfil } from '../hooks/usePerfil'
 import { usePermissoes } from '../hooks/usePermissoes'
 import { useLoja } from '../hooks/useLoja'
@@ -12,6 +13,16 @@ const PARCELAS = Array.from({ length: 12 }, (_, i) => i + 1)
 
 /** Campos de % da tela: '' = sem taxa. Chaves: pix, debito, c1..c12. */
 type TaxasForm = Record<string, string>
+
+/** Maquininha na tela: id ausente = nova (ainda não salva). */
+interface MaqForm { chave: string; id?: string; nome: string; ativo: boolean; taxas: TaxasForm; aberta: boolean }
+
+const LINHAS_TAXA = [
+  { forma_pagamento: 'pix', parcelas: 1, chave: 'pix' },
+  { forma_pagamento: 'debito', parcelas: 1, chave: 'debito' },
+  ...PARCELAS.map(n => ({ forma_pagamento: 'credito', parcelas: n, chave: `c${n}` })),
+]
+const pctTexto = (v: number) => (v > 0 ? String(v) : '')
 
 /**
  * Reduz a imagem do logo (máx. 256px no lado maior) e devolve em data
@@ -55,7 +66,8 @@ export default function Configuracoes() {
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
   const [processandoLogo, setProcessandoLogo] = useState(false)
-  const [taxas, setTaxas] = useState<TaxasForm>({})
+  const [maquininhas, setMaquininhas] = useState<MaqForm[]>([])
+  const [removidas, setRemovidas] = useState<string[]>([])
   const logoInputRef = useRef<HTMLInputElement>(null)
 
   async function escolherLogo(e: ChangeEvent<HTMLInputElement>) {
@@ -78,28 +90,76 @@ export default function Configuracoes() {
     if (!empresaId) { setLoading(false); return }
     supabase.from('configuracoes').select('*').eq('empresa_id', empresaId).single()
       .then(({ data }) => { if (data) setForm(data as ConfigRow); setLoading(false) })
-    supabase.from('taxas_pagamento').select('forma_pagamento, parcelas, percentual')
-      .then(({ data }) => {
-        const t: TaxasForm = {}
-        for (const l of (data ?? []) as { forma_pagamento: string; parcelas: number; percentual: number }[]) {
-          const chave = l.forma_pagamento === 'credito' ? `c${l.parcelas}` : l.forma_pagamento
-          t[chave] = Number(l.percentual) > 0 ? String(Number(l.percentual)) : ''
-        }
-        setTaxas(t)
-      })
+    carregarMaquininhas(true).then(lista => {
+      setMaquininhas(lista.map(m => ({
+        chave: m.id, id: m.id, nome: m.nome, ativo: m.ativo, aberta: false,
+        taxas: { pix: pctTexto(m.pix), debito: pctTexto(m.debito), ...Object.fromEntries(PARCELAS.map(n => [`c${n}`, pctTexto(m.credito[n] ?? 0)])) },
+      })))
+      setRemovidas([])
+    })
   }, [empresaId])
 
-  function campoTaxa(chave: string, rotulo: string) {
+  const mudarMaq = (chave: string, mudanca: Partial<MaqForm>) =>
+    setMaquininhas(ms => ms.map(m => (m.chave === chave ? { ...m, ...mudanca } : m)))
+
+  function novaMaquininha() {
+    const chave = `nova-${Date.now()}`
+    setMaquininhas(ms => [...ms, { chave, nome: '', ativo: true, aberta: true, taxas: {} }])
+  }
+
+  function removerMaquininha(m: MaqForm) {
+    if (!window.confirm(`Excluir a maquininha "${m.nome || 'sem nome'}"? As vendas já feitas nela continuam com a taxa que tinham. Para só parar de usar, desmarque "Ativa".`)) return
+    if (m.id) setRemovidas(r => [...r, m.id!])
+    setMaquininhas(ms => ms.filter(x => x.chave !== m.chave))
+  }
+
+  function campoTaxa(m: MaqForm, chave: string, rotulo: string) {
     return (
       <div className="field" key={chave}>
         <label className="label">{rotulo}</label>
         <input
           className="input" type="number" min={0} max={99} step={0.01} placeholder="0"
-          value={taxas[chave] ?? ''}
-          onChange={e => setTaxas(t => ({ ...t, [chave]: e.target.value }))}
+          value={m.taxas[chave] ?? ''}
+          onChange={e => mudarMaq(m.chave, { taxas: { ...m.taxas, [chave]: e.target.value } })}
         />
       </div>
     )
+  }
+
+  // Grava as maquininhas e as taxas de cada uma. Devolve a mensagem de erro, se houver.
+  async function salvarMaquininhas(): Promise<string> {
+    const nomes = maquininhas.map(m => m.nome.trim().toLowerCase())
+    if (nomes.some(n => !n)) return 'Dê um nome para cada maquininha.'
+    if (new Set(nomes).size !== nomes.length) return 'Há duas maquininhas com o mesmo nome.'
+    const pct = (m: MaqForm, chave: string) => Number(String(m.taxas[chave] ?? '').replace(',', '.')) || 0
+    if (maquininhas.some(m => LINHAS_TAXA.some(l => pct(m, l.chave) < 0 || pct(m, l.chave) >= 100))) return 'As taxas precisam ficar entre 0% e 99,99%.'
+
+    if (removidas.length > 0) {
+      const { error: e } = await supabase.from('maquininhas').delete().in('id', removidas)
+      if (e) return e.message
+    }
+    const linhas: { maquininha_id: string; forma_pagamento: string; parcelas: number; percentual: number }[] = []
+    const salvas: MaqForm[] = []
+    for (const m of maquininhas) {
+      let id = m.id
+      if (id) {
+        const { error: e } = await supabase.from('maquininhas').update({ nome: m.nome.trim(), ativo: m.ativo }).eq('id', id)
+        if (e) return e.message
+      } else {
+        const { data, error: e } = await supabase.from('maquininhas').insert({ nome: m.nome.trim(), ativo: m.ativo }).select('id').single()
+        if (e || !data) return e?.message ?? 'Não foi possível cadastrar a maquininha.'
+        id = (data as { id: string }).id
+      }
+      salvas.push({ ...m, id, chave: id })
+      for (const l of LINHAS_TAXA) linhas.push({ maquininha_id: id, forma_pagamento: l.forma_pagamento, parcelas: l.parcelas, percentual: pct(m, l.chave) })
+    }
+    if (linhas.length > 0) {
+      const { error: e } = await supabase.from('taxas_maquininha').upsert(linhas, { onConflict: 'maquininha_id,forma_pagamento,parcelas' })
+      if (e) return e.message
+    }
+    setMaquininhas(salvas)
+    setRemovidas([])
+    return ''
   }
 
   async function handleSave() {
@@ -119,23 +179,17 @@ export default function Configuracoes() {
       fechamento_automatico: form.fechamento_automatico ?? true,
       comissao_desconta_taxa: form.comissao_desconta_taxa ?? true,
       parcelas_maximas: Number(form.parcelas_maximas) || 12,
+      controla_estoque_minimo: form.controla_estoque_minimo ?? true,
       updated_at: new Date().toISOString(),
     }).eq('empresa_id', empresaId)
     if (err) { setSaving(false); setError(err.message); return }
 
-    const linhas = [
-      { forma_pagamento: 'pix', parcelas: 1, chave: 'pix' },
-      { forma_pagamento: 'debito', parcelas: 1, chave: 'debito' },
-      ...PARCELAS.map(n => ({ forma_pagamento: 'credito', parcelas: n, chave: `c${n}` })),
-    ].map(({ chave, ...l }) => ({ ...l, empresa_id: empresaId, percentual: Number(String(taxas[chave] ?? '').replace(',', '.')) || 0, updated_at: new Date().toISOString() }))
-    const invalida = linhas.find(l => l.percentual < 0 || l.percentual >= 100)
-    if (invalida) { setSaving(false); setError('As taxas precisam ficar entre 0% e 99,99%.'); return }
-    const { error: errTaxas } = await supabase.from('taxas_pagamento').upsert(linhas, { onConflict: 'empresa_id,forma_pagamento,parcelas' })
+    const erroMaq = await salvarMaquininhas()
     setSaving(false)
-    if (errTaxas) {
-      setError(/taxas_pagamento/.test(errTaxas.message)
-        ? 'As taxas ainda não estão ativas no banco de dados. Peça para rodar a atualização do banco (migração 20261024000001) no Supabase.'
-        : errTaxas.message)
+    if (erroMaq) {
+      setError(/maquininha/.test(erroMaq) && /schema cache|does not exist|relation/.test(erroMaq)
+        ? 'As maquininhas ainda não estão ativas no banco de dados. Peça para rodar a atualização do banco (migração 20261025000001) no Supabase.'
+        : erroMaq)
       return
     }
     // Nome e logo do topo do menu atualizam na hora.
@@ -256,22 +310,77 @@ export default function Configuracoes() {
         </div>
       </motion.div>
 
+      <motion.div className="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} style={{ marginBottom: '20px' }}>
+        <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)', marginBottom: '16px' }}>Estoque</p>
+        <label className="check-rotulo" title="Mostra os campos de estoque mínimo e máximo e os alertas de estoque baixo">
+          <input type="checkbox" checked={form.controla_estoque_minimo ?? true} onChange={e => setForm(f => ({ ...f, controla_estoque_minimo: e.target.checked }))} />
+          Trabalhar com estoque mínimo e máximo
+        </label>
+        <p style={{ fontSize: '12px', color: 'var(--c-66)', lineHeight: 1.5, marginTop: '8px' }}>
+          Marcado: o cadastro do produto tem estoque mínimo e máximo, e o sistema avisa quando o estoque fica abaixo do mínimo (Produtos, Vendas e Relatórios). Desmarcado: esses campos e avisos somem; os valores já cadastrados ficam guardados.
+        </p>
+      </motion.div>
+
       <motion.div className="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} style={{ marginBottom: '20px' }}>
-        <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)', marginBottom: '6px' }}>Taxas da maquininha (%)</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '6px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)' }}>Maquininhas e taxas (%)</p>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={novaMaquininha} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <Plus size={13} /> Nova maquininha
+          </button>
+        </div>
         <p style={{ fontSize: '12px', color: 'var(--c-66)', lineHeight: 1.5, marginBottom: '16px' }}>
-          O cliente paga o valor da venda; a taxa sai do que a loja recebe. Na venda aparecem a taxa e o líquido, e a taxa entra no Financeiro e na DRE. Deixe em branco o que não tem taxa.
+          Cadastre cada maquininha com as taxas dela. Na venda no cartão escolhe-se a maquininha e a taxa vem dela. O cliente paga o valor da venda; a taxa sai do que a loja recebe e entra no Financeiro e na DRE. Deixe em branco o que não tem taxa.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            {campoTaxa('pix', 'Pix')}
-            {campoTaxa('debito', 'Cartão Débito')}
-          </div>
-          <div>
-            <p className="label" style={{ marginBottom: '8px' }}>Cartão Crédito, por parcelas</p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(92px, 1fr))', gap: '10px' }}>
-              {PARCELAS.map(n => campoTaxa(`c${n}`, n === 1 ? '1x (à vista)' : `${n}x`))}
+          {maquininhas.length === 0 && (
+            <p style={{ fontSize: '12px', color: 'var(--c-55)', padding: '12px', border: '1px dashed var(--c-2a)', borderRadius: '8px', textAlign: 'center' }}>
+              Nenhuma maquininha cadastrada: as vendas no cartão ficam sem taxa.
+            </p>
+          )}
+          {maquininhas.map(m => (
+            <div key={m.chave} className="maquininha-card" style={{ border: '1px solid var(--c-25)', borderRadius: '10px', padding: '12px 14px', opacity: m.ativo ? 1 : 0.6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <input
+                  className="input" placeholder="Nome (ex.: Stone, Cielo)" value={m.nome}
+                  onChange={e => mudarMaq(m.chave, { nome: e.target.value })}
+                  style={{ flex: '1 1 180px' }} aria-label="Nome da maquininha"
+                />
+                <label className="check-rotulo" title="Só as ativas aparecem na venda">
+                  <input type="checkbox" checked={m.ativo} onChange={e => mudarMaq(m.chave, { ativo: e.target.checked })} />
+                  Ativa
+                </label>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => mudarMaq(m.chave, { aberta: !m.aberta })}>
+                  {m.aberta ? 'Fechar taxas' : 'Ver taxas'}
+                </button>
+                <button type="button" className="btn btn-icon" title="Excluir maquininha" aria-label="Excluir maquininha" onClick={() => removerMaquininha(m)} style={{ width: '30px', height: '30px' }}>
+                  <Trash2 size={12} />
+                </button>
+              </div>
+              {!m.aberta && (
+                <p style={{ fontSize: '11px', color: 'var(--c-66)', marginTop: '8px' }}>
+                  {[
+                    m.taxas.pix && `Pix ${m.taxas.pix}%`,
+                    m.taxas.debito && `Débito ${m.taxas.debito}%`,
+                    ...PARCELAS.filter(n => m.taxas[`c${n}`]).map(n => `${n}x ${m.taxas[`c${n}`]}%`),
+                  ].filter(Boolean).join(' · ') || 'Sem taxas cadastradas'}
+                </p>
+              )}
+              {m.aberta && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    {campoTaxa(m, 'pix', 'Pix')}
+                    {campoTaxa(m, 'debito', 'Cartão Débito')}
+                  </div>
+                  <div>
+                    <p className="label" style={{ marginBottom: '8px' }}>Cartão Crédito, por parcelas</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(92px, 1fr))', gap: '10px' }}>
+                      {PARCELAS.map(n => campoTaxa(m, `c${n}`, n === 1 ? '1x (à vista)' : `${n}x`))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
+          ))}
           <div className="field">
             <label className="label">Parcelamento máximo no crédito</label>
             <select className="input" value={form.parcelas_maximas ?? 12} onChange={e => setForm(f => ({ ...f, parcelas_maximas: Number(e.target.value) }))}>

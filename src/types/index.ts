@@ -109,6 +109,7 @@ export interface Comanda {
   forma_pagamento?: PagamentoMetodo
   /** Crédito: número de parcelas (1 = à vista). */
   parcelas?: number
+  maquininha_id?: string | null
   /** Taxa da maquininha gravada na venda (% e R$). */
   taxa_percentual?: number
   taxa_valor?: number
@@ -311,6 +312,7 @@ export interface Configuracoes {
   fechamento_automatico?: boolean
   comissao_desconta_taxa?: boolean
   parcelas_maximas?: number
+  controla_estoque_minimo?: boolean
   updated_at: string
 }
 

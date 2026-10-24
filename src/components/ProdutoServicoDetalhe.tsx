@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useLoja } from '../hooks/useLoja'
 import { Package, Scissors, Pencil, Tag, Image as ImageIcon, AlertTriangle } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency, formatDateTime } from '../lib/utils'
@@ -32,7 +33,8 @@ export function ProdutoDetalheModal({ produto: p, verCusto, podeEditar, onClose,
       .then(({ data }) => setMovimentos((data ?? []) as MovimentacaoEstoque[]))
   }, [p.id])
 
-  const baixo = p.estoque_atual <= p.estoque_minimo
+  const { controlaEstoqueMinimo } = useLoja()
+  const baixo = controlaEstoqueMinimo && p.estoque_atual <= p.estoque_minimo
   const margem = verCusto && p.preco_custo > 0 ? ((p.preco_venda - p.preco_custo) / p.preco_custo) * 100 : null
 
   return (
@@ -65,7 +67,7 @@ export function ProdutoDetalheModal({ produto: p, verCusto, podeEditar, onClose,
             {baixo && <><AlertTriangle size={12} style={{ color: 'var(--c-88)' }} /><span style={{ fontSize: '11px', color: 'var(--c-88)', fontWeight: 400 }}>abaixo do mínimo</span></>}
           </span>
         </Info>
-        <Info rotulo="Mínimo / Máximo">{`${p.estoque_minimo} / ${p.estoque_maximo ?? '—'}`}</Info>
+        {controlaEstoqueMinimo && <Info rotulo="Mínimo / Máximo">{`${p.estoque_minimo} / ${p.estoque_maximo ?? '—'}`}</Info>}
       </InfoGrade>
 
       <SecaoDetalhe titulo="Últimas movimentações">

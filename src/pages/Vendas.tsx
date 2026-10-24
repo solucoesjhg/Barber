@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, type KeyboardEvent } from 'react'
+import { useLoja } from '../hooks/useLoja'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ShoppingCart, Plus, Minus, Trash2, X, Check, Search, Scissors, Package, ScanLine, ArrowLeft, CalendarDays, Pencil } from 'lucide-react'
@@ -9,7 +10,7 @@ import { carregarNomesUsuarios } from '../lib/usuarios'
 import ScannerCamera from '../components/ScannerCamera'
 import VendaDetalheModal, { type VendaParaEditar } from '../components/VendaDetalheModal'
 import PagamentoTaxa from '../components/PagamentoTaxa'
-import { carregarTaxas, rotuloPagamento, TAXAS_VAZIAS, type TaxasLoja } from '../lib/taxas'
+import { carregarTaxas, maquininhaObrigatoria, rotuloPagamento, TAXAS_VAZIAS, type TaxasLoja } from '../lib/taxas'
 import FiltroPeriodo from '../components/ui/FiltroPeriodo'
 import Checkbox from '../components/ui/Checkbox'
 import BarraSelecao, { ItemSelecao } from '../components/ui/BarraSelecao'
@@ -51,6 +52,7 @@ interface OrigemAgenda { id: string; descricao: string; clienteId: string | null
 
 export default function Vendas() {
   const { podeEditar, verVendasOutros } = usePermissoes()
+  const { controlaEstoqueMinimo } = useLoja()
   const { profissionalId: meuProfissional } = usePerfil()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -111,6 +113,7 @@ export default function Vendas() {
   const [clienteNome, setClienteNome] = useState('')
   const [pagamento, setPagamento] = useState<PagamentoMetodo>('pix')
   const [parcelas, setParcelas] = useState(1)
+  const [maquininhaId, setMaquininhaId] = useState('')
   const [taxas, setTaxas] = useState<TaxasLoja>(TAXAS_VAZIAS)
   const [semComissao, setSemComissao] = useState(false)
   const [edicao, setEdicao] = useState<Comanda | null>(null)
@@ -268,6 +271,7 @@ export default function Vendas() {
     setClienteNome('')
     setPagamento('pix')
     setParcelas(1)
+    setMaquininhaId('')
     setSemComissao(false)
     setEdicao(null)
     setOrigemAgenda(null)
@@ -292,6 +296,7 @@ export default function Vendas() {
     setClienteNome(venda.comanda.cliente_nome && venda.comanda.cliente_nome !== 'Balcão' ? venda.comanda.cliente_nome : '')
     setPagamento((venda.comanda.forma_pagamento ?? 'pix') as PagamentoMetodo)
     setParcelas(Number(venda.comanda.parcelas ?? 1))
+    setMaquininhaId(venda.comanda.maquininha_id ?? '')
     setSemComissao(venda.semComissao)
     setEdicao(venda.comanda)
     setOrigemAgenda(null)
@@ -311,10 +316,16 @@ export default function Vendas() {
 
   // Só manda as parcelas quando é parcelado (à vista funciona mesmo com o
   // banco ainda sem a migração 20261024000001).
-  const parcelasPayload = () => (pagamento === 'credito' && parcelas > 1 ? { p_parcelas: parcelas } : {})
+  const escolherMaquininha = useCallback((id: string) => { setMaquininhaId(id); setError('') }, [])
+
+  const parcelasPayload = () => ({
+    ...(pagamento === 'credito' && parcelas > 1 ? { p_parcelas: parcelas } : {}),
+    ...(pagamento !== 'dinheiro' && maquininhaId ? { p_maquininha_id: maquininhaId } : {}),
+  })
 
   async function finalizarVenda() {
     if (saving) return
+    if (maquininhaObrigatoria(pagamento, taxas) && !maquininhaId) { setError('Escolha a maquininha do cartão.'); return }
     setSaving(true); setError('')
 
     if (edicao) {
@@ -612,7 +623,7 @@ export default function Vendas() {
                 Nenhum produto ou serviço encontrado.
               </div>
             ) : itensCatalogo.map(item => {
-              const baixo = item.tipo === 'produto' && item.dado.estoque_atual <= item.dado.estoque_minimo
+              const baixo = controlaEstoqueMinimo && item.tipo === 'produto' && item.dado.estoque_atual <= item.dado.estoque_minimo
               return (
                 <motion.button
                   key={`${item.tipo}-${item.dado.id}`}
@@ -820,7 +831,7 @@ export default function Vendas() {
                     {pagamento === p.id && <Check size={14} />}
                   </button>
                 ))}
-                <PagamentoTaxa forma={pagamento} parcelas={parcelas} onParcelas={setParcelas} total={total} taxas={taxas} />
+                <PagamentoTaxa forma={pagamento} parcelas={parcelas} onParcelas={setParcelas} maquininhaId={maquininhaId} onMaquininha={escolherMaquininha} total={total} taxas={taxas} />
               </div>
               <div style={{ padding: '14px 16px', background: 'rgba(var(--ink),0.04)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', marginBottom: semComissao ? '10px' : '20px' }}>
                 <span style={{ fontSize: '13px', color: 'var(--c-a3)' }}>Total a cobrar</span>
