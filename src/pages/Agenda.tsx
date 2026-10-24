@@ -310,15 +310,40 @@ function ListaView({
 /* ══════════════════════════════════════════════════════════
    SEMANAL VIEW — time grid
 ══════════════════════════════════════════════════════════ */
+const PASSO_ARRASTO = 15 // minutos
+
 function SemanalView({
-  baseDate, setBaseDate, agenda, onDayClick, onAbrir,
+  baseDate, setBaseDate, agenda, onDayClick, onAbrir, onRemarcar,
 }: {
   baseDate: Date
   setBaseDate: (d: Date) => void
   agenda: Agendamento[]
   onDayClick: (d: Date) => void
   onAbrir: (id: string) => void
+  /** Arrastar o atendimento para outro dia/horário. Ausente = sem permissão. */
+  onRemarcar?: (id: string, dataHora: string) => void
 }) {
+  // Arrastar para remarcar: guarda o atendimento arrastado e onde ele
+  // foi pego (para o topo do card cair onde o mouse está) e o destino.
+  const [arrasto, setArrasto] = useState<{ id: string; pegaY: number; altura: number } | null>(null)
+  const [destino, setDestino] = useState<{ dia: string; minutos: number } | null>(null)
+
+  function minutosNaColuna(e: React.DragEvent<HTMLDivElement>): number {
+    const y = e.clientY - e.currentTarget.getBoundingClientRect().top - (arrasto?.pegaY ?? 0)
+    const minutos = Math.round(((y / HOUR_H) * 60) / PASSO_ARRASTO) * PASSO_ARRASTO
+    return Math.min(Math.max(minutos, 0), HOURS.length * 60 - PASSO_ARRASTO)
+  }
+
+  function soltar(e: React.DragEvent<HTMLDivElement>, dia: string) {
+    e.preventDefault()
+    if (!arrasto || !onRemarcar) return
+    const total = GRID_START * 60 + minutosNaColuna(e)
+    const ag = agenda.find(a => a.id === arrasto.id)
+    const novo = `${dia}T${pad(Math.floor(total / 60))}:${pad(total % 60)}:00`
+    setArrasto(null); setDestino(null)
+    if (ag && !(ag.data_hora.startsWith(dia) && timeToPx(ag.data_hora) === ((total / 60) - GRID_START) * HOUR_H)) onRemarcar(arrasto.id, novo)
+  }
+
   const weekDays = getWeekDays(baseDate)
   const todayKey = toKey(new Date())
 
@@ -443,11 +468,26 @@ function SemanalView({
               const ags  = agForDay(key)
               const isToday = key === todayKey
               return (
-                <div key={key} style={{
-                  borderLeft: '1px solid var(--c-1a)',
-                  position: 'relative',
-                  background: isToday ? 'rgba(var(--ink),0.015)' : 'transparent',
-                }}>
+                <div
+                  key={key}
+                  onDragOver={arrasto ? e => {
+                    e.preventDefault()
+                    const minutos = minutosNaColuna(e)
+                    if (destino?.dia !== key || destino.minutos !== minutos) setDestino({ dia: key, minutos })
+                  } : undefined}
+                  onDrop={arrasto ? e => soltar(e, key) : undefined}
+                  style={{
+                    borderLeft: '1px solid var(--c-1a)',
+                    position: 'relative',
+                    background: destino?.dia === key ? 'rgba(var(--ink),0.04)' : isToday ? 'rgba(var(--ink),0.015)' : 'transparent',
+                  }}
+                >
+                  {/* Onde o atendimento arrastado vai cair */}
+                  {arrasto && destino?.dia === key && (
+                    <div className="agenda-destino" style={{ top: `${(destino.minutos / 60) * HOUR_H}px`, height: `${arrasto.altura}px` }}>
+                      {pad(GRID_START + Math.floor(destino.minutos / 60))}:{pad(destino.minutos % 60)}
+                    </div>
+                  )}
                   {/* Hour lines */}
                   {HOURS.map(h => (
                     <div key={h} style={{ height: `${HOUR_H}px`, borderBottom: '1px solid var(--c-1a)' }} />
@@ -458,10 +498,18 @@ function SemanalView({
                     const top  = timeToPx(ag.data_hora)
                     const h    = durationToPx(ag.servico?.duracao_minutos ?? 30)
                     const cfg  = STATUS_CFG[ag.status]
+                    const arrastavel = !!onRemarcar && (ag.status === 'pendente' || ag.status === 'confirmado')
                     return (
                       <div
                         key={ag.id}
-                        title={`${ag.cliente?.nome ?? 'Sem cliente'} — ${ag.servico?.nome ?? ''}`}
+                        draggable={arrastavel}
+                        onDragStart={arrastavel ? e => {
+                          e.dataTransfer.effectAllowed = 'move'
+                          e.dataTransfer.setData('text/plain', ag.id)
+                          setArrasto({ id: ag.id, pegaY: e.clientY - e.currentTarget.getBoundingClientRect().top, altura: h })
+                        } : undefined}
+                        onDragEnd={() => { setArrasto(null); setDestino(null) }}
+                        title={`${ag.cliente?.nome ?? 'Sem cliente'} — ${ag.servico?.nome ?? ''}${arrastavel ? ' · arraste para remarcar' : ''}`}
                         onClick={() => onAbrir(ag.id)}
                         role="button"
                         tabIndex={0}
@@ -478,9 +526,9 @@ function SemanalView({
                           borderRadius: '5px',
                           padding: '4px 7px',
                           overflow: 'hidden',
-                          cursor: 'pointer',
+                          cursor: arrastavel ? 'grab' : 'pointer',
                           zIndex: 1,
-                          opacity: ag.status === 'cancelado' || ag.status === 'nao_compareceu' ? 0.5 : 1,
+                          opacity: arrasto?.id === ag.id ? 0.35 : ag.status === 'cancelado' || ag.status === 'nao_compareceu' ? 0.5 : 1,
                         }}
                       >
                         <p style={{
@@ -839,6 +887,20 @@ export default function Agenda() {
     setSelectedDate(d => somarDias(d, n * 7))
   }
 
+  // Arrastar na semanal: muda o horário na hora e desfaz se o banco
+  // recusar (ex.: o profissional já tem atendimento nesse horário).
+  async function remarcar(id: string, dataHora: string) {
+    const anterior = agenda.find(a => a.id === id)
+    if (!anterior) return
+    setAgenda(prev => prev.map(a => a.id === id ? { ...a, data_hora: dataHora } : a))
+    // Vai para o banco com o fuso do navegador (o mesmo usado para exibir).
+    const { error: err } = await supabase.from('agendamentos').update({ data_hora: new Date(dataHora).toISOString() }).eq('id', id)
+    if (err) {
+      setAgenda(prev => prev.map(a => a.id === id ? { ...a, data_hora: anterior.data_hora } : a))
+      window.alert(err.code === '23P01' ? 'Esse profissional já tem outro atendimento nesse horário.' : `Não foi possível remarcar: ${err.message}`)
+    }
+  }
+
   // When clicking a day in semanal/mensal views
   function handleDayClick(d: Date) {
     setSelectedDate(d)
@@ -968,6 +1030,7 @@ export default function Agenda() {
               agenda={agendaFiltrada}
               onDayClick={handleDayClick}
               onAbrir={setAgAbertoId}
+              onRemarcar={podeEditar ? remarcar : undefined}
             />
           )}
           {viewMode === 'mensal' && (
