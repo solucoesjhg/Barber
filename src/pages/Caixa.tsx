@@ -131,15 +131,15 @@ export default function Caixa() {
   const resultadoRef = useModalKeyboard(!!resultadoFechamento, () => setResultadoFechamento(null))
 
   if (loading) {
-    return <div className="page"><p style={{ color: '#444', fontSize: '13px' }}>Carregando...</p></div>
+    return <div className="page"><p style={{ color: 'var(--c-44)', fontSize: '13px' }}>Carregando...</p></div>
   }
 
   return (
     <div className="page">
       <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Caixa</h1>
-          <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
+          <h1 style={{ fontSize: '24px', color: 'var(--c-fff)' }}>Caixa</h1>
+          <p style={{ fontSize: '13px', color: 'var(--c-55)', marginTop: '3px' }}>
             {sessao ? `Aberto desde ${formatDateTime(sessao.aberto_em)}` : 'Nenhum caixa aberto'}
           </p>
         </div>
@@ -156,8 +156,8 @@ export default function Caixa() {
 
       {!sessao ? (
         <div className="card" style={{ padding: '56px', textAlign: 'center' }}>
-          <p style={{ fontSize: '14px', color: '#555' }}>O caixa está fechado.</p>
-          <p style={{ fontSize: '12px', color: '#444', marginTop: '6px' }}>
+          <p style={{ fontSize: '14px', color: 'var(--c-55)' }}>O caixa está fechado.</p>
+          <p style={{ fontSize: '12px', color: 'var(--c-44)', marginTop: '6px' }}>
             {podeEditar ? 'Abra o caixa para poder registrar vendas e movimentos.' : 'Seu usuário não tem permissão para abrir o caixa.'}
           </p>
         </div>
@@ -182,9 +182,9 @@ export default function Caixa() {
           <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
             <div className="list-header" style={{
               display: 'grid', minWidth: '560px', gridTemplateColumns: '22px minmax(200px, 1fr) 120px 70px 120px', gap: '12px', alignItems: 'center',
-              padding: '10px 20px', borderBottom: '1px solid #222',
-              fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
-              background: 'rgba(0,0,0,0.2)',
+              padding: '10px 20px', borderBottom: '1px solid var(--c-22)',
+              fontSize: '10px', fontWeight: 600, color: 'var(--c-44)', textTransform: 'uppercase', letterSpacing: '0.1em',
+              background: 'var(--header-bg)',
             }}>
               <span className="celula-check">
                 <Checkbox label="Selecionar todos os movimentos" checked={selecao.todos} indeterminate={selecao.alguns} onChange={selecao.alternarTodos} disabled={movimentos.length === 0} />
@@ -192,7 +192,7 @@ export default function Caixa() {
               <span>Movimentos da sessão</span><span>Tipo</span><span>Hora</span><span style={{ textAlign: 'right' }}>Valor</span>
             </div>
             {movimentos.length === 0 ? (
-              <div style={{ padding: '48px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+              <div style={{ padding: '48px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>
                 Nenhum movimento ainda.
               </div>
             ) : movimentos.map((m, i) => (
@@ -203,7 +203,7 @@ export default function Caixa() {
                 style={{
                   display: 'grid', minWidth: '560px', gridTemplateColumns: '22px minmax(200px, 1fr) 120px 70px 120px', gap: '12px',
                   padding: '12px 20px', alignItems: 'center',
-                  borderBottom: i < movimentos.length - 1 ? '1px solid #1A1A1A' : 'none',
+                  borderBottom: i < movimentos.length - 1 ? '1px solid var(--c-1a)' : 'none',
                 }}
               >
                 <span className="celula-check">
@@ -211,13 +211,13 @@ export default function Caixa() {
                 </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                   {m.tipo === 'entrada'
-                    ? <ArrowUpRight size={13} style={{ color: '#FFFFFF', flexShrink: 0 }} />
-                    : <ArrowDownRight size={13} style={{ color: '#555', flexShrink: 0 }} />}
-                  <span className="texto-cortado" style={{ fontSize: '13px', color: m.tipo === 'entrada' ? '#FFFFFF' : '#A3A3A3' }}>{m.descricao}</span>
+                    ? <ArrowUpRight size={13} style={{ color: 'var(--c-fff)', flexShrink: 0 }} />
+                    : <ArrowDownRight size={13} style={{ color: 'var(--c-55)', flexShrink: 0 }} />}
+                  <span className="texto-cortado" style={{ fontSize: '13px', color: m.tipo === 'entrada' ? 'var(--c-fff)' : 'var(--c-a3)' }}>{m.descricao}</span>
                 </div>
-                <span style={{ fontSize: '12px', color: '#555' }}>{CATEGORIA_LABEL[m.categoria] ?? m.categoria}</span>
-                <span style={{ fontSize: '12px', color: '#444' }}>{formatTime(m.created_at)}</span>
-                <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: m.tipo === 'entrada' ? '#FFFFFF' : '#777', textAlign: 'right' }}>
+                <span style={{ fontSize: '12px', color: 'var(--c-55)' }}>{CATEGORIA_LABEL[m.categoria] ?? m.categoria}</span>
+                <span style={{ fontSize: '12px', color: 'var(--c-44)' }}>{formatTime(m.created_at)}</span>
+                <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: m.tipo === 'entrada' ? 'var(--c-fff)' : 'var(--c-77)', textAlign: 'right' }}>
                   {m.tipo === 'saida' ? '−' : '+'}{formatCurrency(m.valor)}
                 </span>
               </div>
@@ -237,7 +237,7 @@ export default function Caixa() {
         {modal && (
           <motion.div
             className="modal-overlay"
-            style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+            style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'var(--overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
             <motion.div
@@ -247,7 +247,7 @@ export default function Caixa() {
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>
+                <h2 style={{ fontSize: '18px', color: 'var(--c-fff)' }}>
                   {modal === 'abrir' && 'Abrir Caixa'}
                   {modal === 'sangria' && 'Sangria (retirada)'}
                   {modal === 'suprimento' && 'Suprimento (aporte)'}
@@ -258,8 +258,8 @@ export default function Caixa() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 {modal === 'fechar' && (
-                  <div style={{ padding: '14px 16px', background: 'rgba(255,255,255,0.04)', borderRadius: '8px', fontSize: '13px', color: '#A3A3A3' }}>
-                    Saldo esperado no sistema: <strong style={{ color: '#FFFFFF' }}>{formatCurrency(saldoAtual)}</strong>
+                  <div style={{ padding: '14px 16px', background: 'rgba(var(--ink),0.04)', borderRadius: '8px', fontSize: '13px', color: 'var(--c-a3)' }}>
+                    Saldo esperado no sistema: <strong style={{ color: 'var(--c-fff)' }}>{formatCurrency(saldoAtual)}</strong>
                   </div>
                 )}
                 <div className="field">
@@ -274,7 +274,7 @@ export default function Caixa() {
                     <input className="input" placeholder="opcional" value={descricaoInput} onChange={e => setDescricaoInput(e.target.value)} />
                   </div>
                 )}
-                {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
+                {error && <p style={{ fontSize: '12px', color: 'var(--c-66)' }}>{error}</p>}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
                   <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setModal(null)}>Cancelar (Esc)</button>
                   <button
@@ -297,23 +297,23 @@ export default function Caixa() {
         {resultadoFechamento && (
           <motion.div
             className="modal-overlay"
-            style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+            style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'var(--overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
             <motion.div ref={resultadoRef} className="card" style={{ width: '100%', maxWidth: '400px', padding: '28px' }} initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }}>
-              <h2 style={{ fontSize: '18px', color: '#FFFFFF', marginBottom: '20px' }}>Caixa fechado</h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13px', color: '#A3A3A3' }}>
+              <h2 style={{ fontSize: '18px', color: 'var(--c-fff)', marginBottom: '20px' }}>Caixa fechado</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13px', color: 'var(--c-a3)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>Saldo esperado</span>
-                  <strong style={{ color: '#FFFFFF' }}>{formatCurrency(resultadoFechamento.saldo_esperado ?? 0)}</strong>
+                  <strong style={{ color: 'var(--c-fff)' }}>{formatCurrency(resultadoFechamento.saldo_esperado ?? 0)}</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>Valor contado</span>
-                  <strong style={{ color: '#FFFFFF' }}>{formatCurrency(resultadoFechamento.valor_informado ?? 0)}</strong>
+                  <strong style={{ color: 'var(--c-fff)' }}>{formatCurrency(resultadoFechamento.valor_informado ?? 0)}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid #222' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid var(--c-22)' }}>
                   <span>Diferença</span>
-                  <strong style={{ color: (resultadoFechamento.diferenca ?? 0) === 0 ? '#FFFFFF' : '#A3A3A3' }}>
+                  <strong style={{ color: (resultadoFechamento.diferenca ?? 0) === 0 ? 'var(--c-fff)' : 'var(--c-a3)' }}>
                     {formatCurrency(resultadoFechamento.diferenca ?? 0)}
                   </strong>
                 </div>

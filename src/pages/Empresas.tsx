@@ -73,8 +73,8 @@ export default function Empresas() {
     <div className="page">
       <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Empresas</h1>
-          <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
+          <h1 style={{ fontSize: '24px', color: 'var(--c-fff)' }}>Empresas</h1>
+          <p style={{ fontSize: '13px', color: 'var(--c-55)', marginTop: '3px' }}>
             {empresas.filter(e => e.ativo).length} ativas · {empresas.length} cadastradas
           </p>
         </div>
@@ -86,17 +86,17 @@ export default function Empresas() {
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="list-header" style={{
           display: 'grid', minWidth: '630px', gridTemplateColumns: '1fr 130px 160px 90px 20px',
-          padding: '10px 24px', borderBottom: '1px solid #222',
-          fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
-          background: 'rgba(0,0,0,0.2)',
+          padding: '10px 24px', borderBottom: '1px solid var(--c-22)',
+          fontSize: '10px', fontWeight: 600, color: 'var(--c-44)', textTransform: 'uppercase', letterSpacing: '0.1em',
+          background: 'var(--header-bg)',
         }}>
           <span>Loja</span><span>Código</span><span>E-mail</span><span>Status</span><span></span>
         </div>
 
         {loading ? (
-          <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Carregando...</div>
+          <div style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>Carregando...</div>
         ) : empresas.length === 0 ? (
-          <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Nenhuma loja cadastrada ainda.</div>
+          <div style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>Nenhuma loja cadastrada ainda.</div>
         ) : empresas.map((e, i) => (
           <motion.div
             key={e.id}
@@ -106,22 +106,22 @@ export default function Empresas() {
             style={{
               display: 'grid', minWidth: '630px', gridTemplateColumns: '1fr 130px 160px 90px 20px',
               padding: '14px 24px', alignItems: 'center',
-              borderBottom: i < empresas.length - 1 ? '1px solid #1F1F1F' : 'none',
+              borderBottom: i < empresas.length - 1 ? '1px solid var(--c-1f)' : 'none',
               cursor: 'pointer',
             }}
-            whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+            whileHover={{ backgroundColor: 'rgba(var(--ink),0.02)' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{
                 width: '32px', height: '32px', borderRadius: '8px',
-                background: '#262626', border: '1px solid #333',
+                background: 'var(--c-26)', border: '1px solid var(--c-33)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               }}>
-                <Building2 size={14} style={{ color: '#A3A3A3' }} />
+                <Building2 size={14} style={{ color: 'var(--c-a3)' }} />
               </div>
               <div>
-                <span style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{e.nome}</span>
-                <p style={{ fontSize: '11px', color: '#555' }}>Desde {formatDate(e.created_at)}</p>
+                <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--c-fff)' }}>{e.nome}</span>
+                <p style={{ fontSize: '11px', color: 'var(--c-55)' }}>Desde {formatDate(e.created_at)}</p>
               </div>
             </div>
             <button
@@ -129,26 +129,26 @@ export default function Empresas() {
               title="Copiar código"
               style={{
                 display: 'flex', alignItems: 'center', gap: '6px', width: 'fit-content',
-                fontSize: '11px', fontFamily: 'monospace', color: '#A3A3A3',
-                background: 'rgba(255,255,255,0.04)', border: '1px solid #2A2A2A', borderRadius: '6px',
+                fontSize: '11px', fontFamily: 'monospace', color: 'var(--c-a3)',
+                background: 'rgba(var(--ink),0.04)', border: '1px solid var(--c-2a)', borderRadius: '6px',
                 padding: '4px 8px', cursor: 'pointer',
               }}
             >
               {codigoCopiado === e.codigo ? <Check size={11} /> : <Copy size={11} />}
               {e.codigo ?? '—'}
             </button>
-            <span style={{ fontSize: '13px', color: '#555' }}>{e.email ?? '—'}</span>
+            <span style={{ fontSize: '13px', color: 'var(--c-55)' }}>{e.email ?? '—'}</span>
             <button
               onClick={ev => { ev.stopPropagation(); toggleAtivo(e.id, e.ativo) }}
               style={{
                 fontSize: '10px', padding: '3px 9px', borderRadius: '99px', width: 'fit-content',
-                border: e.ativo ? '1px solid rgba(255,255,255,0.2)' : '1px dashed #333',
-                background: 'transparent', color: e.ativo ? '#A3A3A3' : '#444', cursor: 'pointer',
+                border: e.ativo ? '1px solid rgba(var(--ink),0.2)' : '1px dashed var(--c-33)',
+                background: 'transparent', color: e.ativo ? 'var(--c-a3)' : 'var(--c-44)', cursor: 'pointer',
               }}
             >
               {e.ativo ? 'Ativa' : 'Inativa'}
             </button>
-            <ChevronRight size={14} style={{ color: '#333' }} />
+            <ChevronRight size={14} style={{ color: 'var(--c-33)' }} />
           </motion.div>
         ))}
       </div>

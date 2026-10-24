@@ -214,8 +214,8 @@ export default function ContasPagina({ tipo }: { tipo: TipoConta }) {
     <div className="page">
       <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>{cfg.titulo}</h1>
-          <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
+          <h1 style={{ fontSize: '24px', color: 'var(--c-fff)' }}>{cfg.titulo}</h1>
+          <p style={{ fontSize: '13px', color: 'var(--c-55)', marginTop: '3px' }}>
             {formatCurrency(totalAberto)} em aberto · {formatCurrency(totalVencido)} vencido
           </p>
         </div>
@@ -238,7 +238,7 @@ export default function ContasPagina({ tipo }: { tipo: TipoConta }) {
           <Search size={13} />
           <input placeholder={`Buscar descrição ou ${cfg.pessoaRotulo.toLowerCase()}...`} value={busca} onChange={e => setBusca(e.target.value)} />
           {busca && (
-            <button onClick={() => setBusca('')} aria-label="Limpar busca" style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', display: 'flex' }}>
+            <button onClick={() => setBusca('')} aria-label="Limpar busca" style={{ background: 'none', border: 'none', color: 'var(--c-55)', cursor: 'pointer', display: 'flex' }}>
               <X size={12} />
             </button>
           )}
@@ -249,9 +249,9 @@ export default function ContasPagina({ tipo }: { tipo: TipoConta }) {
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="list-header" style={{
           display: 'grid', minWidth: '780px', gridTemplateColumns: colunas, gap: '12px', alignItems: 'center',
-          padding: '10px 20px', borderBottom: '1px solid #222',
-          fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
-          background: 'rgba(0,0,0,0.2)',
+          padding: '10px 20px', borderBottom: '1px solid var(--c-22)',
+          fontSize: '10px', fontWeight: 600, color: 'var(--c-44)', textTransform: 'uppercase', letterSpacing: '0.1em',
+          background: 'var(--header-bg)',
         }}>
           <span className="celula-check">
             <Checkbox label="Selecionar todas" checked={selecao.todos} indeterminate={selecao.alguns} onChange={selecao.alternarTodos} disabled={filtradas.length === 0} />
@@ -261,9 +261,9 @@ export default function ContasPagina({ tipo }: { tipo: TipoConta }) {
         </div>
 
         {loading ? (
-          <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Carregando...</div>
+          <div style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>Carregando...</div>
         ) : filtradas.length === 0 ? (
-          <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Nenhuma conta encontrada.</div>
+          <div style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>Nenhuma conta encontrada.</div>
         ) : filtradas.map((c, i) => {
           const vencida = isVencida(c)
           const st = statusDe(c)
@@ -276,25 +276,25 @@ export default function ContasPagina({ tipo }: { tipo: TipoConta }) {
               style={{
                 display: 'grid', minWidth: '780px', gridTemplateColumns: colunas, gap: '12px',
                 padding: '12px 20px', alignItems: 'center',
-                borderBottom: i < filtradas.length - 1 ? '1px solid #1F1F1F' : 'none',
+                borderBottom: i < filtradas.length - 1 ? '1px solid var(--c-1f)' : 'none',
               }}
             >
               <span className="celula-check">
                 <Checkbox label={`Selecionar ${c.descricao}`} checked={selecao.tem(c.id)} onChange={m => selecao.alternar(c.id, m)} />
               </span>
               <div style={{ minWidth: 0 }}>
-                <p className="texto-cortado" style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{c.descricao}</p>
+                <p className="texto-cortado" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--c-fff)' }}>{c.descricao}</p>
                 {(c.categoria || c.total_parcelas > 1) && (
                   <p className="subtexto texto-cortado">
                     {[c.categoria?.nome, c.total_parcelas > 1 ? `parcela ${c.numero_parcela}/${c.total_parcelas}` : null].filter(Boolean).join(' · ')}
                   </p>
                 )}
               </div>
-              <span className="texto-cortado" style={{ fontSize: '12px', color: '#A3A3A3' }}>{nomePessoa(c) ?? '—'}</span>
-              <span style={{ fontSize: '12px', color: vencida ? '#FFFFFF' : '#666', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span className="texto-cortado" style={{ fontSize: '12px', color: 'var(--c-a3)' }}>{nomePessoa(c) ?? '—'}</span>
+              <span style={{ fontSize: '12px', color: vencida ? 'var(--c-fff)' : 'var(--c-66)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <b className="mobile-only-label">Vence: </b>{vencida && <AlertTriangle size={11} />} {formatDate(c.data_vencimento)}
               </span>
-              <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', textAlign: 'right' }}><b className="mobile-only-label">Saldo: </b>{formatCurrency(saldoDe(c))}</span>
+              <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)', textAlign: 'right' }}><b className="mobile-only-label">Saldo: </b>{formatCurrency(saldoDe(c))}</span>
               <span className={st.cls}>{st.label}</span>
               {podeEditar && emAberto(c) ? (
                 <button className="btn btn-secondary btn-sm" onClick={e => { e.stopPropagation(); abrirBaixa(c) }} style={{ justifySelf: 'end' }}>
@@ -365,12 +365,12 @@ export default function ContasPagina({ tipo }: { tipo: TipoConta }) {
                           type="button"
                           className="detalhe-lista-item"
                           onClick={() => setContaAbertaId(p.id)}
-                          style={{ cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', borderColor: p.id === contaAberta.id ? '#555' : undefined }}
+                          style={{ cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', borderColor: p.id === contaAberta.id ? 'var(--c-55)' : undefined }}
                         >
-                          <span style={{ width: '42px', color: '#FFFFFF', fontWeight: 600 }}>{p.numero_parcela}/{p.total_parcelas}</span>
+                          <span style={{ width: '42px', color: 'var(--c-fff)', fontWeight: 600 }}>{p.numero_parcela}/{p.total_parcelas}</span>
                           <span style={{ flex: 1 }}>{formatDate(p.data_vencimento)}</span>
                           <span className={sp.cls}>{sp.label}</span>
-                          <span className="valor-num" style={{ width: '96px', textAlign: 'right', color: '#FFFFFF' }}>{formatCurrency(Number(p.valor))}</span>
+                          <span className="valor-num" style={{ width: '96px', textAlign: 'right', color: 'var(--c-fff)' }}>{formatCurrency(Number(p.valor))}</span>
                         </button>
                       )
                     })}
@@ -441,16 +441,16 @@ export default function ContasPagina({ tipo }: { tipo: TipoConta }) {
         {contaBaixa && (
           <motion.div
             className="modal-overlay"
-            style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+            style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'var(--overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
             <motion.div ref={modalBaixaRef} className="card" style={{ width: '100%', maxWidth: '380px', padding: '28px' }}
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-                <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>{cfg.acaoTitulo}</h2>
+                <h2 style={{ fontSize: '18px', color: 'var(--c-fff)' }}>{cfg.acaoTitulo}</h2>
                 <button className="btn btn-icon" onClick={() => setContaBaixa(null)}><X size={14} /></button>
               </div>
-              <p style={{ fontSize: '13px', color: '#A3A3A3', marginBottom: '16px' }}>{contaBaixa.descricao}</p>
+              <p style={{ fontSize: '13px', color: 'var(--c-a3)', marginBottom: '16px' }}>{contaBaixa.descricao}</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div className="field">
                   <label className="label">{cfg.valorLabel}</label>
@@ -470,7 +470,7 @@ export default function ContasPagina({ tipo }: { tipo: TipoConta }) {
                     {contasFin.map(c => <option key={c.conta_id} value={c.conta_id}>{c.nome} · saldo {formatCurrency(c.saldo)}</option>)}
                   </select>
                 </div>
-                {error && <p style={{ fontSize: '12px', color: '#666' }}>{error}</p>}
+                {error && <p style={{ fontSize: '12px', color: 'var(--c-66)' }}>{error}</p>}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
                   <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setContaBaixa(null)}>Cancelar (Esc)</button>
                   <button className="btn btn-primary" style={{ flex: 1 }} onClick={confirmarBaixa} disabled={saving}>

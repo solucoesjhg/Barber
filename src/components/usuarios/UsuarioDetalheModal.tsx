@@ -12,7 +12,7 @@ function LinhaAcesso({ rotulo, itens, vazio }: { rotulo: string; itens: string[]
     <div>
       <p className="detalhe-rotulo" style={{ marginBottom: '6px' }}>{rotulo}</p>
       {itens.length === 0 ? (
-        <p style={{ fontSize: '12px', color: '#555' }}>{vazio}</p>
+        <p style={{ fontSize: '12px', color: 'var(--c-55)' }}>{vazio}</p>
       ) : (
         <div className="chip-lista">
           {itens.map(i => <span key={i} className="chip">{i}</span>)}
@@ -113,9 +113,9 @@ export default function UsuarioDetalheModal({ usuario: u, profissionais, podeEdi
         {erro ? (
           <p className="aviso-erro">{erro}</p>
         ) : !permissoes ? (
-          <p style={{ fontSize: '12px', color: '#555' }}>Carregando...</p>
+          <p style={{ fontSize: '12px', color: 'var(--c-55)' }}>Carregando...</p>
         ) : permissoes.acesso_total ? (
-          <p style={{ fontSize: '12px', color: '#A3A3A3' }}>Administrador tem acesso total a todas as telas.</p>
+          <p style={{ fontSize: '12px', color: 'var(--c-a3)' }}>Administrador tem acesso total a todas as telas.</p>
         ) : (
           <ResumoAcesso permissoes={permissoes} />
         )}

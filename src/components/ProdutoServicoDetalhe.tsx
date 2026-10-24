@@ -62,7 +62,7 @@ export function ProdutoDetalheModal({ produto: p, verCusto, podeEditar, onClose,
         <Info rotulo="Estoque atual">
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: baixo ? 700 : 400 }}>
             {p.estoque_atual} {p.unidade}
-            {baixo && <><AlertTriangle size={12} style={{ color: '#888' }} /><span style={{ fontSize: '11px', color: '#888', fontWeight: 400 }}>abaixo do mínimo</span></>}
+            {baixo && <><AlertTriangle size={12} style={{ color: 'var(--c-88)' }} /><span style={{ fontSize: '11px', color: 'var(--c-88)', fontWeight: 400 }}>abaixo do mínimo</span></>}
           </span>
         </Info>
         <Info rotulo="Mínimo / Máximo">{`${p.estoque_minimo} / ${p.estoque_maximo ?? '—'}`}</Info>
@@ -70,17 +70,17 @@ export function ProdutoDetalheModal({ produto: p, verCusto, podeEditar, onClose,
 
       <SecaoDetalhe titulo="Últimas movimentações">
         {movimentos === null ? (
-          <p style={{ fontSize: '12px', color: '#555' }}>Carregando...</p>
+          <p style={{ fontSize: '12px', color: 'var(--c-55)' }}>Carregando...</p>
         ) : movimentos.length === 0 ? (
-          <p style={{ fontSize: '12px', color: '#555' }}>Nenhuma movimentação registrada.</p>
+          <p style={{ fontSize: '12px', color: 'var(--c-55)' }}>Nenhuma movimentação registrada.</p>
         ) : (
           <div className="detalhe-lista">
             {movimentos.map(m => (
               <div key={m.id} className="detalhe-lista-item">
-                <span style={{ width: '84px', color: '#FFFFFF', flexShrink: 0 }}>{MOVIMENTO_LABEL[m.tipo] ?? m.tipo}</span>
+                <span style={{ width: '84px', color: 'var(--c-fff)', flexShrink: 0 }}>{MOVIMENTO_LABEL[m.tipo] ?? m.tipo}</span>
                 <span className="texto-cortado" style={{ flex: 1 }}>{m.motivo ?? '—'}</span>
-                <span style={{ color: '#666', flexShrink: 0 }}>{formatDateTime(m.created_at)}</span>
-                <span className="valor-num" style={{ width: '44px', textAlign: 'right', color: m.quantidade < 0 ? '#A3A3A3' : '#FFFFFF', flexShrink: 0 }}>
+                <span style={{ color: 'var(--c-66)', flexShrink: 0 }}>{formatDateTime(m.created_at)}</span>
+                <span className="valor-num" style={{ width: '44px', textAlign: 'right', color: m.quantidade < 0 ? 'var(--c-a3)' : 'var(--c-fff)', flexShrink: 0 }}>
                   {m.quantidade > 0 ? `+${m.quantidade}` : m.quantidade}
                 </span>
               </div>
@@ -123,13 +123,13 @@ export function ServicoDetalheModal({ servico: s, podeEditar, onClose, onEditar 
         {s.profissionais && s.profissionais.length > 0 ? (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
             {s.profissionais.map(p => (
-              <span key={p.id} style={{ fontSize: '12px', color: '#A3A3A3', background: 'rgba(255,255,255,0.05)', border: '1px solid #2A2A2A', borderRadius: '99px', padding: '3px 10px' }}>
+              <span key={p.id} style={{ fontSize: '12px', color: 'var(--c-a3)', background: 'rgba(var(--ink),0.05)', border: '1px solid var(--c-2a)', borderRadius: '99px', padding: '3px 10px' }}>
                 {p.nome}
               </span>
             ))}
           </div>
         ) : (
-          <p style={{ fontSize: '12px', color: '#555' }}>Nenhum profissional vinculado.</p>
+          <p style={{ fontSize: '12px', color: 'var(--c-55)' }}>Nenhum profissional vinculado.</p>
         )}
       </SecaoDetalhe>
     </ModalDetalhe>

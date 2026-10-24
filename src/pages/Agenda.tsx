@@ -89,17 +89,17 @@ function ViewBtn({
         display: 'flex', alignItems: 'center', gap: '6px',
         padding: '7px 12px',
         borderRadius: '7px',
-        border: active ? '1px solid #FFFFFF' : '1px solid transparent',
-        background: active ? 'rgba(255,255,255,0.07)' : 'transparent',
-        color: active ? '#FFFFFF' : '#555',
+        border: active ? '1px solid var(--c-fff)' : '1px solid transparent',
+        background: active ? 'rgba(var(--ink),0.07)' : 'transparent',
+        color: active ? 'var(--c-fff)' : 'var(--c-55)',
         fontSize: '12px',
         fontWeight: active ? 600 : 400,
         cursor: 'pointer',
         transition: 'all 0.15s ease',
         fontFamily: 'inherit',
       }}
-      onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.color = '#A3A3A3' }}
-      onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.color = '#555' }}
+      onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.color = 'var(--c-a3)' }}
+      onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.color = 'var(--c-55)' }}
     >
       <Icon size={13} />
       {label}
@@ -162,9 +162,9 @@ function ListaView({
             return (
               <button key={key} onClick={() => setSelectedDate(new Date(d))} style={{
                 flex: 1, padding: '10px 8px', borderRadius: '8px', fontFamily: 'inherit',
-                border: isSel ? '1px solid #FFFFFF' : '1px solid #2A2A2A',
-                background: isSel ? '#FFFFFF' : 'transparent',
-                color: isSel ? '#0D0D0D' : isToday ? '#A3A3A3' : '#555',
+                border: isSel ? '1px solid var(--c-fff)' : '1px solid var(--c-2a)',
+                background: isSel ? 'var(--c-fff)' : 'transparent',
+                color: isSel ? 'var(--c-0d)' : isToday ? 'var(--c-a3)' : 'var(--c-55)',
                 cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s ease',
               }}>
                 <div style={{ fontSize: '10px', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
@@ -174,7 +174,7 @@ function ListaView({
                 {count > 0 && (
                   <div style={{
                     marginTop: '5px', width: '5px', height: '5px', borderRadius: '50%',
-                    background: isSel ? '#0D0D0D' : '#555', margin: '5px auto 0',
+                    background: isSel ? 'var(--c-0d)' : 'var(--c-55)', margin: '5px auto 0',
                   }} />
                 )}
               </button>
@@ -188,16 +188,16 @@ function ListaView({
 
       {/* List */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '16px 24px', borderBottom: '1px solid #222', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Clock size={14} style={{ color: '#555' }} />
-          <span style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>
+        <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--c-22)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Clock size={14} style={{ color: 'var(--c-55)' }} />
+          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)' }}>
             {filtrado.length} {filtrado.length === 1 ? 'agendamento' : 'agendamentos'}
           </span>
         </div>
 
         {filtrado.length === 0 ? (
           <div style={{ padding: '56px', textAlign: 'center' }}>
-            <p style={{ fontSize: '14px', color: '#555' }}>Nenhum agendamento neste dia.</p>
+            <p style={{ fontSize: '14px', color: 'var(--c-55)' }}>Nenhum agendamento neste dia.</p>
             {podeEditar && (
               <button
                 className="btn btn-secondary btn-sm"
@@ -233,28 +233,28 @@ function ListaView({
               onKeyDown={e => { if (e.key === 'Enter') onAbrir(ag.id) }}
               style={{
                 display: 'flex', gap: '18px', padding: '14px 20px',
-                borderBottom: i < filtrado.length - 1 ? '1px solid #1F1F1F' : 'none',
+                borderBottom: i < filtrado.length - 1 ? '1px solid var(--c-1f)' : 'none',
                 alignItems: 'flex-start', cursor: 'pointer',
               }}
-              whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+              whileHover={{ backgroundColor: 'rgba(var(--ink),0.02)' }}
             >
               <div style={{ width: '64px', flexShrink: 0, paddingTop: '2px' }}>
-                <p style={{ fontSize: '14px', fontWeight: 700, color: '#FFFFFF', fontVariantNumeric: 'tabular-nums' }}>{hora}</p>
-                {fim && <p style={{ fontSize: '11px', color: '#444', marginTop: '2px' }}>até {fim}</p>}
+                <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--c-fff)', fontVariantNumeric: 'tabular-nums' }}>{hora}</p>
+                {fim && <p style={{ fontSize: '11px', color: 'var(--c-44)', marginTop: '2px' }}>até {fim}</p>}
               </div>
-              <div style={{ width: '2px', background: '#2A2A2A', borderRadius: '1px', alignSelf: 'stretch', flexShrink: 0 }} />
+              <div style={{ width: '2px', background: 'var(--c-2a)', borderRadius: '1px', alignSelf: 'stretch', flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="agenda-item-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
-                  <p className="texto-cortado" style={{ fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>{ag.cliente?.nome ?? 'Sem cliente'}</p>
+                  <p className="texto-cortado" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--c-fff)' }}>{ag.cliente?.nome ?? 'Sem cliente'}</p>
                   <span className={cfg.cls}>{cfg.label}</span>
                   {temVenda && <span className="badge badge-done" title="Venda registrada para este atendimento">Venda</span>}
                 </div>
-                <p className="texto-cortado" style={{ fontSize: '12px', color: '#555' }}>
+                <p className="texto-cortado" style={{ fontSize: '12px', color: 'var(--c-55)' }}>
                   {ag.servico?.nome}{ag.servico?.preco ? ` · ${formatCurrency(ag.valor ?? ag.servico.preco)}` : ''}
                   {ag.profissional ? ` · ${ag.profissional.nome}` : ''}
                 </p>
                 {ag.observacoes && (
-                  <p className="texto-cortado" style={{ fontSize: '12px', color: '#444', marginTop: '3px', fontStyle: 'italic' }}>"{ag.observacoes}"</p>
+                  <p className="texto-cortado" style={{ fontSize: '12px', color: 'var(--c-44)', marginTop: '3px', fontStyle: 'italic' }}>"{ag.observacoes}"</p>
                 )}
               </div>
               {(podeEditar || gerarVenda) && <div style={{ display: 'flex', gap: '6px', flexShrink: 0, alignItems: 'center' }}>
@@ -352,7 +352,7 @@ function SemanalView({
       {/* Week nav */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
         <button className="btn btn-icon" onClick={() => navWeek(-1)}><ChevronLeft size={14} /></button>
-        <span style={{ fontSize: '13px', fontWeight: 500, color: '#A3A3A3', flex: 1 }}>{weekLabel}</span>
+        <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--c-a3)', flex: 1 }}>{weekLabel}</span>
         <button className="btn btn-icon" onClick={() => navWeek(1)}><ChevronRight size={14} /></button>
       </div>
 
@@ -364,8 +364,8 @@ function SemanalView({
         <div style={{
           display: 'grid',
           gridTemplateColumns: '52px repeat(7, 1fr)',
-          borderBottom: '1px solid #222',
-          background: 'rgba(0,0,0,0.2)',
+          borderBottom: '1px solid var(--c-22)',
+          background: 'var(--header-bg)',
         }}>
           <div />
           {weekDays.map((d, i) => {
@@ -379,29 +379,29 @@ function SemanalView({
                 style={{
                   padding: '10px 8px',
                   textAlign: 'center',
-                  borderLeft: '1px solid #1A1A1A',
+                  borderLeft: '1px solid var(--c-1a)',
                   cursor: 'pointer',
                   transition: 'background 0.15s',
                 }}
-                onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.03)'}
+                onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'rgba(var(--ink),0.03)'}
                 onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'transparent'}
               >
                 <p style={{
                   fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em',
-                  color: isToday ? '#FFFFFF' : '#555', marginBottom: '4px',
+                  color: isToday ? 'var(--c-fff)' : 'var(--c-55)', marginBottom: '4px',
                 }}>
                   {WEEK_DAYS_SHORT[i]}
                 </p>
                 <p style={{
                   fontSize: '18px', fontWeight: 700, lineHeight: 1, fontFamily: 'DM Sans, sans-serif',
-                  color: isToday ? '#FFFFFF' : '#A3A3A3',
+                  color: isToday ? 'var(--c-fff)' : 'var(--c-a3)',
                 }}>
                   {d.getDate()}
                 </p>
                 {count > 0 && (
                   <div style={{
-                    marginTop: '4px', fontSize: '10px', color: '#444',
-                    background: 'rgba(255,255,255,0.05)', borderRadius: '99px',
+                    marginTop: '4px', fontSize: '10px', color: 'var(--c-44)',
+                    background: 'rgba(var(--ink),0.05)', borderRadius: '99px',
                     padding: '1px 5px', display: 'inline-block',
                   }}>
                     {count}
@@ -420,14 +420,14 @@ function SemanalView({
             position: 'relative',
           }}>
             {/* Hour labels column */}
-            <div style={{ borderRight: '1px solid #1A1A1A' }}>
+            <div style={{ borderRight: '1px solid var(--c-1a)' }}>
               {HOURS.map(h => (
                 <div key={h} style={{
                   height: `${HOUR_H}px`, display: 'flex', alignItems: 'flex-start',
                   justifyContent: 'flex-end', padding: '4px 8px 0 0',
-                  borderBottom: '1px solid #1A1A1A',
+                  borderBottom: '1px solid var(--c-1a)',
                 }}>
-                  <span style={{ fontSize: '10px', color: '#3A3A3A', fontVariantNumeric: 'tabular-nums' }}>
+                  <span style={{ fontSize: '10px', color: 'var(--c-3a)', fontVariantNumeric: 'tabular-nums' }}>
                     {pad(h)}:00
                   </span>
                 </div>
@@ -441,13 +441,13 @@ function SemanalView({
               const isToday = key === todayKey
               return (
                 <div key={key} style={{
-                  borderLeft: '1px solid #1A1A1A',
+                  borderLeft: '1px solid var(--c-1a)',
                   position: 'relative',
-                  background: isToday ? 'rgba(255,255,255,0.015)' : 'transparent',
+                  background: isToday ? 'rgba(var(--ink),0.015)' : 'transparent',
                 }}>
                   {/* Hour lines */}
                   {HOURS.map(h => (
-                    <div key={h} style={{ height: `${HOUR_H}px`, borderBottom: '1px solid #1A1A1A' }} />
+                    <div key={h} style={{ height: `${HOUR_H}px`, borderBottom: '1px solid var(--c-1a)' }} />
                   ))}
 
                   {/* Appointments */}
@@ -469,9 +469,9 @@ function SemanalView({
                           left: '3px',
                           right: '3px',
                           height: `${h}px`,
-                          background: '#262626',
-                          border: '1px solid #3A3A3A',
-                          borderLeft: '2px solid #FFFFFF',
+                          background: 'var(--c-26)',
+                          border: '1px solid var(--c-3a)',
+                          borderLeft: '2px solid var(--c-fff)',
                           borderRadius: '5px',
                           padding: '4px 7px',
                           overflow: 'hidden',
@@ -481,7 +481,7 @@ function SemanalView({
                         }}
                       >
                         <p style={{
-                          fontSize: '11px', fontWeight: 600, color: '#FFFFFF',
+                          fontSize: '11px', fontWeight: 600, color: 'var(--c-fff)',
                           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                           lineHeight: 1.2,
                         }}>
@@ -489,7 +489,7 @@ function SemanalView({
                         </p>
                         {h >= 40 && (
                           <p style={{
-                            fontSize: '10px', color: '#666',
+                            fontSize: '10px', color: 'var(--c-66)',
                             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                             marginTop: '2px',
                           }}>
@@ -554,7 +554,7 @@ function MensalView({
       {/* Month nav */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
         <button className="btn btn-icon" onClick={() => navMonth(-1)}><ChevronLeft size={14} /></button>
-        <span style={{ fontSize: '15px', fontWeight: 600, color: '#FFFFFF', flex: 1 }}>
+        <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--c-fff)', flex: 1 }}>
           {MONTH_NAMES[month]} {year}
         </span>
         <button className="btn btn-icon" onClick={() => navMonth(1)}><ChevronRight size={14} /></button>
@@ -566,15 +566,15 @@ function MensalView({
         {/* Day of week headers */}
         <div style={{
           display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
-          borderBottom: '1px solid #222',
-          background: 'rgba(0,0,0,0.2)',
+          borderBottom: '1px solid var(--c-22)',
+          background: 'var(--header-bg)',
         }}>
           {WEEK_DAYS_SHORT.map(d => (
             <div key={d} style={{
               padding: '10px 0',
               textAlign: 'center',
               fontSize: '10px', fontWeight: 600,
-              color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em',
+              color: 'var(--c-44)', textTransform: 'uppercase', letterSpacing: '0.08em',
             }}>
               {d}
             </div>
@@ -602,14 +602,14 @@ function MensalView({
                 style={{
                   minHeight: '90px',
                   padding: '8px',
-                  borderRight: (i + 1) % 7 === 0 ? 'none' : '1px solid #1A1A1A',
-                  borderBottom: i < grid.length - 7 ? '1px solid #1A1A1A' : 'none',
+                  borderRight: (i + 1) % 7 === 0 ? 'none' : '1px solid var(--c-1a)',
+                  borderBottom: i < grid.length - 7 ? '1px solid var(--c-1a)' : 'none',
                   cursor: 'pointer',
-                  background: isSel ? 'rgba(255,255,255,0.06)' : 'transparent',
+                  background: isSel ? 'rgba(var(--ink),0.06)' : 'transparent',
                   transition: 'background 0.12s',
                   position: 'relative',
                 }}
-                whileHover={{ backgroundColor: 'rgba(255,255,255,0.03)' }}
+                whileHover={{ backgroundColor: 'rgba(var(--ink),0.03)' }}
               >
                 {/* Day number */}
                 <div style={{
@@ -617,12 +617,12 @@ function MensalView({
                   borderRadius: '50%',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   marginBottom: '6px',
-                  background: isToday ? '#FFFFFF' : 'transparent',
+                  background: isToday ? 'var(--c-fff)' : 'transparent',
                 }}>
                   <span style={{
                     fontSize: '13px',
                     fontWeight: isToday ? 700 : 400,
-                    color: isToday ? '#0D0D0D' : isThisMon ? (isSel ? '#FFFFFF' : '#A3A3A3') : '#333',
+                    color: isToday ? 'var(--c-0d)' : isThisMon ? (isSel ? 'var(--c-fff)' : 'var(--c-a3)') : 'var(--c-33)',
                     fontFamily: 'DM Sans, sans-serif',
                   }}>
                     {d.getDate()}
@@ -640,22 +640,22 @@ function MensalView({
                         title={`${hora} · ${ag.cliente?.nome ?? 'Sem cliente'} — ${ag.servico?.nome ?? ''}`}
                         onClick={e => { e.stopPropagation(); onAbrir(ag.id) }}
                         style={{
-                          fontSize: '10px', color: '#A3A3A3',
-                          background: 'rgba(255,255,255,0.06)',
-                          border: '1px solid #2A2A2A',
+                          fontSize: '10px', color: 'var(--c-a3)',
+                          background: 'rgba(var(--ink),0.06)',
+                          border: '1px solid var(--c-2a)',
                           borderRadius: '3px',
                           padding: '1px 5px',
                           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                           cursor: 'pointer',
                         }}
                       >
-                        <span style={{ color: '#555', marginRight: '4px' }}>{hora}</span>
+                        <span style={{ color: 'var(--c-55)', marginRight: '4px' }}>{hora}</span>
                         {ag.cliente?.nome ?? ag.servico?.nome}
                       </div>
                     )
                   })}
                   {extra > 0 && (
-                    <div style={{ fontSize: '10px', color: '#444', paddingLeft: '2px' }}>
+                    <div style={{ fontSize: '10px', color: 'var(--c-44)', paddingLeft: '2px' }}>
                       +{extra} mais
                     </div>
                   )}
@@ -834,8 +834,8 @@ export default function Agenda() {
       {/* Header */}
       <div className="page-header-row" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Agenda</h1>
-          <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
+          <h1 style={{ fontSize: '24px', color: 'var(--c-fff)' }}>Agenda</h1>
+          <p style={{ fontSize: '13px', color: 'var(--c-55)', marginTop: '3px' }}>
             {viewMode === 'lista'
               ? selectedDate.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
               : viewMode === 'mensal'
@@ -850,8 +850,8 @@ export default function Agenda() {
           <div style={{
             display: 'flex', alignItems: 'center', gap: '2px',
             padding: '4px',
-            background: '#1A1A1A',
-            border: '1px solid #252525',
+            background: 'var(--c-1a)',
+            border: '1px solid var(--c-25)',
             borderRadius: '9px',
           }}>
             <ViewBtn active={viewMode === 'lista'}   onClick={() => setViewMode('lista')}   icon={List}          label="Lista"   />
@@ -881,15 +881,15 @@ export default function Agenda() {
             style={{ overflow: 'hidden' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '12px', color: '#444' }}>Filtrar por profissional:</span>
+              <span style={{ fontSize: '12px', color: 'var(--c-44)' }}>Filtrar por profissional:</span>
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                 <button
                   onClick={() => setFilterProfId('')}
                   style={{
                     padding: '5px 12px', borderRadius: '99px', fontFamily: 'inherit',
-                    border: filterProfId === '' ? '1px solid #FFFFFF' : '1px solid #2A2A2A',
-                    background: filterProfId === '' ? 'rgba(255,255,255,0.08)' : 'transparent',
-                    color: filterProfId === '' ? '#FFFFFF' : '#555',
+                    border: filterProfId === '' ? '1px solid var(--c-fff)' : '1px solid var(--c-2a)',
+                    background: filterProfId === '' ? 'rgba(var(--ink),0.08)' : 'transparent',
+                    color: filterProfId === '' ? 'var(--c-fff)' : 'var(--c-55)',
                     fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s',
                   }}
                 >
@@ -901,9 +901,9 @@ export default function Agenda() {
                     onClick={() => setFilterProfId(p.id)}
                     style={{
                       padding: '5px 12px', borderRadius: '99px', fontFamily: 'inherit',
-                      border: filterProfId === p.id ? '1px solid #FFFFFF' : '1px solid #2A2A2A',
-                      background: filterProfId === p.id ? 'rgba(255,255,255,0.08)' : 'transparent',
-                      color: filterProfId === p.id ? '#FFFFFF' : '#555',
+                      border: filterProfId === p.id ? '1px solid var(--c-fff)' : '1px solid var(--c-2a)',
+                      background: filterProfId === p.id ? 'rgba(var(--ink),0.08)' : 'transparent',
+                      color: filterProfId === p.id ? 'var(--c-fff)' : 'var(--c-55)',
                       fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s',
                     }}
                   >
@@ -1012,8 +1012,8 @@ export default function Agenda() {
           >
             <span className="aviso-flutuante-icone"><Check size={14} /></span>
             <span style={{ flex: 1, minWidth: 0 }}>
-              <strong style={{ display: 'block', fontSize: '13px', color: '#FFFFFF' }}>Venda registrada</strong>
-              <span style={{ fontSize: '12px', color: '#A3A3A3' }}>{formatCurrency(vendaFeita.total)}{vendaFeita.vinculada ? ' · agendamento concluído' : ''}</span>
+              <strong style={{ display: 'block', fontSize: '13px', color: 'var(--c-fff)' }}>Venda registrada</strong>
+              <span style={{ fontSize: '12px', color: 'var(--c-a3)' }}>{formatCurrency(vendaFeita.total)}{vendaFeita.vinculada ? ' · agendamento concluído' : ''}</span>
             </span>
             <button className="btn btn-secondary btn-sm" onClick={() => { setVendaAbertaId(vendaFeita.comandaId); setVendaFeita(null) }}>Ver venda</button>
           </motion.div>

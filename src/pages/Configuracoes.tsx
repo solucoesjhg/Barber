@@ -100,13 +100,13 @@ export default function Configuracoes() {
   }
 
   if (loading || perfilLoading) {
-    return <div className="page"><p style={{ color: '#444', fontSize: '13px' }}>Carregando...</p></div>
+    return <div className="page"><p style={{ color: 'var(--c-44)', fontSize: '13px' }}>Carregando...</p></div>
   }
 
   if (!empresaId) {
     return (
       <div className="page">
-        <p style={{ color: '#444', fontSize: '13px' }}>Sua conta não está vinculada a nenhuma loja, então não há configurações pra mostrar.</p>
+        <p style={{ color: 'var(--c-44)', fontSize: '13px' }}>Sua conta não está vinculada a nenhuma loja, então não há configurações pra mostrar.</p>
       </div>
     )
   }
@@ -114,8 +114,8 @@ export default function Configuracoes() {
   return (
     <div className="page" style={{ maxWidth: '640px' }}>
       <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Configurações</h1>
-        <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
+        <h1 style={{ fontSize: '24px', color: 'var(--c-fff)' }}>Configurações</h1>
+        <p style={{ fontSize: '13px', color: 'var(--c-55)', marginTop: '3px' }}>
           {podeEditar ? 'Dados da empresa e regras de operação' : 'Dados da empresa e regras de operação · somente leitura'}
         </p>
       </div>
@@ -123,7 +123,7 @@ export default function Configuracoes() {
       <fieldset disabled={!podeEditar} style={{ border: 'none', padding: 0, margin: 0, minWidth: 0 }}>
 
       <motion.div className="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: '20px' }}>
-        <p style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', marginBottom: '16px' }}>Empresa</p>
+        <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)', marginBottom: '16px' }}>Empresa</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div className="field">
             <label className="label">Logo</label>
@@ -131,10 +131,10 @@ export default function Configuracoes() {
               <div className="logo-preview">
                 {form.logo_url
                   ? <img src={form.logo_url} alt="Logo da loja" />
-                  : <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Logo padrão" style={{ opacity: 0.35 }} />}
+                  : <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Logo padrão" className="logo-padrao" style={{ opacity: 0.35 }} />}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0, flex: 1 }}>
-                <p style={{ fontSize: '12px', color: '#777', lineHeight: 1.5 }}>
+                <p style={{ fontSize: '12px', color: 'var(--c-77)', lineHeight: 1.5 }}>
                   {form.logo_url ? 'Aparece no topo do menu, ao lado do nome da loja.' : 'Sem logo próprio: o menu mostra o logo padrão.'}
                   {' '}Use uma imagem quadrada, de preferência com fundo transparente.
                 </p>
@@ -175,7 +175,7 @@ export default function Configuracoes() {
       </motion.div>
 
       <motion.div className="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} style={{ marginBottom: '20px' }}>
-        <p style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', marginBottom: '16px' }}>Operação</p>
+        <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)', marginBottom: '16px' }}>Operação</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div className="field">
@@ -206,7 +206,7 @@ export default function Configuracoes() {
 
       </fieldset>
 
-      {error && <p style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>{error}</p>}
+      {error && <p style={{ fontSize: '12px', color: 'var(--c-66)', marginBottom: '12px' }}>{error}</p>}
       {podeEditar && (
         <button className="btn btn-primary" onClick={handleSave} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Save size={14} /> {saving ? 'Salvando...' : saved ? 'Salvo!' : 'Salvar'}

@@ -16,7 +16,7 @@ import { usePerfil } from '../hooks/usePerfil'
 import { useAuth } from '../hooks/useAuth'
 import FiltroPeriodo from '../components/ui/FiltroPeriodo'
 import StatCard from '../components/ui/StatCard'
-import { PAGAMENTO_LABEL } from '../components/VendaDetalheModal'
+import VendaDetalheModal, { PAGAMENTO_LABEL } from '../components/VendaDetalheModal'
 import type { RelatorioId } from '../types'
 
 const ICONES: Record<RelatorioId, LucideIcon> = {
@@ -41,25 +41,29 @@ const MOVIMENTO_LABEL: Record<string, string> = {
 interface LinhaVal { nome: string; total: number; qtd: number }
 
 function Titulo({ children }: { children: string }) {
-  return <p style={{ fontSize: '11px', fontWeight: 600, color: '#777', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '24px 0 8px' }}>{children}</p>
+  return <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--c-77)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '24px 0 8px' }}>{children}</p>
 }
 
 /**
- * Tabela de relatório: 1ª coluna é o nome, as demais são números
- * (alinhados à direita). total: linha de totalização no fim.
+ * Tabela de relatório: as primeiras colunas (texto, padrão 1) são nomes,
+ * as demais são números (alinhados à direita). total: linha de
+ * totalização no fim. aoClicar: a linha vira clicável.
  */
-function Tabela({ colunas, linhas, vazio, total }: {
+function Tabela({ colunas, linhas, vazio, total, texto = 1, aoClicar, dica }: {
   colunas: string[]
   linhas: (string | number)[][]
   vazio: string
   total?: (string | number)[]
+  texto?: number
+  aoClicar?: (indice: number) => void
+  dica?: string
 }) {
-  const grade = `minmax(180px, 1fr) repeat(${colunas.length - 1}, minmax(84px, 130px))`
-  const larguraMin = `${200 + (colunas.length - 1) * 100}px`
+  const grade = ['minmax(180px, 1fr)', texto > 1 && `repeat(${texto - 1}, minmax(110px, 1fr))`, `repeat(${colunas.length - texto}, minmax(84px, 130px))`].filter(Boolean).join(' ')
+  const larguraMin = `${200 + (texto - 1) * 130 + (colunas.length - texto) * 100}px`
   const celula = (v: string | number, j: number, destaque: boolean) => (
-    <span key={j} className={j > 0 ? 'valor-num' : 'texto-cortado'} style={{
-      color: j === 0 || destaque ? '#FFFFFF' : '#A3A3A3', fontWeight: j === 0 || destaque ? 500 : 400,
-      textAlign: j > 0 ? 'right' : 'left', minWidth: 0,
+    <span key={j} className={j >= texto ? 'valor-num' : 'texto-cortado'} style={{
+      color: j === 0 || destaque ? 'var(--c-fff)' : 'var(--c-a3)', fontWeight: j === 0 || destaque ? 500 : 400,
+      textAlign: j >= texto ? 'right' : 'left', minWidth: 0,
     }}>
       {j > 0 && <b className="mobile-only-label">{colunas[j]}: </b>}{v}
     </span>
@@ -68,21 +72,21 @@ function Tabela({ colunas, linhas, vazio, total }: {
     <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
       <div className="list-header" style={{
         display: 'grid', minWidth: larguraMin, gridTemplateColumns: grade, gap: '12px',
-        padding: '10px 20px', borderBottom: '1px solid #222',
-        fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
-        background: 'rgba(0,0,0,0.2)',
+        padding: '10px 20px', borderBottom: '1px solid var(--c-22)',
+        fontSize: '10px', fontWeight: 600, color: 'var(--c-44)', textTransform: 'uppercase', letterSpacing: '0.1em',
+        background: 'var(--header-bg)',
       }}>
-        {colunas.map((c, j) => <span key={c + j} style={{ textAlign: j > 0 ? 'right' : 'left' }}>{c}</span>)}
+        {colunas.map((c, j) => <span key={c + j} style={{ textAlign: j >= texto ? 'right' : 'left' }}>{c}</span>)}
       </div>
       {linhas.length === 0 ? (
-        <div style={{ padding: '36px', textAlign: 'center', color: '#444', fontSize: '13px' }}>{vazio}</div>
+        <div style={{ padding: '36px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>{vazio}</div>
       ) : (
         <>
           {linhas.map((l, i) => (
-            <div key={i} className="list-row" style={{
+            <div key={i} className={`list-row${aoClicar ? ' clicavel' : ''}`} onClick={aoClicar ? () => aoClicar(i) : undefined} title={aoClicar ? dica : undefined} style={{
               display: 'grid', minWidth: larguraMin, gridTemplateColumns: grade, gap: '12px',
               padding: '10px 20px', alignItems: 'center',
-              borderBottom: i < linhas.length - 1 || total ? '1px solid #1A1A1A' : 'none',
+              borderBottom: i < linhas.length - 1 || total ? '1px solid var(--c-1a)' : 'none',
               fontSize: '13px',
             }}>
               {l.map((v, j) => celula(v, j, false))}
@@ -134,6 +138,7 @@ export default function Relatorios() {
   const [filtroCategoria, setFiltroCategoria] = useState('')
   const [filtroStatusAgenda, setFiltroStatusAgenda] = useState('')
   const [buscaCliente, setBuscaCliente] = useState('')
+  const [vendaAbertaId, setVendaAbertaId] = useState<string | null>(null)
 
   const carregar = useCallback(async () => {
     setLoading(true)
@@ -155,7 +160,7 @@ export default function Relatorios() {
         .select('tipo, nome, referencia_id, preco_unitario, quantidade, profissional_id, profissional:profissionais(nome), comanda:comandas!inner(id, data, status, forma_pagamento, cliente_id, cliente_nome)')
         .eq('comanda.status', 'fechada').gte('comanda.data', inicio).lte('comanda.data', fim),
       supabase.from('sessoes_caixa').select('*').gte('aberto_em', inicioTS).lte('aberto_em', fimTS).order('aberto_em', { ascending: false }),
-      supabase.from('comissoes').select('*, profissional:profissionais(nome)').neq('status', 'cancelada').gte('created_at', inicioTS).lte('created_at', fimTS),
+      supabase.from('comissoes').select('*, profissional:profissionais(nome), item:itens_comanda(nome, quantidade), comanda:comandas(id, data, cliente_nome, total)').neq('status', 'cancelada').gte('created_at', inicioTS).lte('created_at', fimTS),
       supabase.from('clientes').select('*'),
       supabase.from('produtos').select(COLUNAS_PRODUTO),
       supabase.from('movimentacoes_estoque').select('*, produto:produtos(nome)').gte('created_at', inicioTS).lte('created_at', fimTS).order('created_at', { ascending: false }).limit(100),
@@ -270,6 +275,9 @@ export default function Relatorios() {
   const totalComissoes = linhasComissao.reduce((s, c) => s + c.comissao, 0)
   const totalBaseComissoes = linhasComissao.reduce((s, c) => s + c.base, 0)
   const vendasComComissao = new Set(comissoesFiltradas.map((c: any) => c.comanda_id).filter(Boolean)).size
+  // Uma linha por comissão, da mais recente para a mais antiga.
+  const comissoesDetalhadas = [...comissoesFiltradas].sort((a: any, b: any) => String(b.created_at).localeCompare(String(a.created_at)))
+  const nomeQuem = (c: any) => c.profissional?.nome ?? (c.usuario_id ? `${nomesUsuarios[c.usuario_id] ?? 'Usuário'} (venda)` : '—')
 
   // ── Clientes ─────────────────────────────────────────────
   const novosClientes = clientes.filter(c => c.created_at.slice(0, 10) >= inicio && c.created_at.slice(0, 10) <= fim).length
@@ -327,9 +335,9 @@ export default function Relatorios() {
   if (abas.length === 0) {
     return (
       <div className="page" style={{ textAlign: 'center', paddingTop: '80px' }}>
-        <Lock size={22} style={{ color: '#555', marginBottom: '14px' }} />
-        <h2 style={{ fontSize: '18px', color: '#FFFFFF', marginBottom: '10px' }}>Nenhum relatório liberado</h2>
-        <p style={{ fontSize: '13px', color: '#A3A3A3' }}>Peça ao gerente ou administrador para liberar os relatórios em Usuários → Permissões.</p>
+        <Lock size={22} style={{ color: 'var(--c-55)', marginBottom: '14px' }} />
+        <h2 style={{ fontSize: '18px', color: 'var(--c-fff)', marginBottom: '10px' }}>Nenhum relatório liberado</h2>
+        <p style={{ fontSize: '13px', color: 'var(--c-a3)' }}>Peça ao gerente ou administrador para liberar os relatórios em Usuários → Permissões.</p>
       </div>
     )
   }
@@ -338,8 +346,8 @@ export default function Relatorios() {
     <div className="page">
       <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Relatórios</h1>
-          <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
+          <h1 style={{ fontSize: '24px', color: 'var(--c-fff)' }}>Relatórios</h1>
+          <p style={{ fontSize: '13px', color: 'var(--c-55)', marginTop: '3px' }}>
             {tituloAba} · {rotuloIntervalo(periodo)}{soMeu ? ' · só os seus números' : restrito ? ' · só as vendas registradas por você' : ''}
           </p>
         </div>
@@ -406,7 +414,7 @@ export default function Relatorios() {
       </div>
 
       {loading ? (
-        <div className="card" style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Carregando...</div>
+        <div className="card" style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>Carregando...</div>
       ) : (
         <AnimatePresence mode="wait">
           <motion.div id="area-impressao" key={aba} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
@@ -491,6 +499,24 @@ export default function Relatorios() {
                   linhas={linhasComissao.map(c => [c.nome, c.vendas.size, formatCurrency(c.base), formatCurrency(c.comissao)])}
                   total={['Total', vendasComComissao, formatCurrency(totalBaseComissoes), formatCurrency(totalComissoes)]}
                 />
+                <Titulo>Comissões detalhadas</Titulo>
+                <Tabela
+                  colunas={['Venda', 'Data', 'Item', 'Quem', 'Base', '%', 'Comissão']}
+                  texto={4}
+                  vazio="Nenhuma comissão no período."
+                  linhas={comissoesDetalhadas.map((c: any) => [
+                    c.comanda ? c.comanda.cliente_nome || 'Balcão' : '—',
+                    formatDate(c.comanda?.data ?? c.created_at),
+                    c.item ? (Number(c.item.quantidade) > 1 ? `${c.item.nome} ×${Number(c.item.quantidade)}` : c.item.nome) : 'Total da venda',
+                    nomeQuem(c),
+                    formatCurrency(Number(c.valor_base)),
+                    `${Number(c.percentual)}%`,
+                    formatCurrency(Number(c.valor_comissao)),
+                  ])}
+                  total={[`${comissoesDetalhadas.length} comissões`, '', '', '', formatCurrency(totalBaseComissoes), '', formatCurrency(totalComissoes)]}
+                  aoClicar={i => { const id = comissoesDetalhadas[i].comanda_id; if (id) setVendaAbertaId(id) }}
+                  dica="Ver a venda desta comissão"
+                />
               </>
             )}
 
@@ -574,6 +600,17 @@ export default function Relatorios() {
           </motion.div>
         </AnimatePresence>
       )}
+
+      <AnimatePresence>
+        {vendaAbertaId && (
+          <VendaDetalheModal
+            comandaId={vendaAbertaId}
+            destacarProfissionalId={soMeu ? meuProfissional : null}
+            onClose={() => setVendaAbertaId(null)}
+            onAlterado={carregar}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

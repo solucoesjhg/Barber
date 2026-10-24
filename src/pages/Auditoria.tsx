@@ -61,8 +61,8 @@ export default function Auditoria() {
   return (
     <div className="page">
       <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Auditoria</h1>
-        <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
+        <h1 style={{ fontSize: '24px', color: 'var(--c-fff)' }}>Auditoria</h1>
+        <p style={{ fontSize: '13px', color: 'var(--c-55)', marginTop: '3px' }}>
           Histórico de criação, alteração e exclusão nos módulos sensíveis (visível só pra admin/gerente)
         </p>
       </div>
@@ -81,17 +81,17 @@ export default function Auditoria() {
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="list-header" style={{
           display: 'grid', minWidth: '800px', gridTemplateColumns: '24px 120px 90px 1fr 180px 160px',
-          padding: '10px 24px', borderBottom: '1px solid #222',
-          fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
-          background: 'rgba(0,0,0,0.2)',
+          padding: '10px 24px', borderBottom: '1px solid var(--c-22)',
+          fontSize: '10px', fontWeight: 600, color: 'var(--c-44)', textTransform: 'uppercase', letterSpacing: '0.1em',
+          background: 'var(--header-bg)',
         }}>
           <span></span><span>Módulo</span><span>Ação</span><span>Registro</span><span>Usuário</span><span>Data/hora</span>
         </div>
 
         {loading ? (
-          <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Carregando...</div>
+          <div style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>Carregando...</div>
         ) : logs.length === 0 ? (
-          <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+          <div style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>
             Nenhum registro encontrado (ou seu usuário não tem permissão pra ver a auditoria).
           </div>
         ) : logs.map((l, i) => {
@@ -105,37 +105,37 @@ export default function Auditoria() {
               style={{
                 display: 'grid', minWidth: '800px', gridTemplateColumns: '24px 120px 90px 1fr 180px 160px',
                 padding: '12px 24px', alignItems: 'center', cursor: 'pointer',
-                borderBottom: expandido === l.id ? 'none' : (i < logs.length - 1 ? '1px solid #1A1A1A' : 'none'),
+                borderBottom: expandido === l.id ? 'none' : (i < logs.length - 1 ? '1px solid var(--c-1a)' : 'none'),
               }}
             >
-              {expandido === l.id ? <ChevronDown size={13} style={{ color: '#555' }} /> : <ChevronRightIcon size={13} style={{ color: '#555' }} />}
-              <span style={{ fontSize: '13px', color: '#FFFFFF' }}>{MODULO_LABEL[l.modulo] ?? l.modulo}</span>
-              <span style={{ fontSize: '12px', color: '#A3A3A3' }}>{ACAO_LABEL[l.acao]}</span>
-              <span style={{ fontSize: '12px', color: '#A3A3A3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rotuloRegistro(l)}</span>
-              <span style={{ fontSize: '12px', color: '#A3A3A3', display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                <User size={11} style={{ color: '#444', flexShrink: 0 }} />
+              {expandido === l.id ? <ChevronDown size={13} style={{ color: 'var(--c-55)' }} /> : <ChevronRightIcon size={13} style={{ color: 'var(--c-55)' }} />}
+              <span style={{ fontSize: '13px', color: 'var(--c-fff)' }}>{MODULO_LABEL[l.modulo] ?? l.modulo}</span>
+              <span style={{ fontSize: '12px', color: 'var(--c-a3)' }}>{ACAO_LABEL[l.acao]}</span>
+              <span style={{ fontSize: '12px', color: 'var(--c-a3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rotuloRegistro(l)}</span>
+              <span style={{ fontSize: '12px', color: 'var(--c-a3)', display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <User size={11} style={{ color: 'var(--c-44)', flexShrink: 0 }} />
                 {l.usuario_id ? (usuariosMap[l.usuario_id] ?? l.usuario_id.slice(0, 8)) : '—'}
               </span>
-              <span style={{ fontSize: '12px', color: '#444' }}>{formatDateTime(l.created_at)}</span>
+              <span style={{ fontSize: '12px', color: 'var(--c-44)' }}>{formatDateTime(l.created_at)}</span>
             </motion.div>
             {expandido === l.id && (
-              <div style={{ padding: '4px 24px 20px 50px', borderBottom: i < logs.length - 1 ? '1px solid #1A1A1A' : 'none', background: 'rgba(0,0,0,0.15)' }}>
+              <div style={{ padding: '4px 24px 20px 50px', borderBottom: i < logs.length - 1 ? '1px solid var(--c-1a)' : 'none', background: 'rgba(0,0,0,0.15)' }}>
                 {diffs.length === 0 ? (
-                  <p style={{ fontSize: '12px', color: '#444' }}>Nenhum campo relevante mudou.</p>
+                  <p style={{ fontSize: '12px', color: 'var(--c-44)' }}>Nenhum campo relevante mudou.</p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     {diffs.map(d => (
                       <div key={d.campo} style={{ display: 'grid', gridTemplateColumns: '160px 1fr', fontSize: '12px', alignItems: 'baseline' }}>
-                        <span style={{ color: '#666' }}>{d.campo}</span>
+                        <span style={{ color: 'var(--c-66)' }}>{d.campo}</span>
                         {l.acao === 'insert' ? (
-                          <span style={{ color: '#A3A3A3' }}>{formatarValor(d.para)}</span>
+                          <span style={{ color: 'var(--c-a3)' }}>{formatarValor(d.para)}</span>
                         ) : l.acao === 'delete' ? (
-                          <span style={{ color: '#666', textDecoration: 'line-through' }}>{formatarValor(d.de)}</span>
+                          <span style={{ color: 'var(--c-66)', textDecoration: 'line-through' }}>{formatarValor(d.de)}</span>
                         ) : (
                           <span>
-                            <span style={{ color: '#666', textDecoration: 'line-through' }}>{formatarValor(d.de)}</span>
+                            <span style={{ color: 'var(--c-66)', textDecoration: 'line-through' }}>{formatarValor(d.de)}</span>
                             {' → '}
-                            <span style={{ color: '#FFFFFF' }}>{formatarValor(d.para)}</span>
+                            <span style={{ color: 'var(--c-fff)' }}>{formatarValor(d.para)}</span>
                           </span>
                         )}
                       </div>

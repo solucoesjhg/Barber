@@ -5,13 +5,14 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Calendar, ShoppingCart, Wallet, Users,
   Scissors, Package, Truck, BarChart2, ArrowDownCircle, ArrowUpCircle,
-  Percent, FileBarChart, FileText, ClipboardList, Settings, UserCog, LogOut, Building2, Tags,
+  Percent, FileBarChart, FileText, ClipboardList, Settings, UserCog, LogOut, Sun, Moon, Building2, Tags,
   ChevronDown, ChevronRight, FolderOpen, ArrowLeftRight,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { usePerfil } from '../../hooks/usePerfil'
 import { usePermissoes } from '../../hooks/usePermissoes'
 import { useLoja } from '../../hooks/useLoja'
+import { useTema } from '../../hooks/useTema'
 import { initials } from '../../lib/utils'
 import { PAPEL_LABEL } from '../../lib/permissoes'
 import type { TelaId } from '../../types'
@@ -79,8 +80,8 @@ function NavItem({ to, icon: Icon, label }: { to: string; icon: typeof LayoutDas
             gap: '10px',
             padding: '10px 12px',
             borderRadius: '8px',
-            color: isActive ? '#FFFFFF' : '#666666',
-            background: isActive ? 'rgba(255,255,255,0.07)' : 'transparent',
+            color: isActive ? 'var(--c-fff)' : 'var(--c-66)',
+            background: isActive ? 'rgba(var(--ink),0.07)' : 'transparent',
             fontSize: '13px',
             fontWeight: isActive ? 500 : 400,
             cursor: 'pointer',
@@ -88,13 +89,13 @@ function NavItem({ to, icon: Icon, label }: { to: string; icon: typeof LayoutDas
           }}
           onMouseEnter={e => {
             if (!isActive) {
-              (e.currentTarget as HTMLDivElement).style.color = '#A3A3A3'
-              ;(e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.04)'
+              (e.currentTarget as HTMLDivElement).style.color = 'var(--c-a3)'
+              ;(e.currentTarget as HTMLDivElement).style.background = 'rgba(var(--ink),0.04)'
             }
           }}
           onMouseLeave={e => {
             if (!isActive) {
-              (e.currentTarget as HTMLDivElement).style.color = '#666666'
+              (e.currentTarget as HTMLDivElement).style.color = 'var(--c-66)'
               ;(e.currentTarget as HTMLDivElement).style.background = 'transparent'
             }
           }}
@@ -102,7 +103,7 @@ function NavItem({ to, icon: Icon, label }: { to: string; icon: typeof LayoutDas
           <Icon size={15} strokeWidth={isActive ? 2.2 : 1.75} style={{ flexShrink: 0 }} />
           <span style={{ flex: 1 }}>{label}</span>
           {isActive && (
-            <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#FFFFFF', flexShrink: 0 }} />
+            <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--c-fff)', flexShrink: 0 }} />
           )}
         </div>
       )}
@@ -337,6 +338,7 @@ function NavGroup({ label, icon: Icon, items, ativo, aberto, outroAberto, onAbri
 export default function Sidebar({ hidden }: { hidden: boolean }) {
   const { user, signOut } = useAuth()
   const { papel } = usePerfil()
+  const { tema, alternar: alternarTema } = useTema()
   const { podeVer, gerenciaEquipe } = usePermissoes()
   const visivel = (item: NavItemDef) => item.gestao ? gerenciaEquipe : !item.tela || podeVer(item.tela)
   const grupos = NAV_GRUPOS
@@ -371,8 +373,8 @@ export default function Sidebar({ hidden }: { hidden: boolean }) {
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        background: '#111111',
-        borderRight: hidden ? 'none' : '1px solid #1F1F1F',
+        background: 'var(--c-11)',
+        borderRight: hidden ? 'none' : '1px solid var(--c-1f)',
         flexShrink: 0,
         overflow: 'hidden',
       }}
@@ -387,12 +389,13 @@ export default function Sidebar({ hidden }: { hidden: boolean }) {
         alignItems: 'center',
         gap: '10px',
         padding: '0 20px',
-        borderBottom: '1px solid #1F1F1F',
+        borderBottom: '1px solid var(--c-1f)',
         flexShrink: 0,
       }}>
         {/* Logo e nome da loja (Configurações); sem logo cadastrado, o padrão. */}
         <img
           src={logoUrl ?? `${import.meta.env.BASE_URL}logo.png`}
+          className={logoUrl ? undefined : 'logo-padrao'}
           alt={tituloMenu || 'Logo'}
           style={{
             width: '32px',
@@ -405,7 +408,7 @@ export default function Sidebar({ hidden }: { hidden: boolean }) {
         <span
           title={tituloMenu}
           style={{
-            fontSize: '13px', fontWeight: 600, color: '#FFFFFF', letterSpacing: '-0.01em', lineHeight: 1.25,
+            fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)', letterSpacing: '-0.01em', lineHeight: 1.25,
             minWidth: 0, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
           }}
         >
@@ -441,7 +444,7 @@ export default function Sidebar({ hidden }: { hidden: boolean }) {
       </nav>
 
       {/* User */}
-      <div style={{ padding: '12px 8px 16px', borderTop: '1px solid #1F1F1F', flexShrink: 0 }}>
+      <div style={{ padding: '12px 8px 16px', borderTop: '1px solid var(--c-1f)', flexShrink: 0 }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -453,30 +456,31 @@ export default function Sidebar({ hidden }: { hidden: boolean }) {
           <div style={{
             width: '30px', height: '30px',
             borderRadius: '50%',
-            background: '#262626',
-            border: '1px solid #333',
+            background: 'var(--c-26)',
+            border: '1px solid var(--c-33)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '11px',
             fontWeight: 700,
-            color: '#A3A3A3',
+            color: 'var(--c-a3)',
             flexShrink: 0,
           }}>
             {ini}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: '12px', fontWeight: 500, color: '#FFFFFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <p style={{ fontSize: '12px', fontWeight: 500, color: 'var(--c-fff)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {name}
             </p>
-            <p style={{ fontSize: '10px', color: '#444' }}>{papel ? PAPEL_LABEL[papel] : '—'}</p>
+            <p style={{ fontSize: '10px', color: 'var(--c-44)' }}>{papel ? PAPEL_LABEL[papel] : '—'}</p>
           </div>
           <button
-            onClick={handleSignOut}
-            title="Sair"
+            onClick={alternarTema}
+            title={tema === 'light' ? 'Mudar para o tema escuro' : 'Mudar para o tema claro'}
+            aria-label={tema === 'light' ? 'Mudar para o tema escuro' : 'Mudar para o tema claro'}
             style={{
               width: '26px', height: '26px',
               border: 'none',
               background: 'transparent',
-              color: '#444',
+              color: 'var(--c-44)',
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               borderRadius: '6px',
@@ -484,12 +488,37 @@ export default function Sidebar({ hidden }: { hidden: boolean }) {
               flexShrink: 0,
             }}
             onMouseEnter={e => {
-              (e.currentTarget).style.background = 'rgba(255,255,255,0.06)'
-              ;(e.currentTarget).style.color = '#A3A3A3'
+              (e.currentTarget).style.background = 'rgba(var(--ink),0.06)'
+              ;(e.currentTarget).style.color = 'var(--c-a3)'
             }}
             onMouseLeave={e => {
               (e.currentTarget).style.background = 'transparent'
-              ;(e.currentTarget).style.color = '#444'
+              ;(e.currentTarget).style.color = 'var(--c-44)'
+            }}
+          >
+            {tema === 'light' ? <Moon size={13} /> : <Sun size={13} />}
+          </button>
+          <button
+            onClick={handleSignOut}
+            title="Sair"
+            style={{
+              width: '26px', height: '26px',
+              border: 'none',
+              background: 'transparent',
+              color: 'var(--c-44)',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: '6px',
+              transition: 'all 0.15s ease',
+              flexShrink: 0,
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget).style.background = 'rgba(var(--ink),0.06)'
+              ;(e.currentTarget).style.color = 'var(--c-a3)'
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget).style.background = 'transparent'
+              ;(e.currentTarget).style.color = 'var(--c-44)'
             }}
           >
             <LogOut size={13} />

@@ -46,12 +46,12 @@ export default function LancamentoDetalheModal({ movimento, onClose, onDelete }:
   return (
     <ModalDetalhe
       largura={440}
-      icone={entrada ? <ArrowUpRight size={18} style={{ color: '#FFFFFF' }} /> : <ArrowDownRight size={18} />}
+      icone={entrada ? <ArrowUpRight size={18} style={{ color: 'var(--c-fff)' }} /> : <ArrowDownRight size={18} />}
       titulo={entrada ? 'Entrada' : 'Saída'}
       subtitulo={formatDateTime(movimento.created_at ?? movimento.data)}
       onClose={onClose}
       acoes={onDelete ? (
-        <button className="btn btn-secondary" style={{ color: '#A3A3A3' }} onClick={handleExcluir} disabled={excluindo}>
+        <button className="btn btn-secondary" style={{ color: 'var(--c-a3)' }} onClick={handleExcluir} disabled={excluindo}>
           <Trash2 size={13} /> {excluindo ? 'Excluindo...' : 'Excluir lançamento'}
         </button>
       ) : undefined}
@@ -64,12 +64,12 @@ export default function LancamentoDetalheModal({ movimento, onClose, onDelete }:
       </InfoGrade>
 
       <SecaoDetalhe titulo="Descrição">
-        <p className="detalhe-valor" style={{ color: '#A3A3A3', whiteSpace: 'pre-wrap' }}>{movimento.descricao}</p>
+        <p className="detalhe-valor" style={{ color: 'var(--c-a3)', whiteSpace: 'pre-wrap' }}>{movimento.descricao}</p>
       </SecaoDetalhe>
 
       <div className="detalhe-total">
         <span>Valor</span>
-        <strong style={{ color: entrada ? '#FFFFFF' : '#A3A3A3' }}>{entrada ? '+' : '−'}{formatCurrency(movimento.valor)}</strong>
+        <strong style={{ color: entrada ? 'var(--c-fff)' : 'var(--c-a3)' }}>{entrada ? '+' : '−'}{formatCurrency(movimento.valor)}</strong>
       </div>
 
       {error && <p className="aviso-erro" style={{ marginTop: '12px' }}>{error}</p>}

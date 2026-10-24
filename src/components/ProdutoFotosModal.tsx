@@ -99,7 +99,7 @@ export default function ProdutoFotosModal({ produto, onClose, onChange }: {
   return (
     <motion.div
       className="modal-overlay"
-      style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+      style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'var(--overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
@@ -111,14 +111,14 @@ export default function ProdutoFotosModal({ produto, onClose, onChange }: {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
           <div>
-            <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>Fotos do produto</h2>
-            <p style={{ fontSize: '12px', color: '#555', marginTop: '2px' }}>{produto.nome}</p>
+            <h2 style={{ fontSize: '18px', color: 'var(--c-fff)' }}>Fotos do produto</h2>
+            <p style={{ fontSize: '12px', color: 'var(--c-55)', marginTop: '2px' }}>{produto.nome}</p>
           </div>
           <button className="btn btn-icon" onClick={onClose}><X size={14} /></button>
         </div>
 
         {loading ? (
-          <p style={{ fontSize: '13px', color: '#555', padding: '32px 0', textAlign: 'center' }}>Carregando...</p>
+          <p style={{ fontSize: '13px', color: 'var(--c-55)', padding: '32px 0', textAlign: 'center' }}>Carregando...</p>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', margin: '18px 0' }}>
             {fotos.map(foto => (
@@ -127,8 +127,8 @@ export default function ProdutoFotosModal({ produto, onClose, onChange }: {
                   onClick={() => setAmpliada(foto.url)}
                   style={{
                     width: '100%', aspectRatio: '1', borderRadius: '8px', overflow: 'hidden',
-                    border: foto.url === capaUrl ? '2px solid #FFFFFF' : '1px solid #2A2A2A',
-                    padding: 0, cursor: 'pointer', display: 'block', background: '#1F1F1F',
+                    border: foto.url === capaUrl ? '2px solid var(--c-fff)' : '1px solid var(--c-2a)',
+                    padding: 0, cursor: 'pointer', display: 'block', background: 'var(--c-1f)',
                   }}
                 >
                   <img src={foto.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -144,7 +144,7 @@ export default function ProdutoFotosModal({ produto, onClose, onChange }: {
                       <button
                         title="Tornar capa"
                         onClick={() => handleTornarCapa(foto)}
-                        style={{ flex: 1, background: 'transparent', border: '1px solid #2A2A2A', borderRadius: '6px', padding: '4px', cursor: 'pointer', color: '#666', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{ flex: 1, background: 'transparent', border: '1px solid var(--c-2a)', borderRadius: '6px', padding: '4px', cursor: 'pointer', color: 'var(--c-66)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       >
                         <Star size={11} />
                       </button>
@@ -152,7 +152,7 @@ export default function ProdutoFotosModal({ produto, onClose, onChange }: {
                     <button
                       title="Excluir"
                       onClick={() => handleExcluir(foto)}
-                      style={{ flex: 1, background: 'transparent', border: '1px solid #2A2A2A', borderRadius: '6px', padding: '4px', cursor: 'pointer', color: '#666', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      style={{ flex: 1, background: 'transparent', border: '1px solid var(--c-2a)', borderRadius: '6px', padding: '4px', cursor: 'pointer', color: 'var(--c-66)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     >
                       <Trash2 size={11} />
                     </button>
@@ -166,9 +166,9 @@ export default function ProdutoFotosModal({ produto, onClose, onChange }: {
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
                 style={{
-                  aspectRatio: '1', borderRadius: '8px', background: '#1F1F1F', border: '1px dashed #333',
+                  aspectRatio: '1', borderRadius: '8px', background: 'var(--c-1f)', border: '1px dashed var(--c-33)',
                   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px',
-                  cursor: uploading ? 'default' : 'pointer', color: '#555', fontSize: '11px',
+                  cursor: uploading ? 'default' : 'pointer', color: 'var(--c-55)', fontSize: '11px',
                 }}
               >
                 {uploading ? <span>Enviando...</span> : <><Plus size={16} /><span>Adicionar</span></>}
@@ -178,7 +178,7 @@ export default function ProdutoFotosModal({ produto, onClose, onChange }: {
         )}
 
         {!loading && fotos.length === 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#444', fontSize: '12px', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--c-44)', fontSize: '12px', marginBottom: '14px' }}>
             <Package size={13} /> {somenteLeitura ? 'Nenhuma foto ainda.' : 'Nenhuma foto ainda — adicione a primeira.'}
           </div>
         )}
@@ -187,7 +187,7 @@ export default function ProdutoFotosModal({ produto, onClose, onChange }: {
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleUpload} style={{ display: 'none' }} />
         )}
 
-        {error && <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>{error}</p>}
+        {error && <p style={{ fontSize: '12px', color: 'var(--c-66)', marginTop: '4px' }}>{error}</p>}
 
         <button className="btn btn-secondary btn-full" style={{ marginTop: '14px' }} onClick={onClose}>Fechar</button>
       </motion.div>

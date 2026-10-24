@@ -354,8 +354,8 @@ export default function Produtos() {
       {/* Header */}
       <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Produtos & Serviços</h1>
-          <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
+          <h1 style={{ fontSize: '24px', color: 'var(--c-fff)' }}>Produtos & Serviços</h1>
+          <p style={{ fontSize: '13px', color: 'var(--c-55)', marginTop: '3px' }}>
             {secao === 'produtos' ? 'Estoque da conveniência' : 'Serviços oferecidos'}
           </p>
         </div>
@@ -372,7 +372,7 @@ export default function Produtos() {
               </button>
             )}
             <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleImportarArquivo} style={{ display: 'none' }} />
-            {podeEditar && <div style={{ width: '1px', height: '20px', background: '#252525', margin: '0 4px' }} />}
+            {podeEditar && <div style={{ width: '1px', height: '20px', background: 'var(--c-25)', margin: '0 4px' }} />}
             {podeEditar && verCusto && (
               <button className="btn btn-secondary" onClick={() => setShowEntrada(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <ClipboardList size={14} /> Nova Entrada
@@ -395,8 +395,8 @@ export default function Produtos() {
       <div style={{
         display: 'flex', gap: '2px',
         padding: '4px',
-        background: '#1A1A1A',
-        border: '1px solid #252525',
+        background: 'var(--c-1a)',
+        border: '1px solid var(--c-25)',
         borderRadius: '9px',
         width: 'fit-content',
         marginBottom: '24px',
@@ -409,9 +409,9 @@ export default function Produtos() {
               display: 'flex', alignItems: 'center', gap: '6px',
               padding: '7px 16px',
               borderRadius: '7px',
-              border: secao === s ? '1px solid #FFFFFF' : '1px solid transparent',
-              background: secao === s ? 'rgba(255,255,255,0.07)' : 'transparent',
-              color: secao === s ? '#FFFFFF' : '#555',
+              border: secao === s ? '1px solid var(--c-fff)' : '1px solid transparent',
+              background: secao === s ? 'rgba(var(--ink),0.07)' : 'transparent',
+              color: secao === s ? 'var(--c-fff)' : 'var(--c-55)',
               fontSize: '13px',
               fontWeight: secao === s ? 600 : 400,
               cursor: 'pointer',
@@ -427,7 +427,7 @@ export default function Produtos() {
       <AnimatePresence mode="wait">
         {secao === 'produtos' ? (
           <motion.div key="produtos" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-            {error && <p style={{ fontSize: '12px', color: '#666', marginBottom: '16px' }}>{error}</p>}
+            {error && <p style={{ fontSize: '12px', color: 'var(--c-66)', marginBottom: '16px' }}>{error}</p>}
             {resultadoImportacao && (
               <motion.div
                 initial={{ opacity: 0, y: -8 }}
@@ -435,22 +435,22 @@ export default function Produtos() {
                 style={{
                   display: 'flex', alignItems: 'flex-start', gap: '10px',
                   padding: '12px 16px',
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid #333',
+                  background: 'rgba(var(--ink),0.04)',
+                  border: '1px solid var(--c-33)',
                   borderRadius: '8px',
                   marginBottom: '20px',
                 }}
               >
-                <Upload size={14} style={{ color: '#A3A3A3', flexShrink: 0, marginTop: '2px' }} />
+                <Upload size={14} style={{ color: 'var(--c-a3)', flexShrink: 0, marginTop: '2px' }} />
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: '13px', color: '#A3A3A3' }}>
-                    <strong style={{ color: '#FFFFFF' }}>{resultadoImportacao.ok} produto{resultadoImportacao.ok === 1 ? '' : 's'}</strong> importado{resultadoImportacao.ok === 1 ? '' : 's'} com sucesso.
+                  <p style={{ fontSize: '13px', color: 'var(--c-a3)' }}>
+                    <strong style={{ color: 'var(--c-fff)' }}>{resultadoImportacao.ok} produto{resultadoImportacao.ok === 1 ? '' : 's'}</strong> importado{resultadoImportacao.ok === 1 ? '' : 's'} com sucesso.
                     {resultadoImportacao.erros.length > 0 && ` ${resultadoImportacao.erros.length} linha(s) ignorada(s):`}
                   </p>
                   {resultadoImportacao.erros.length > 0 && (
                     <ul style={{ marginTop: '6px', paddingLeft: '18px' }}>
                       {resultadoImportacao.erros.map((e, i) => (
-                        <li key={i} style={{ fontSize: '11px', color: '#666' }}>{e}</li>
+                        <li key={i} style={{ fontSize: '11px', color: 'var(--c-66)' }}>{e}</li>
                       ))}
                     </ul>
                   )}
@@ -465,15 +465,15 @@ export default function Produtos() {
                 style={{
                   display: 'flex', alignItems: 'center', gap: '10px',
                   padding: '12px 16px',
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid #333',
+                  background: 'rgba(var(--ink),0.04)',
+                  border: '1px solid var(--c-33)',
                   borderRadius: '8px',
                   marginBottom: '20px',
                 }}
               >
-                <AlertTriangle size={14} style={{ color: '#A3A3A3', flexShrink: 0 }} />
-                <p style={{ fontSize: '13px', color: '#A3A3A3' }}>
-                  <strong style={{ color: '#FFFFFF' }}>{alertas.length} produto{alertas.length > 1 ? 's' : ''}</strong>{' '}
+                <AlertTriangle size={14} style={{ color: 'var(--c-a3)', flexShrink: 0 }} />
+                <p style={{ fontSize: '13px', color: 'var(--c-a3)' }}>
+                  <strong style={{ color: 'var(--c-fff)' }}>{alertas.length} produto{alertas.length > 1 ? 's' : ''}</strong>{' '}
                   abaixo do estoque mínimo: {alertas.map(p => p.nome).join(', ')}.
                 </p>
               </motion.div>
@@ -486,10 +486,10 @@ export default function Produtos() {
                 gridTemplateColumns: colunasTabela,
                 gap: '12px',
                 padding: '10px 20px',
-                borderBottom: '1px solid #222',
-                fontSize: '10px', fontWeight: 600, color: '#444',
+                borderBottom: '1px solid var(--c-22)',
+                fontSize: '10px', fontWeight: 600, color: 'var(--c-44)',
                 textTransform: 'uppercase', letterSpacing: '0.1em',
-                background: 'rgba(0,0,0,0.2)',
+                background: 'var(--header-bg)',
                 alignItems: 'center',
               }}>
                 <span className="celula-check">
@@ -500,7 +500,7 @@ export default function Produtos() {
               </div>
 
               {produtos.length === 0 ? (
-                <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+                <div style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>
                   Nenhum produto cadastrado.
                 </div>
               ) : produtos.map((p, i) => {
@@ -519,10 +519,10 @@ export default function Produtos() {
                       gridTemplateColumns: colunasTabela,
                       gap: '12px',
                       padding: '10px 20px',
-                      borderBottom: i < produtos.length - 1 ? '1px solid #1F1F1F' : 'none',
+                      borderBottom: i < produtos.length - 1 ? '1px solid var(--c-1f)' : 'none',
                       alignItems: 'center',
                     }}
-                    whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+                    whileHover={{ backgroundColor: 'rgba(var(--ink),0.02)' }}
                   >
                     <span className="celula-check">
                       <Checkbox label={`Selecionar ${p.nome}`} checked={selecao.tem(p.id)} onChange={m => selecao.alternar(p.id, m)} />
@@ -530,27 +530,27 @@ export default function Produtos() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                       <div style={{
                         width: '30px', height: '30px', borderRadius: '6px', flexShrink: 0,
-                        background: '#1F1F1F', border: '1px solid #2A2A2A',
+                        background: 'var(--c-1f)', border: '1px solid var(--c-2a)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
                       }}>
                         {p.foto_url ? (
                           <img src={p.foto_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         ) : (
-                          <Package size={13} style={{ color: '#444' }} />
+                          <Package size={13} style={{ color: 'var(--c-44)' }} />
                         )}
                       </div>
                       <div style={{ minWidth: 0 }}>
-                        <p className="texto-cortado" style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{p.nome}</p>
+                        <p className="texto-cortado" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--c-fff)' }}>{p.nome}</p>
                         {detalhes && <p className="subtexto texto-cortado">{detalhes}</p>}
                       </div>
                     </div>
-                    <span className="texto-cortado" style={{ fontSize: '12px', color: '#666' }}>{CAT_LABEL[p.categoria]}</span>
-                    {verCusto && <span className="valor-num" style={{ fontSize: '13px', color: '#555', textAlign: 'right' }}>{formatCurrency(p.preco_custo)}</span>}
-                    <span className="valor-num" style={{ fontSize: '13px', color: '#A3A3A3', fontWeight: 500, textAlign: 'right' }}>{formatCurrency(p.preco_venda)}</span>
+                    <span className="texto-cortado" style={{ fontSize: '12px', color: 'var(--c-66)' }}>{CAT_LABEL[p.categoria]}</span>
+                    {verCusto && <span className="valor-num" style={{ fontSize: '13px', color: 'var(--c-55)', textAlign: 'right' }}>{formatCurrency(p.preco_custo)}</span>}
+                    <span className="valor-num" style={{ fontSize: '13px', color: 'var(--c-a3)', fontWeight: 500, textAlign: 'right' }}>{formatCurrency(p.preco_venda)}</span>
                     <div style={{ minWidth: 0 }}>
-                      <p style={{ fontSize: '13px', fontWeight: 600, color: baixo ? '#FFFFFF' : '#A3A3A3', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: baixo ? 'var(--c-fff)' : 'var(--c-a3)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         {p.estoque_atual} {p.unidade}
-                        {baixo && <AlertTriangle size={11} style={{ color: '#777' }} />}
+                        {baixo && <AlertTriangle size={11} style={{ color: 'var(--c-77)' }} />}
                       </p>
                       <p className="subtexto">mín. {p.estoque_minimo}</p>
                     </div>
@@ -592,7 +592,7 @@ export default function Produtos() {
                       className="card entity-card"
                       initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 20) * 0.04 }}
                       onClick={() => setProdutoAbertoId(p.id)}
-                      style={{ cursor: 'pointer', borderColor: selecao.tem(p.id) ? '#555' : undefined }}
+                      style={{ cursor: 'pointer', borderColor: selecao.tem(p.id) ? 'var(--c-55)' : undefined }}
                     >
                       <div className="entity-header" style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                         <span style={{ marginTop: '3px', display: 'flex' }}>
@@ -604,7 +604,7 @@ export default function Produtos() {
                           className="entity-avatar"
                           style={{
                             width: '40px', height: '40px', borderRadius: '10px', padding: 0, cursor: 'pointer',
-                            background: '#262626', border: '1px solid #333',
+                            background: 'var(--c-26)', border: '1px solid var(--c-33)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                             overflow: 'hidden',
                           }}
@@ -612,17 +612,17 @@ export default function Produtos() {
                           {p.foto_url ? (
                             <img src={p.foto_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           ) : (
-                            <Package size={16} style={{ color: '#A3A3A3' }} />
+                            <Package size={16} style={{ color: 'var(--c-a3)' }} />
                           )}
                         </button>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <h3 className="entity-title" style={{
-                              fontSize: '14px', fontWeight: 600, color: '#FFFFFF', fontFamily: 'DM Sans, sans-serif',
+                              fontSize: '14px', fontWeight: 600, color: 'var(--c-fff)', fontFamily: 'DM Sans, sans-serif',
                               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
                             }}>{p.nome}</h3>
                           </div>
-                          {detalhes && <p className="entity-subtle" style={{ fontSize: '11px', color: '#555', marginTop: '2px' }}>{detalhes}</p>}
+                          {detalhes && <p className="entity-subtle" style={{ fontSize: '11px', color: 'var(--c-55)', marginTop: '2px' }}>{detalhes}</p>}
                         </div>
                         <button
                           className={`status-pill${p.ativo ? '' : ' inativo'}`}
@@ -634,28 +634,28 @@ export default function Produtos() {
                         </button>
                       </div>
 
-                      <div className="entity-divider" style={{ height: '1px', background: '#222', margin: '14px 0' }} />
+                      <div className="entity-divider" style={{ height: '1px', background: 'var(--c-22)', margin: '14px 0' }} />
 
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
                         <div>
-                          <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Categoria</p>
-                          <p style={{ fontSize: '13px', color: '#A3A3A3', textTransform: 'capitalize' }}>{CAT_LABEL[p.categoria]}</p>
+                          <p style={{ fontSize: '10px', color: 'var(--c-44)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Categoria</p>
+                          <p style={{ fontSize: '13px', color: 'var(--c-a3)', textTransform: 'capitalize' }}>{CAT_LABEL[p.categoria]}</p>
                         </div>
                         <div>
-                          <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Estoque</p>
-                          <p style={{ fontSize: '13px', color: baixo ? '#FFFFFF' : '#A3A3A3', fontWeight: baixo ? 700 : 400 }}>
-                            {p.estoque_atual} {p.unidade} {baixo && <AlertTriangle size={11} style={{ marginLeft: '2px', color: '#777', verticalAlign: 'middle' }} />}
+                          <p style={{ fontSize: '10px', color: 'var(--c-44)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Estoque</p>
+                          <p style={{ fontSize: '13px', color: baixo ? 'var(--c-fff)' : 'var(--c-a3)', fontWeight: baixo ? 700 : 400 }}>
+                            {p.estoque_atual} {p.unidade} {baixo && <AlertTriangle size={11} style={{ marginLeft: '2px', color: 'var(--c-77)', verticalAlign: 'middle' }} />}
                           </p>
                         </div>
                         {verCusto && (
                           <div>
-                            <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Custo</p>
-                            <p style={{ fontSize: '13px', color: '#555' }}>{formatCurrency(p.preco_custo)}</p>
+                            <p style={{ fontSize: '10px', color: 'var(--c-44)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Custo</p>
+                            <p style={{ fontSize: '13px', color: 'var(--c-55)' }}>{formatCurrency(p.preco_custo)}</p>
                           </div>
                         )}
                         <div>
-                          <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Venda</p>
-                          <p style={{ fontSize: '13px', color: '#A3A3A3', fontWeight: 500 }}>{formatCurrency(p.preco_venda)}</p>
+                          <p style={{ fontSize: '10px', color: 'var(--c-44)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Venda</p>
+                          <p style={{ fontSize: '13px', color: 'var(--c-a3)', fontWeight: 500 }}>{formatCurrency(p.preco_venda)}</p>
                         </div>
                       </div>
 
@@ -690,7 +690,7 @@ export default function Produtos() {
               <ItemSelecao rotulo="Valor de venda" valor={formatCurrency(produtos.filter(p => selecao.tem(p.id)).reduce((s, p) => s + p.estoque_atual * p.preco_venda, 0))} />
             </BarraSelecao>
             {produtos.length === 0 && (
-              <div className="card mobile-only-grid" style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+              <div className="card mobile-only-grid" style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>
                 Nenhum produto cadastrado.
               </div>
             )}
@@ -702,20 +702,20 @@ export default function Produtos() {
                 display: 'grid',
                 minWidth: '720px', gridTemplateColumns: COLUNAS_SERVICO, gap: '12px', alignItems: 'center',
                 padding: '10px 20px',
-                borderBottom: '1px solid #222',
-                fontSize: '10px', fontWeight: 600, color: '#444',
+                borderBottom: '1px solid var(--c-22)',
+                fontSize: '10px', fontWeight: 600, color: 'var(--c-44)',
                 textTransform: 'uppercase', letterSpacing: '0.1em',
-                background: 'rgba(0,0,0,0.2)',
+                background: 'var(--header-bg)',
               }}>
                 <span>Serviço</span><span style={{ textAlign: 'right' }}>Preço</span><span>Duração</span><span>Comissão</span><span>Profissionais</span><span>Status</span><span />
               </div>
 
               {loading ? (
-                <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+                <div style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>
                   Carregando...
                 </div>
               ) : servicos.length === 0 ? (
-                <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+                <div style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>
                   Nenhum serviço cadastrado.
                 </div>
               ) : servicos.map((s, i) => (
@@ -728,23 +728,23 @@ export default function Produtos() {
                     display: 'grid',
                     minWidth: '720px', gridTemplateColumns: COLUNAS_SERVICO, gap: '12px',
                     padding: '11px 20px',
-                    borderBottom: i < servicos.length - 1 ? '1px solid #1F1F1F' : 'none',
+                    borderBottom: i < servicos.length - 1 ? '1px solid var(--c-1f)' : 'none',
                     alignItems: 'center',
                   }}
-                  whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+                  whileHover={{ backgroundColor: 'rgba(var(--ink),0.02)' }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                    <Scissors size={13} style={{ color: '#444', flexShrink: 0 }} />
+                    <Scissors size={13} style={{ color: 'var(--c-44)', flexShrink: 0 }} />
                     <div style={{ minWidth: 0 }}>
-                      <p className="texto-cortado" style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{s.nome}</p>
+                      <p className="texto-cortado" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--c-fff)' }}>{s.nome}</p>
                       {s.categoria && <p className="subtexto texto-cortado">{s.categoria}</p>}
                     </div>
                   </div>
-                  <span className="valor-num" style={{ fontSize: '13px', color: '#A3A3A3', fontWeight: 500, textAlign: 'right' }}>{formatCurrency(s.preco)}</span>
-                  <span style={{ fontSize: '12px', color: '#666' }}>{s.duracao_minutos} min</span>
-                  <span style={{ fontSize: '12px', color: '#666' }}>{s.comissao_percentual != null ? `${s.comissao_percentual}%` : '—'}</span>
-                  <span className="texto-cortado" style={{ fontSize: '12px', color: '#A3A3A3' }} title={s.profissionais?.map(p => p.nome).join(', ')}>
-                    {s.profissionais && s.profissionais.length > 0 ? s.profissionais.map(p => p.nome).join(', ') : <span style={{ color: '#333' }}>—</span>}
+                  <span className="valor-num" style={{ fontSize: '13px', color: 'var(--c-a3)', fontWeight: 500, textAlign: 'right' }}>{formatCurrency(s.preco)}</span>
+                  <span style={{ fontSize: '12px', color: 'var(--c-66)' }}>{s.duracao_minutos} min</span>
+                  <span style={{ fontSize: '12px', color: 'var(--c-66)' }}>{s.comissao_percentual != null ? `${s.comissao_percentual}%` : '—'}</span>
+                  <span className="texto-cortado" style={{ fontSize: '12px', color: 'var(--c-a3)' }} title={s.profissionais?.map(p => p.nome).join(', ')}>
+                    {s.profissionais && s.profissionais.length > 0 ? s.profissionais.map(p => p.nome).join(', ') : <span style={{ color: 'var(--c-33)' }}>—</span>}
                   </span>
                   <button
                     className={`status-pill${s.ativo ? '' : ' inativo'}`}
@@ -777,17 +777,17 @@ export default function Produtos() {
                     <div className="entity-header" style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                       <div className="entity-avatar" style={{
                         width: '40px', height: '40px', borderRadius: '10px',
-                        background: '#262626', border: '1px solid #333',
+                        background: 'var(--c-26)', border: '1px solid var(--c-33)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                       }}>
-                        <Scissors size={16} style={{ color: '#A3A3A3' }} />
+                        <Scissors size={16} style={{ color: 'var(--c-a3)' }} />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <h3 className="entity-title" style={{
-                          fontSize: '14px', fontWeight: 600, color: '#FFFFFF', fontFamily: 'DM Sans, sans-serif',
+                          fontSize: '14px', fontWeight: 600, color: 'var(--c-fff)', fontFamily: 'DM Sans, sans-serif',
                           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         }}>{s.nome}</h3>
-                        {s.categoria && <p className="entity-subtle" style={{ fontSize: '11px', color: '#555', marginTop: '2px' }}>{s.categoria}</p>}
+                        {s.categoria && <p className="entity-subtle" style={{ fontSize: '11px', color: 'var(--c-55)', marginTop: '2px' }}>{s.categoria}</p>}
                       </div>
                       <button
                         className={`status-pill${s.ativo ? '' : ' inativo'}`}
@@ -799,20 +799,20 @@ export default function Produtos() {
                       </button>
                     </div>
 
-                    <div className="entity-divider" style={{ height: '1px', background: '#222', margin: '14px 0' }} />
+                    <div className="entity-divider" style={{ height: '1px', background: 'var(--c-22)', margin: '14px 0' }} />
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
                       <div>
-                        <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Preço</p>
-                        <p style={{ fontSize: '13px', color: '#A3A3A3', fontWeight: 500 }}>{formatCurrency(s.preco)}</p>
+                        <p style={{ fontSize: '10px', color: 'var(--c-44)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Preço</p>
+                        <p style={{ fontSize: '13px', color: 'var(--c-a3)', fontWeight: 500 }}>{formatCurrency(s.preco)}</p>
                       </div>
                       <div>
-                        <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Duração</p>
-                        <p style={{ fontSize: '13px', color: '#666' }}>{s.duracao_minutos} min</p>
+                        <p style={{ fontSize: '10px', color: 'var(--c-44)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Duração</p>
+                        <p style={{ fontSize: '13px', color: 'var(--c-66)' }}>{s.duracao_minutos} min</p>
                       </div>
                       <div>
-                        <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Comissão</p>
-                        <p style={{ fontSize: '13px', color: '#666' }}>{s.comissao_percentual != null ? `${s.comissao_percentual}%` : '—'}</p>
+                        <p style={{ fontSize: '10px', color: 'var(--c-44)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Comissão</p>
+                        <p style={{ fontSize: '13px', color: 'var(--c-66)' }}>{s.comissao_percentual != null ? `${s.comissao_percentual}%` : '—'}</p>
                       </div>
                     </div>
 
@@ -820,9 +820,9 @@ export default function Produtos() {
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '12px' }}>
                         {s.profissionais.map(p => (
                           <span key={p.id} style={{
-                            fontSize: '10px', color: '#A3A3A3',
-                            background: 'rgba(255,255,255,0.06)',
-                            border: '1px solid #2A2A2A',
+                            fontSize: '10px', color: 'var(--c-a3)',
+                            background: 'rgba(var(--ink),0.06)',
+                            border: '1px solid var(--c-2a)',
                             borderRadius: '99px',
                             padding: '2px 8px',
                           }}>{p.nome}</span>
@@ -842,7 +842,7 @@ export default function Produtos() {
               </div>
             )}
             {!loading && servicos.length === 0 && (
-              <div className="card mobile-only-grid" style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+              <div className="card mobile-only-grid" style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>
                 Nenhum serviço cadastrado.
               </div>
             )}
@@ -962,8 +962,8 @@ export default function Produtos() {
                         <button key={p.id} type="button" className={`opcao${checked ? ' marcada' : ''}`} onClick={() => toggleProfissional(p.id)} aria-pressed={checked}>
                           <span className="opcao-caixa">{checked && <Check size={10} strokeWidth={3} />}</span>
                           <span style={{ minWidth: 0 }}>
-                            <span className="texto-cortado" style={{ display: 'block', fontSize: '13px', color: '#FFFFFF' }}>{p.nome}</span>
-                            <span className="texto-cortado" style={{ display: 'block', fontSize: '11px', color: '#555' }}>{p.especialidade}{p.ativo ? '' : ' · inativo'}</span>
+                            <span className="texto-cortado" style={{ display: 'block', fontSize: '13px', color: 'var(--c-fff)' }}>{p.nome}</span>
+                            <span className="texto-cortado" style={{ display: 'block', fontSize: '11px', color: 'var(--c-55)' }}>{p.especialidade}{p.ativo ? '' : ' · inativo'}</span>
                           </span>
                         </button>
                       )

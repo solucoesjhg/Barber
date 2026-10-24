@@ -89,8 +89,8 @@ export default function Comissoes() {
     <div className="page">
       <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Comissões</h1>
-          <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
+          <h1 style={{ fontSize: '24px', color: 'var(--c-fff)' }}>Comissões</h1>
+          <p style={{ fontSize: '13px', color: 'var(--c-55)', marginTop: '3px' }}>
             Geradas pelas vendas{podeGerenciar ? '' : ' · somente as suas'}
           </p>
         </div>
@@ -115,9 +115,9 @@ export default function Comissoes() {
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="list-header" style={{
           display: 'grid', minWidth: '700px', gridTemplateColumns: colunas, gap: '12px', alignItems: 'center',
-          padding: '10px 20px', borderBottom: '1px solid #222',
-          fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
-          background: 'rgba(0,0,0,0.2)',
+          padding: '10px 20px', borderBottom: '1px solid var(--c-22)',
+          fontSize: '10px', fontWeight: 600, color: 'var(--c-44)', textTransform: 'uppercase', letterSpacing: '0.1em',
+          background: 'var(--header-bg)',
         }}>
           <span className="celula-check">
             <Checkbox label="Selecionar todas" checked={selecao.todos} indeterminate={selecao.alguns} onChange={selecao.alternarTodos} disabled={filtradas.length === 0} />
@@ -128,11 +128,11 @@ export default function Comissoes() {
         </div>
 
         {loading ? (
-          <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Carregando...</div>
+          <div style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>Carregando...</div>
         ) : erro ? (
-          <div style={{ padding: '56px', textAlign: 'center', color: '#666', fontSize: '13px' }}>{erro}</div>
+          <div style={{ padding: '56px', textAlign: 'center', color: 'var(--c-66)', fontSize: '13px' }}>{erro}</div>
         ) : filtradas.length === 0 ? (
-          <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Nenhuma comissão no período.</div>
+          <div style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>Nenhuma comissão no período.</div>
         ) : filtradas.map((c, i) => (
           <motion.div
             key={c.id}
@@ -143,26 +143,26 @@ export default function Comissoes() {
             style={{
               display: 'grid', minWidth: '700px', gridTemplateColumns: colunas, gap: '12px',
               padding: '12px 20px', alignItems: 'center',
-              borderBottom: i < filtradas.length - 1 ? '1px solid #1A1A1A' : 'none',
+              borderBottom: i < filtradas.length - 1 ? '1px solid var(--c-1a)' : 'none',
             }}
           >
             <span className="celula-check">
               <Checkbox label={`Selecionar comissão de ${nomeExibicao(c)}`} checked={selecao.tem(c.id)} onChange={m => selecao.alternar(c.id, m)} />
             </span>
             <div style={{ minWidth: 0 }}>
-              <p className="texto-cortado" style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>
+              <p className="texto-cortado" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--c-fff)' }}>
                 {nomeExibicao(c)}
-                {!c.profissional_id && c.usuario_id && <span style={{ fontSize: '11px', color: '#555', fontWeight: 400 }}> · venda</span>}
+                {!c.profissional_id && c.usuario_id && <span style={{ fontSize: '11px', color: 'var(--c-55)', fontWeight: 400 }}> · venda</span>}
               </p>
               <p className="subtexto">{formatDateTime(c.created_at)}</p>
             </div>
             <div style={{ minWidth: 0 }}>
-              <p className="texto-cortado" style={{ fontSize: '12px', color: '#A3A3A3' }}>{c.comanda?.cliente_nome ?? (c.comanda_id ? 'Balcão' : '—')}</p>
+              <p className="texto-cortado" style={{ fontSize: '12px', color: 'var(--c-a3)' }}>{c.comanda?.cliente_nome ?? (c.comanda_id ? 'Balcão' : '—')}</p>
               {c.comanda && <p className="subtexto">Total {formatCurrency(Number(c.comanda.total))}</p>}
             </div>
-            <span className="valor-num" style={{ fontSize: '12px', color: '#777', textAlign: 'right' }}><b className="mobile-only-label">Base: </b>{formatCurrency(Number(c.valor_base))}</span>
-            <span className="valor-num" style={{ fontSize: '12px', color: '#777', textAlign: 'right' }}><b className="mobile-only-label">Percentual: </b>{Number(c.percentual)}%</span>
-            <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', textAlign: 'right' }}><b className="mobile-only-label">Comissão: </b>{formatCurrency(Number(c.valor_comissao))}</span>
+            <span className="valor-num" style={{ fontSize: '12px', color: 'var(--c-77)', textAlign: 'right' }}><b className="mobile-only-label">Base: </b>{formatCurrency(Number(c.valor_base))}</span>
+            <span className="valor-num" style={{ fontSize: '12px', color: 'var(--c-77)', textAlign: 'right' }}><b className="mobile-only-label">Percentual: </b>{Number(c.percentual)}%</span>
+            <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)', textAlign: 'right' }}><b className="mobile-only-label">Comissão: </b>{formatCurrency(Number(c.valor_comissao))}</span>
             {podeGerenciar && (
               <button
                 className="btn btn-icon"

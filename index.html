@@ -19,6 +19,8 @@
           window.history.replaceState(null, null, l.pathname.slice(0, -1) + decoded + l.hash)
         }
       }(window.location))
+      // Tema claro/escuro escolhido no menu; aplicado antes de pintar a tela.
+      try { if (localStorage.getItem('barber-tema') === 'light') document.documentElement.dataset.theme = 'light' } catch (e) {}
     </script>
   </head>
   <body>

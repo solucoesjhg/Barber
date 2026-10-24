@@ -145,11 +145,11 @@ export default function Dashboard() {
         transition={{ duration: 0.3 }}
       >
         <div>
-          <p style={{ fontSize: '11px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '6px' }}>
+          <p style={{ fontSize: '11px', color: 'var(--c-44)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '6px' }}>
             {dataStr}
           </p>
-          <h1 style={{ fontSize: '28px', color: '#FFFFFF', lineHeight: 1.1 }}>{saudacao}</h1>
-          <p style={{ fontSize: '14px', color: '#A3A3A3', marginTop: '4px' }}>Resumo do dia.</p>
+          <h1 style={{ fontSize: '28px', color: 'var(--c-fff)', lineHeight: 1.1 }}>{saudacao}</h1>
+          <p style={{ fontSize: '14px', color: 'var(--c-a3)', marginTop: '4px' }}>Resumo do dia.</p>
         </div>
 
         {podeEditar('agenda') && (
@@ -176,18 +176,18 @@ export default function Dashboard() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
                 <div style={{
                   width: '36px', height: '36px',
-                  background: 'rgba(255,255,255,0.06)',
+                  background: 'rgba(var(--ink),0.06)',
                   borderRadius: '8px',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <Icon size={16} style={{ color: '#A3A3A3' }} strokeWidth={1.75} />
+                  <Icon size={16} style={{ color: 'var(--c-a3)' }} strokeWidth={1.75} />
                 </div>
               </div>
-              <p style={{ fontSize: '26px', fontWeight: 700, color: '#FFFFFF', letterSpacing: '-0.02em', fontFamily: 'DM Sans, sans-serif' }}>
+              <p style={{ fontSize: '26px', fontWeight: 700, color: 'var(--c-fff)', letterSpacing: '-0.02em', fontFamily: 'DM Sans, sans-serif' }}>
                 {s.value}
               </p>
-              <p style={{ fontSize: '13px', color: '#A3A3A3', marginTop: '4px' }}>{s.label}</p>
-              <p style={{ fontSize: '11px', color: '#555', marginTop: '2px' }}>{s.sub}</p>
+              <p style={{ fontSize: '13px', color: 'var(--c-a3)', marginTop: '4px' }}>{s.label}</p>
+              <p style={{ fontSize: '11px', color: 'var(--c-55)', marginTop: '2px' }}>{s.sub}</p>
             </motion.div>
           )
         })}
@@ -207,9 +207,9 @@ export default function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 + i * 0.05, duration: 0.3 }}
             >
-              <Icon size={14} style={{ color: '#555', marginBottom: '10px' }} strokeWidth={1.75} />
-              <p style={{ fontSize: '18px', fontWeight: 700, color: '#FFFFFF', fontFamily: 'DM Sans, sans-serif' }}>{s.value}</p>
-              <p style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>{s.label}</p>
+              <Icon size={14} style={{ color: 'var(--c-55)', marginBottom: '10px' }} strokeWidth={1.75} />
+              <p style={{ fontSize: '18px', fontWeight: 700, color: 'var(--c-fff)', fontFamily: 'DM Sans, sans-serif' }}>{s.value}</p>
+              <p style={{ fontSize: '11px', color: 'var(--c-66)', marginTop: '4px' }}>{s.label}</p>
             </motion.div>
           )
         })}
@@ -218,24 +218,24 @@ export default function Dashboard() {
       {/* Rankings do mês */}
       {(podeVerCard('top_servicos') || podeVerCard('top_profissionais')) && <div className="dashboard-rankings-grid" style={{ display: 'grid', gridTemplateColumns: podeVerCard('top_servicos') && podeVerCard('top_profissionais') ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)', gap: '16px', marginBottom: '28px' }}>
         {podeVerCard('top_servicos') && <div className="card">
-          <p style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', marginBottom: '14px' }}>Serviços mais vendidos (mês)</p>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)', marginBottom: '14px' }}>Serviços mais vendidos (mês)</p>
           {topServicos.length === 0 ? (
-            <p style={{ fontSize: '12px', color: '#444' }}>Sem vendas no mês.</p>
+            <p style={{ fontSize: '12px', color: 'var(--c-44)' }}>Sem vendas no mês.</p>
           ) : topServicos.map(s => (
-            <div key={s.nome} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #1A1A1A' }}>
-              <span style={{ fontSize: '13px', color: '#A3A3A3' }}>{s.nome}</span>
-              <span style={{ fontSize: '13px', color: '#FFFFFF', fontWeight: 600 }}>{formatCurrency(s.total)}</span>
+            <div key={s.nome} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--c-1a)' }}>
+              <span style={{ fontSize: '13px', color: 'var(--c-a3)' }}>{s.nome}</span>
+              <span style={{ fontSize: '13px', color: 'var(--c-fff)', fontWeight: 600 }}>{formatCurrency(s.total)}</span>
             </div>
           ))}
         </div>}
         {podeVerCard('top_profissionais') && <div className="card">
-          <p style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', marginBottom: '14px' }}>Profissionais — faturamento (mês)</p>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)', marginBottom: '14px' }}>Profissionais — faturamento (mês)</p>
           {topProfissionais.length === 0 ? (
-            <p style={{ fontSize: '12px', color: '#444' }}>Sem vendas no mês.</p>
+            <p style={{ fontSize: '12px', color: 'var(--c-44)' }}>Sem vendas no mês.</p>
           ) : topProfissionais.map(p => (
-            <div key={p.nome} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #1A1A1A' }}>
-              <span style={{ fontSize: '13px', color: '#A3A3A3' }}>{p.nome}</span>
-              <span style={{ fontSize: '13px', color: '#FFFFFF', fontWeight: 600 }}>{formatCurrency(p.total)}</span>
+            <div key={p.nome} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--c-1a)' }}>
+              <span style={{ fontSize: '13px', color: 'var(--c-a3)' }}>{p.nome}</span>
+              <span style={{ fontSize: '13px', color: 'var(--c-fff)', fontWeight: 600 }}>{formatCurrency(p.total)}</span>
             </div>
           ))}
         </div>}
@@ -253,22 +253,22 @@ export default function Dashboard() {
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '18px 24px',
-          borderBottom: '1px solid #2A2A2A',
+          borderBottom: '1px solid var(--c-2a)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Calendar size={15} style={{ color: '#666' }} strokeWidth={1.75} />
-            <span style={{ fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Agenda de Hoje</span>
+            <Calendar size={15} style={{ color: 'var(--c-66)' }} strokeWidth={1.75} />
+            <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--c-fff)' }}>Agenda de Hoje</span>
             <span style={{
               fontSize: '11px', fontWeight: 600,
               padding: '2px 8px', borderRadius: '99px',
-              background: 'rgba(255,255,255,0.07)', color: '#A3A3A3',
+              background: 'rgba(var(--ink),0.07)', color: 'var(--c-a3)',
             }}>
               {agenda.length}
             </span>
           </div>
           <button style={{
             display: 'flex', alignItems: 'center', gap: '4px',
-            fontSize: '12px', color: '#555', background: 'none', border: 'none',
+            fontSize: '12px', color: 'var(--c-55)', background: 'none', border: 'none',
             cursor: 'pointer', transition: 'color 0.15s',
           }}>
             Ver agenda <ChevronRight size={12} />
@@ -280,13 +280,13 @@ export default function Dashboard() {
           display: 'grid',
           gridTemplateColumns: '70px 1fr 160px 140px',
           padding: '10px 24px',
-          borderBottom: '1px solid #222',
+          borderBottom: '1px solid var(--c-22)',
           fontSize: '10px',
           fontWeight: 600,
-          color: '#444',
+          color: 'var(--c-44)',
           textTransform: 'uppercase',
           letterSpacing: '0.1em',
-          background: 'rgba(0,0,0,0.2)',
+          background: 'var(--header-bg)',
         }}>
           <span>Hora</span>
           <span>Cliente / Serviço</span>
@@ -296,7 +296,7 @@ export default function Dashboard() {
 
         {/* Rows */}
         {loading ? (
-          <div style={{ padding: '48px', textAlign: 'center', color: '#555', fontSize: '13px' }}>
+          <div style={{ padding: '48px', textAlign: 'center', color: 'var(--c-55)', fontSize: '13px' }}>
             Carregando...
           </div>
         ) : agenda.map((ag, i) => {
@@ -308,23 +308,23 @@ export default function Dashboard() {
                 display: 'grid',
                 gridTemplateColumns: '70px 1fr 160px 140px',
                 padding: '14px 24px',
-                borderBottom: i < agenda.length - 1 ? '1px solid #1F1F1F' : 'none',
+                borderBottom: i < agenda.length - 1 ? '1px solid var(--c-1f)' : 'none',
                 cursor: 'pointer',
                 transition: 'background 0.12s ease',
               }}
-              whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+              whileHover={{ backgroundColor: 'rgba(var(--ink),0.02)' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Clock size={11} style={{ color: '#333' }} />
-                <span style={{ fontSize: '13px', fontWeight: 700, color: '#FFFFFF', fontVariantNumeric: 'tabular-nums' }}>
+                <Clock size={11} style={{ color: 'var(--c-33)' }} />
+                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--c-fff)', fontVariantNumeric: 'tabular-nums' }}>
                   {hora}
                 </span>
               </div>
               <div>
-                <p style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{ag.cliente?.nome}</p>
-                <p style={{ fontSize: '11px', color: '#555', marginTop: '2px' }}>{ag.servico?.nome}</p>
+                <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--c-fff)' }}>{ag.cliente?.nome}</p>
+                <p style={{ fontSize: '11px', color: 'var(--c-55)', marginTop: '2px' }}>{ag.servico?.nome}</p>
               </div>
-              <div style={{ fontSize: '13px', color: '#A3A3A3', display: 'flex', alignItems: 'center' }}>
+              <div style={{ fontSize: '13px', color: 'var(--c-a3)', display: 'flex', alignItems: 'center' }}>
                 {ag.profissional?.nome}
               </div>
               <div style={{ display: 'flex', alignItems: 'center' }}>

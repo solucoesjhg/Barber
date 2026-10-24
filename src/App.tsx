@@ -43,12 +43,12 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   if (loading) return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: '#0D0D0D',
+      background: 'var(--c-0d)',
     }}>
       <div style={{
         width: '18px', height: '18px',
-        border: '2px solid #222',
-        borderTopColor: '#FFFFFF',
+        border: '2px solid var(--c-22)',
+        borderTopColor: 'var(--c-fff)',
         borderRadius: '50%',
         animation: 'spin 0.75s linear infinite',
       }} />

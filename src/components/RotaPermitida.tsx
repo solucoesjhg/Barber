@@ -8,9 +8,9 @@ import type { TelaId } from '../types'
 export function SemPermissao({ titulo = 'Sem acesso a esta tela' }: { titulo?: string }) {
   return (
     <div style={{ padding: '80px 40px', textAlign: 'center', maxWidth: '440px', margin: '0 auto' }}>
-      <Lock size={22} style={{ color: '#555', marginBottom: '14px' }} />
-      <h2 style={{ fontSize: '18px', color: '#FFFFFF', marginBottom: '10px' }}>{titulo}</h2>
-      <p style={{ fontSize: '13px', color: '#A3A3A3', lineHeight: 1.6 }}>
+      <Lock size={22} style={{ color: 'var(--c-55)', marginBottom: '14px' }} />
+      <h2 style={{ fontSize: '18px', color: 'var(--c-fff)', marginBottom: '10px' }}>{titulo}</h2>
+      <p style={{ fontSize: '13px', color: 'var(--c-a3)', lineHeight: 1.6 }}>
         Seu usuário não tem permissão para esta tela. Se precisar dela, peça ao gerente ou administrador da loja para liberar em Permissões.
       </p>
     </div>
@@ -39,12 +39,12 @@ export default function RotaPermitida({ tela, gestao, superAdmin, children }: {
 }) {
   const { permissoes, loading, erro, recarregar, podeVer, gerenciaEquipe } = usePermissoes()
   const rotaInicial = useRotaInicial()
-  if (loading) return <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Carregando...</div>
+  if (loading) return <div style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>Carregando...</div>
   if (erro) {
     return (
       <div style={{ padding: '80px 40px', textAlign: 'center', maxWidth: '440px', margin: '0 auto' }}>
-        <h2 style={{ fontSize: '18px', color: '#FFFFFF', marginBottom: '10px' }}>Não foi possível carregar suas permissões</h2>
-        <p style={{ fontSize: '13px', color: '#A3A3A3', lineHeight: 1.6, marginBottom: '16px' }}>{erro}</p>
+        <h2 style={{ fontSize: '18px', color: 'var(--c-fff)', marginBottom: '10px' }}>Não foi possível carregar suas permissões</h2>
+        <p style={{ fontSize: '13px', color: 'var(--c-a3)', lineHeight: 1.6, marginBottom: '16px' }}>{erro}</p>
         <button className="btn btn-secondary btn-sm" onClick={recarregar}>Tentar de novo</button>
       </div>
     )

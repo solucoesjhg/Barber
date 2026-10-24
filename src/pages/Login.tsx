@@ -38,7 +38,7 @@ export default function Login() {
   }
 
   return (
-    <div ref={rootRef} className="login-root" onMouseMove={handleMouse}>
+    <div ref={rootRef} className="login-root tema-escuro" onMouseMove={handleMouse}>
       <ScopedStyles />
 
       {/* ─── Camadas de fundo ─────────────────────────── */}
@@ -173,7 +173,7 @@ function ScopedStyles() {
         align-items: center;
         justify-content: center;
         padding: 24px;
-        background: #060606;
+        background: var(--c-06);
         overflow: hidden;
         --mx: 50%;
         --my: 30%;
@@ -184,8 +184,8 @@ function ScopedStyles() {
         position: absolute;
         inset: -50%;
         background-image:
-          linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+          linear-gradient(rgba(var(--ink),0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(var(--ink),0.05) 1px, transparent 1px);
         background-size: 46px 46px;
         mask-image: radial-gradient(ellipse 60% 60% at 50% 40%, #000 30%, transparent 75%);
         -webkit-mask-image: radial-gradient(ellipse 60% 60% at 50% 40%, #000 30%, transparent 75%);
@@ -201,7 +201,7 @@ function ScopedStyles() {
         position: absolute;
         inset: 0;
         background: radial-gradient(360px circle at var(--mx) var(--my),
-          rgba(255,255,255,0.07), transparent 70%);
+          rgba(var(--ink),0.07), transparent 70%);
         pointer-events: none;
         transition: background 0.12s ease-out;
       }
@@ -216,12 +216,12 @@ function ScopedStyles() {
       .login-orb-1 {
         width: 420px; height: 420px;
         top: -120px; left: -80px;
-        background: radial-gradient(circle, rgba(255,255,255,0.12), transparent 70%);
+        background: radial-gradient(circle, rgba(var(--ink),0.12), transparent 70%);
       }
       .login-orb-2 {
         width: 380px; height: 380px;
         bottom: -140px; right: -100px;
-        background: radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%);
+        background: radial-gradient(circle, rgba(var(--ink),0.08), transparent 70%);
       }
 
       .login-vignette {
@@ -251,7 +251,7 @@ function ScopedStyles() {
         position: absolute;
         inset: -6px;
         border-radius: 20px;
-        border: 1px solid rgba(255,255,255,0.18);
+        border: 1px solid rgba(var(--ink),0.18);
         animation: login-pulse 3s ease-in-out infinite;
       }
       @keyframes login-pulse {
@@ -261,12 +261,12 @@ function ScopedStyles() {
       .login-title {
         font-family: 'Playfair Display', serif;
         font-size: 26px; font-weight: 600;
-        color: #FFFFFF; line-height: 1.1; margin-bottom: 10px;
+        color: var(--c-fff); line-height: 1.1; margin-bottom: 10px;
         letter-spacing: -0.01em;
       }
       .login-sub {
         display: inline-flex; align-items: center; gap: 7px;
-        font-size: 12.5px; color: #777;
+        font-size: 12.5px; color: var(--c-77);
         text-transform: uppercase; letter-spacing: 0.14em;
       }
       .login-dot {
@@ -284,7 +284,7 @@ function ScopedStyles() {
         inset: -1px;
         border-radius: 18px;
         background: conic-gradient(from 0deg,
-          transparent, rgba(255,255,255,0.5), transparent 30%);
+          transparent, rgba(var(--ink),0.5), transparent 30%);
         animation: login-spin 6s linear infinite;
         opacity: 0.5;
       }
@@ -295,7 +295,7 @@ function ScopedStyles() {
         background: rgba(20,20,20,0.72);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255,255,255,0.08);
+        border: 1px solid rgba(var(--ink),0.08);
         border-radius: 17px;
         padding: 34px;
       }
@@ -304,31 +304,31 @@ function ScopedStyles() {
       .login-input {
         width: 100%;
         padding: 13px 15px;
-        background: rgba(255,255,255,0.03);
-        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(var(--ink),0.03);
+        border: 1px solid rgba(var(--ink),0.1);
         border-radius: 10px;
-        color: #fff;
+        color: var(--c-fff);
         font-family: 'DM Sans', sans-serif;
         font-size: 14px;
         min-height: 46px;
         outline: none;
         transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
       }
-      .login-input::placeholder { color: #555; }
+      .login-input::placeholder { color: var(--c-55); }
       .login-input:focus {
-        border-color: rgba(255,255,255,0.35);
-        background: rgba(255,255,255,0.05);
-        box-shadow: 0 0 0 3px rgba(255,255,255,0.06);
+        border-color: rgba(var(--ink),0.35);
+        background: rgba(var(--ink),0.05);
+        box-shadow: 0 0 0 3px rgba(var(--ink),0.06);
       }
 
       .login-eye {
         position: absolute; right: 13px; top: 50%;
         transform: translateY(-50%);
         background: none; border: none; cursor: pointer;
-        color: #666; display: flex; align-items: center;
+        color: var(--c-66); display: flex; align-items: center;
         transition: color 0.18s ease;
       }
-      .login-eye:hover { color: #fff; }
+      .login-eye:hover { color: var(--c-fff); }
 
       .login-error {
         font-size: 13px; color: #f87171;
@@ -346,8 +346,8 @@ function ScopedStyles() {
         min-height: 48px;
         border: none; cursor: pointer;
         border-radius: 11px;
-        background: #FFFFFF;
-        color: #0D0D0D;
+        background: var(--c-fff);
+        color: var(--c-0d);
         font-family: 'DM Sans', sans-serif;
         font-weight: 600; font-size: 14.5px;
         overflow: hidden;
@@ -355,7 +355,7 @@ function ScopedStyles() {
       }
       .login-btn:hover:not(:disabled) {
         transform: translateY(-1px);
-        box-shadow: 0 8px 28px rgba(255,255,255,0.22);
+        box-shadow: 0 8px 28px rgba(var(--ink),0.22);
       }
       .login-btn:active:not(:disabled) { transform: translateY(0); }
       .login-btn:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -376,7 +376,7 @@ function ScopedStyles() {
 
       .login-foot {
         text-align: center; font-size: 12px;
-        color: #3a3a3a; margin-top: 26px;
+        color: var(--c-3a); margin-top: 26px;
         letter-spacing: 0.03em;
       }
 

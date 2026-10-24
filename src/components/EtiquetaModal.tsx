@@ -74,7 +74,7 @@ export default function EtiquetaModal({ produtos, onClose, onSkuGerado }: {
   function campoLayout(label: string, chave: keyof typeof layout, step = 1) {
     return (
       <div>
-        <label style={{ fontSize: '10px', color: '#666', display: 'block', marginBottom: '3px' }}>{label}</label>
+        <label style={{ fontSize: '10px', color: 'var(--c-66)', display: 'block', marginBottom: '3px' }}>{label}</label>
         <input
           className="input" type="number" min={0} step={step}
           style={{ fontSize: '12px', padding: '6px 8px' }}
@@ -88,7 +88,7 @@ export default function EtiquetaModal({ produtos, onClose, onSkuGerado }: {
   return (
     <motion.div
       className="modal-overlay"
-      style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+      style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'var(--overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
@@ -96,7 +96,7 @@ export default function EtiquetaModal({ produtos, onClose, onSkuGerado }: {
       <motion.div className="card no-print-hide" style={{ width: '100%', maxWidth: '640px', padding: '28px', maxHeight: '85vh', overflowY: 'auto' }}
         initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-          <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>
+          <h2 style={{ fontSize: '18px', color: 'var(--c-fff)' }}>
             {multiplo ? `Etiquetas — ${produtos.length} produtos` : `Etiqueta — ${produtos[0]?.nome}`}
           </h2>
           <button className="btn btn-icon" onClick={onClose}><X size={14} /></button>
@@ -104,9 +104,9 @@ export default function EtiquetaModal({ produtos, onClose, onSkuGerado }: {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
           {produtos.map(p => (
-            <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 0', borderBottom: '1px solid #1F1F1F' }}>
-              <span style={{ flex: 1, fontSize: '13px', color: '#FFFFFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nome}</span>
-              <label style={{ fontSize: '11px', color: '#666', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 0', borderBottom: '1px solid var(--c-1f)' }}>
+              <span style={{ flex: 1, fontSize: '13px', color: 'var(--c-fff)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nome}</span>
+              <label style={{ fontSize: '11px', color: 'var(--c-66)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 Cópias
                 <input
                   className="input" type="number" min={1} max={200}
@@ -120,7 +120,7 @@ export default function EtiquetaModal({ produtos, onClose, onSkuGerado }: {
         </div>
 
         <details style={{ marginBottom: '16px' }}>
-          <summary style={{ fontSize: '12px', color: '#666', cursor: 'pointer', marginBottom: '10px' }}>
+          <summary style={{ fontSize: '12px', color: 'var(--c-66)', cursor: 'pointer', marginBottom: '10px' }}>
             Folha de etiquetas (padrão: Pimaco A4348 — 96 etiquetas 17×31mm)
           </summary>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginTop: '10px' }}>
@@ -133,7 +133,7 @@ export default function EtiquetaModal({ produtos, onClose, onSkuGerado }: {
             {campoLayout('Espaço horizontal (mm)', 'gapH', 0.5)}
             {campoLayout('Espaço vertical (mm)', 'gapV', 0.5)}
           </div>
-          <p style={{ fontSize: '11px', color: '#444', marginTop: '8px' }}>
+          <p style={{ fontSize: '11px', color: 'var(--c-44)', marginTop: '8px' }}>
             {porPagina} etiquetas por folha · {paginas.length} folha{paginas.length === 1 ? '' : 's'} · Se a primeira impressão sair desalinhada, ajuste as margens aqui e imprima de novo.
           </p>
         </details>

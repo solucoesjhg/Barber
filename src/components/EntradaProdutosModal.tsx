@@ -186,7 +186,7 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
   return (
     <motion.div
       className="modal-overlay"
-      style={{ position: 'fixed', inset: 0, zIndex: 55, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+      style={{ position: 'fixed', inset: 0, zIndex: 55, background: 'var(--overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
@@ -198,9 +198,9 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
           <div>
-            <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>Nova Entrada de Mercadoria</h2>
+            <h2 style={{ fontSize: '18px', color: 'var(--c-fff)' }}>Nova Entrada de Mercadoria</h2>
             {!resultado && (
-              <p style={{ fontSize: '12px', color: '#555', marginTop: '3px' }}>
+              <p style={{ fontSize: '12px', color: 'var(--c-55)', marginTop: '3px' }}>
                 O preço à vista já vem sugerido (80% sobre o valor pago) — edite se quiser.
               </p>
             )}
@@ -214,24 +214,24 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
               {resultado.map(r => (
                 <div key={r.produto_id} style={{
                   display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px',
-                  borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid #252525',
+                  borderRadius: '8px', background: 'rgba(var(--ink),0.03)', border: '1px solid var(--c-25)',
                 }}>
-                  <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#1F1F1F', border: '1px solid #2A2A2A', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Package size={13} style={{ color: '#555' }} />
+                  <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'var(--c-1f)', border: '1px solid var(--c-2a)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Package size={13} style={{ color: 'var(--c-55)' }} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{r.nome}</p>
-                    <p style={{ fontSize: '11px', color: '#555', marginTop: '2px' }}>
+                    <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--c-fff)' }}>{r.nome}</p>
+                    <p style={{ fontSize: '11px', color: 'var(--c-55)', marginTop: '2px' }}>
                       +{r.quantidade} un · custo {formatCurrency(r.custo_unitario)}
                     </p>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>{formatCurrency(r.preco_venda)}</p>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)' }}>{formatCurrency(r.preco_venda)}</p>
                   </div>
                 </div>
               ))}
             </div>
-            <p style={{ fontSize: '12px', color: '#555', marginBottom: '14px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--c-55)', marginBottom: '14px' }}>
               {aVista
                 ? `Pago à vista — saiu de ${contasFinanceiras.find(c => c.id === contaFinanceiraId)?.nome ?? 'uma conta'}.`
                 : `A prazo — título criado em Contas a Pagar, vencendo em ${formatDate(dataVencimento)}.`}
@@ -246,14 +246,14 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
               {itensCalculados.map(item => {
                 const lista = buscaAberta === item.id ? sugestoes(item.nome) : []
                 return (
-                  <div key={item.id} style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid #252525' }}>
+                  <div key={item.id} style={{ padding: '12px', borderRadius: '8px', background: 'rgba(var(--ink),0.03)', border: '1px solid var(--c-25)' }}>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', marginBottom: '8px' }}>
                       <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
                         {item.produtoId ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 12px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '8px' }}>
-                            <span style={{ flex: 1, fontSize: '13px', color: '#FFFFFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.nome}</span>
-                            <span style={{ fontSize: '10px', color: '#555', flexShrink: 0 }}>existente</span>
-                            <button onClick={() => limparSelecao(item.id)} style={{ background: 'transparent', border: 'none', color: '#666', cursor: 'pointer', padding: '2px', display: 'flex', flexShrink: 0 }}>
+                            <span style={{ flex: 1, fontSize: '13px', color: 'var(--c-fff)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.nome}</span>
+                            <span style={{ fontSize: '10px', color: 'var(--c-55)', flexShrink: 0 }}>existente</span>
+                            <button onClick={() => limparSelecao(item.id)} style={{ background: 'transparent', border: 'none', color: 'var(--c-66)', cursor: 'pointer', padding: '2px', display: 'flex', flexShrink: 0 }}>
                               <X size={12} />
                             </button>
                           </div>
@@ -272,7 +272,7 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
                           <div style={{
                             position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 10,
                             display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '160px', overflowY: 'auto',
-                            background: '#1F1F1F', border: '1px solid var(--border)', borderRadius: '8px', padding: '6px',
+                            background: 'var(--c-1f)', border: '1px solid var(--border)', borderRadius: '8px', padding: '6px',
                             boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
                           }}>
                             {lista.map(p => (
@@ -283,13 +283,13 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
                                 style={{
                                   display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px',
                                   width: '100%', padding: '7px 9px', borderRadius: '6px', border: 'none', background: 'transparent',
-                                  color: '#FFFFFF', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                                  color: 'var(--c-fff)', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
                                 }}
-                                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+                                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(var(--ink),0.06)')}
                                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                               >
                                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nome}</span>
-                                <span style={{ fontSize: '10px', color: '#555', flexShrink: 0 }}>custo atual {formatCurrency(p.preco_custo)}</span>
+                                <span style={{ fontSize: '10px', color: 'var(--c-55)', flexShrink: 0 }}>custo atual {formatCurrency(p.preco_custo)}</span>
                               </button>
                             ))}
                           </div>
@@ -330,8 +330,8 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
                     </div>
 
                     {item.qtdTotal > 0 && Number(item.valorPago) >= 0 && (
-                      <p style={{ fontSize: '11px', color: '#555', marginTop: '8px' }}>
-                        Custo rateado (c/ frete): <strong style={{ color: '#A3A3A3' }}>{formatCurrency(item.custoUnitario)}</strong>
+                      <p style={{ fontSize: '11px', color: 'var(--c-55)', marginTop: '8px' }}>
+                        Custo rateado (c/ frete): <strong style={{ color: 'var(--c-a3)' }}>{formatCurrency(item.custoUnitario)}</strong>
                       </p>
                     )}
                   </div>
@@ -364,9 +364,9 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
                   type="button" onClick={() => setAVista(true)}
                   style={{
                     flex: 1, padding: '9px 12px', borderRadius: '8px', fontFamily: 'inherit',
-                    border: aVista ? '1px solid #FFFFFF' : '1px solid #2A2A2A',
-                    background: aVista ? 'rgba(255,255,255,0.08)' : 'transparent',
-                    color: aVista ? '#FFFFFF' : '#666', fontSize: '13px', cursor: 'pointer',
+                    border: aVista ? '1px solid var(--c-fff)' : '1px solid var(--c-2a)',
+                    background: aVista ? 'rgba(var(--ink),0.08)' : 'transparent',
+                    color: aVista ? 'var(--c-fff)' : 'var(--c-66)', fontSize: '13px', cursor: 'pointer',
                   }}
                 >
                   À vista
@@ -375,9 +375,9 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
                   type="button" onClick={() => setAVista(false)}
                   style={{
                     flex: 1, padding: '9px 12px', borderRadius: '8px', fontFamily: 'inherit',
-                    border: !aVista ? '1px solid #FFFFFF' : '1px solid #2A2A2A',
-                    background: !aVista ? 'rgba(255,255,255,0.08)' : 'transparent',
-                    color: !aVista ? '#FFFFFF' : '#666', fontSize: '13px', cursor: 'pointer',
+                    border: !aVista ? '1px solid var(--c-fff)' : '1px solid var(--c-2a)',
+                    background: !aVista ? 'rgba(var(--ink),0.08)' : 'transparent',
+                    color: !aVista ? 'var(--c-fff)' : 'var(--c-66)', fontSize: '13px', cursor: 'pointer',
                   }}
                 >
                   A prazo
@@ -391,7 +391,7 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
                 </select>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <p style={{ fontSize: '11px', color: '#555' }}>
+                  <p style={{ fontSize: '11px', color: 'var(--c-55)' }}>
                     Não sai do caixa agora — cria um título em Contas a Pagar, vencendo em {formatDate(dataVencimento)}.
                   </p>
                   <select className="input" value={fornecedorId} onChange={e => setFornecedorId(e.target.value)}>
@@ -412,22 +412,22 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
               )}
             </div>
 
-            <div style={{ padding: '14px 16px', background: 'rgba(255,255,255,0.04)', borderRadius: '8px', marginBottom: '18px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ padding: '14px 16px', background: 'rgba(var(--ink),0.04)', borderRadius: '8px', marginBottom: '18px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '12px', color: '#666' }}>Total pago nas peças</span>
-                <span style={{ fontSize: '13px', color: '#A3A3A3' }}>{formatCurrency(totalPago)}</span>
+                <span style={{ fontSize: '12px', color: 'var(--c-66)' }}>Total pago nas peças</span>
+                <span style={{ fontSize: '13px', color: 'var(--c-a3)' }}>{formatCurrency(totalPago)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '12px', color: '#666' }}>Frete + despesas − desconto</span>
-                <span style={{ fontSize: '13px', color: '#A3A3A3' }}>{formatCurrency(totalExtra)}</span>
+                <span style={{ fontSize: '12px', color: 'var(--c-66)' }}>Frete + despesas − desconto</span>
+                <span style={{ fontSize: '13px', color: 'var(--c-a3)' }}>{formatCurrency(totalExtra)}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '6px', borderTop: '1px solid #262626' }}>
-                <span style={{ fontSize: '13px', color: '#A3A3A3' }}>Total da entrada</span>
-                <span style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF' }}>{formatCurrency(totalPago + totalExtra)}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '6px', borderTop: '1px solid var(--c-26)' }}>
+                <span style={{ fontSize: '13px', color: 'var(--c-a3)' }}>Total da entrada</span>
+                <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--c-fff)' }}>{formatCurrency(totalPago + totalExtra)}</span>
               </div>
             </div>
 
-            {error && <p style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>{error}</p>}
+            {error && <p style={{ fontSize: '12px', color: 'var(--c-66)', marginBottom: '12px' }}>{error}</p>}
             <div className="modal-actions" style={{ display: 'flex', gap: '10px' }}>
               <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>
                 Cancelar <span className="shortcut-hint">(Esc)</span>

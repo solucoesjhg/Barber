@@ -375,15 +375,15 @@ export default function Vendas() {
             position: 'fixed', bottom: '28px', right: '28px', zIndex: 100,
             display: 'flex', alignItems: 'center', gap: '10px',
             padding: '14px 20px',
-            background: '#1E1E1E', border: '1px solid #333', borderRadius: '10px',
+            background: 'var(--c-1e)', border: '1px solid var(--c-33)', borderRadius: '10px',
             boxShadow: '0 8px 32px rgba(0,0,0,0.7)',
           }}
           initial={{ opacity: 0, y: 16, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16 }}
         >
-          <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Check size={14} style={{ color: '#FFFFFF' }} />
+          <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(var(--ink),0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Check size={14} style={{ color: 'var(--c-fff)' }} />
           </div>
-          <p style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>{done}</p>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)' }}>{done}</p>
         </motion.div>
       )}
     </AnimatePresence>
@@ -394,8 +394,8 @@ export default function Vendas() {
       <div className="page">
         <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
           <div>
-            <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Vendas</h1>
-            <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
+            <h1 style={{ fontSize: '24px', color: 'var(--c-fff)' }}>Vendas</h1>
+            <p style={{ fontSize: '13px', color: 'var(--c-55)', marginTop: '3px' }}>
               {loadingVendas ? 'Carregando...'
                 : modoProfissional
                   ? `Vendas em que você atendeu · ${fechadas.length} ${fechadas.length === 1 ? 'venda' : 'vendas'} · ${formatCurrency(totalMeusItens)} nos seus itens`
@@ -416,7 +416,7 @@ export default function Vendas() {
             <Search size={13} />
             <input placeholder="Buscar cliente..." value={buscaLista} onChange={e => setBuscaLista(e.target.value)} />
             {buscaLista && (
-              <button onClick={() => setBuscaLista('')} aria-label="Limpar busca" style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', display: 'flex' }}>
+              <button onClick={() => setBuscaLista('')} aria-label="Limpar busca" style={{ background: 'none', border: 'none', color: 'var(--c-55)', cursor: 'pointer', display: 'flex' }}>
                 <X size={12} />
               </button>
             )}
@@ -427,9 +427,9 @@ export default function Vendas() {
         <div className="card desktop-row" style={{ padding: 0, overflow: 'hidden' }}>
           <div className="list-header" style={{
             display: 'grid', minWidth: '680px', gridTemplateColumns: COLUNAS_LISTA, gap: '12px',
-            padding: '10px 20px', borderBottom: '1px solid #222', alignItems: 'center',
-            fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
-            background: 'rgba(0,0,0,0.2)',
+            padding: '10px 20px', borderBottom: '1px solid var(--c-22)', alignItems: 'center',
+            fontSize: '10px', fontWeight: 600, color: 'var(--c-44)', textTransform: 'uppercase', letterSpacing: '0.1em',
+            background: 'var(--header-bg)',
           }}>
             <span className="celula-check">
               <Checkbox label="Selecionar todas" checked={selecao.todos} indeterminate={selecao.alguns} onChange={selecao.alternarTodos} disabled={vendasFiltradas.length === 0} />
@@ -438,9 +438,9 @@ export default function Vendas() {
           </div>
 
           {loadingVendas ? (
-            <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Carregando...</div>
+            <div style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>Carregando...</div>
           ) : vendasFiltradas.length === 0 ? (
-            <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+            <div style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>
               {buscaLista ? 'Nenhuma venda encontrada.' : `Nenhuma venda no período (${rotuloIntervalo(periodo)}).`}
             </div>
           ) : vendasFiltradas.map((v, i) => (
@@ -452,22 +452,22 @@ export default function Vendas() {
               style={{
                 display: 'grid', minWidth: '680px', gridTemplateColumns: COLUNAS_LISTA, gap: '12px',
                 padding: '12px 20px', alignItems: 'center',
-                borderBottom: i < vendasFiltradas.length - 1 ? '1px solid #1F1F1F' : 'none',
+                borderBottom: i < vendasFiltradas.length - 1 ? '1px solid var(--c-1f)' : 'none',
               }}
             >
               <span className="celula-check">
                 <Checkbox label={`Selecionar venda de ${v.cliente_nome ?? 'Balcão'}`} checked={selecao.tem(v.id)} onChange={m => selecao.alternar(v.id, m)} />
               </span>
               <div style={{ minWidth: 0 }}>
-                <p className="texto-cortado" style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{v.cliente_nome ?? 'Balcão'}</p>
+                <p className="texto-cortado" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--c-fff)' }}>{v.cliente_nome ?? 'Balcão'}</p>
                 <p className="subtexto">{formatDateTime(v.created_at ?? v.data)}</p>
               </div>
               {modoProfissional
-                ? <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>{formatCurrency(valorMeusItens(v))}</span>
-                : <span className="texto-cortado" style={{ fontSize: '12px', color: '#A3A3A3' }}>{nomeUsuarioVenda(v.usuario_id)}</span>}
-              <span style={{ fontSize: '12px', color: '#A3A3A3' }}>{v.forma_pagamento ? PAGAMENTO_LABEL[v.forma_pagamento] ?? v.forma_pagamento : '—'}</span>
+                ? <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)' }}>{formatCurrency(valorMeusItens(v))}</span>
+                : <span className="texto-cortado" style={{ fontSize: '12px', color: 'var(--c-a3)' }}>{nomeUsuarioVenda(v.usuario_id)}</span>}
+              <span style={{ fontSize: '12px', color: 'var(--c-a3)' }}>{v.forma_pagamento ? PAGAMENTO_LABEL[v.forma_pagamento] ?? v.forma_pagamento : '—'}</span>
               <span className={STATUS_CLASS[v.status] ?? 'badge badge-pending'}>{STATUS_LABEL[v.status] ?? v.status}</span>
-              <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', textAlign: 'right' }}>{formatCurrency(v.total)}</span>
+              <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)', textAlign: 'right' }}>{formatCurrency(v.total)}</span>
             </motion.div>
           ))}
         </div>
@@ -481,23 +481,23 @@ export default function Vendas() {
                 className="card entity-card"
                 initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 20) * 0.04 }}
                 onClick={() => setVendaSelecionadaId(v.id)}
-                style={{ cursor: 'pointer', borderColor: selecao.tem(v.id) ? '#555' : undefined }}
+                style={{ cursor: 'pointer', borderColor: selecao.tem(v.id) ? 'var(--c-55)' : undefined }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <p className="entity-title texto-cortado" style={{ fontSize: '14px', color: '#FFFFFF', fontWeight: 600 }}>{v.cliente_nome ?? 'Balcão'}</p>
-                    <p className="entity-subtle" style={{ fontSize: '11px', color: '#555', marginTop: '2px' }}>
+                    <p className="entity-title texto-cortado" style={{ fontSize: '14px', color: 'var(--c-fff)', fontWeight: 600 }}>{v.cliente_nome ?? 'Balcão'}</p>
+                    <p className="entity-subtle" style={{ fontSize: '11px', color: 'var(--c-55)', marginTop: '2px' }}>
                       {formatDate(v.data)} · {modoProfissional ? `seus itens ${formatCurrency(valorMeusItens(v))}` : nomeUsuarioVenda(v.usuario_id)}
                     </p>
                   </div>
                   <Checkbox label="Selecionar venda" checked={selecao.tem(v.id)} onChange={m => selecao.alternar(v.id, m)} />
                 </div>
-                <div className="entity-divider" style={{ height: '1px', background: '#222', margin: '12px 0' }} />
+                <div className="entity-divider" style={{ height: '1px', background: 'var(--c-22)', margin: '12px 0' }} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '12px', color: '#A3A3A3' }}>{v.forma_pagamento ? PAGAMENTO_LABEL[v.forma_pagamento] ?? v.forma_pagamento : '—'}</span>
+                  <span style={{ fontSize: '12px', color: 'var(--c-a3)' }}>{v.forma_pagamento ? PAGAMENTO_LABEL[v.forma_pagamento] ?? v.forma_pagamento : '—'}</span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {v.status !== 'fechada' && <span className={STATUS_CLASS[v.status] ?? 'badge badge-pending'}>{STATUS_LABEL[v.status] ?? v.status}</span>}
-                    <span className="valor-num" style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF' }}>{formatCurrency(v.total)}</span>
+                    <span className="valor-num" style={{ fontSize: '15px', fontWeight: 700, color: 'var(--c-fff)' }}>{formatCurrency(v.total)}</span>
                   </span>
                 </div>
               </motion.div>
@@ -537,7 +537,7 @@ export default function Vendas() {
 
         <button
           onClick={sairDaVenda}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#666', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '14px', flexShrink: 0, fontFamily: 'inherit' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--c-66)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '14px', flexShrink: 0, fontFamily: 'inherit' }}
         >
           <ArrowLeft size={13} /> {editando ? 'Cancelar edição' : origemAgenda ? 'Voltar para a Agenda' : 'Vendas'}
         </button>
@@ -548,13 +548,13 @@ export default function Vendas() {
             flex: 1,
             display: 'flex', alignItems: 'center', gap: '8px',
             padding: '9px 14px',
-            background: '#1A1A1A',
-            border: '1px solid #252525',
+            background: 'var(--c-1a)',
+            border: '1px solid var(--c-25)',
             borderRadius: '8px',
           }}>
-            <Search size={13} style={{ color: '#444', flexShrink: 0 }} />
+            <Search size={13} style={{ color: 'var(--c-44)', flexShrink: 0 }} />
             <input
-              style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: '13px', color: '#FFFFFF', fontFamily: 'inherit' }}
+              style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: '13px', color: 'var(--c-fff)', fontFamily: 'inherit' }}
               placeholder="Buscar produto ou serviço, ou ler código..."
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -562,7 +562,7 @@ export default function Vendas() {
               autoFocus
             />
             {search && (
-              <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', padding: '2px', display: 'flex' }}>
+              <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', color: 'var(--c-44)', cursor: 'pointer', padding: '2px', display: 'flex' }}>
                 <X size={12} />
               </button>
             )}
@@ -574,8 +574,8 @@ export default function Vendas() {
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               width: '38px', height: '38px', flexShrink: 0,
-              background: '#1A1A1A', border: '1px solid #252525', borderRadius: '8px',
-              color: '#A3A3A3', cursor: 'pointer',
+              background: 'var(--c-1a)', border: '1px solid var(--c-25)', borderRadius: '8px',
+              color: 'var(--c-a3)', cursor: 'pointer',
             }}
           >
             <ScanLine size={15} />
@@ -583,14 +583,14 @@ export default function Vendas() {
         </div>
 
         {scanAviso && (
-          <p style={{ fontSize: '12px', color: '#666', marginTop: '-8px', marginBottom: '12px', flexShrink: 0 }}>{scanAviso}</p>
+          <p style={{ fontSize: '12px', color: 'var(--c-66)', marginTop: '-8px', marginBottom: '12px', flexShrink: 0 }}>{scanAviso}</p>
         )}
 
         {/* Content area — produtos e serviços juntos, sem separação */}
         <div className="pdv-catalog-content" style={{ flex: 1, overflowY: 'auto', paddingBottom: '16px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '12px' }}>
             {itensCatalogo.length === 0 ? (
-              <div style={{ gridColumn: '1/-1', padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+              <div style={{ gridColumn: '1/-1', padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>
                 Nenhum produto ou serviço encontrado.
               </div>
             ) : itensCatalogo.map(item => {
@@ -600,23 +600,23 @@ export default function Vendas() {
                   key={`${item.tipo}-${item.dado.id}`}
                   onClick={() => item.tipo === 'servico' ? addServico(item.dado) : addProduto(item.dado)}
                   className="card-sm"
-                  style={{ cursor: 'pointer', border: '1px solid #2A2A2A', textAlign: 'left', transition: 'all 0.15s', fontFamily: 'inherit', width: '100%' }}
-                  whileHover={{ borderColor: '#444', background: '#242424' }}
+                  style={{ cursor: 'pointer', border: '1px solid var(--c-2a)', textAlign: 'left', transition: 'all 0.15s', fontFamily: 'inherit', width: '100%' }}
+                  whileHover={{ borderColor: 'var(--c-44)', background: 'var(--c-24)' }}
                   whileTap={{ scale: 0.97 }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '6px' }}>
-                    {item.tipo === 'servico' ? <Scissors size={11} style={{ color: '#555' }} /> : <Package size={11} style={{ color: '#555' }} />}
-                    <span style={{ fontSize: '9px', color: '#555', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    {item.tipo === 'servico' ? <Scissors size={11} style={{ color: 'var(--c-55)' }} /> : <Package size={11} style={{ color: 'var(--c-55)' }} />}
+                    <span style={{ fontSize: '9px', color: 'var(--c-55)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                       {item.tipo === 'servico' ? 'Serviço' : 'Produto'}
                     </span>
                   </div>
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', marginBottom: '4px' }}>{item.dado.nome}</p>
-                  <p style={{ fontSize: '11px', color: baixo ? '#A3A3A3' : '#555' }}>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)', marginBottom: '4px' }}>{item.dado.nome}</p>
+                  <p style={{ fontSize: '11px', color: baixo ? 'var(--c-a3)' : 'var(--c-55)' }}>
                     {item.tipo === 'servico'
                       ? `${item.dado.duracao_minutos} min`
                       : `${item.dado.estoque_atual} ${item.dado.unidade} em estoque`}
                   </p>
-                  <p style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF', marginTop: '10px' }}>
+                  <p style={{ fontSize: '16px', fontWeight: 700, color: 'var(--c-fff)', marginTop: '10px' }}>
                     {formatCurrency(item.tipo === 'servico' ? item.dado.preco : item.dado.preco_venda)}
                   </p>
                 </motion.button>
@@ -629,33 +629,33 @@ export default function Vendas() {
       {/* Right — cart */}
       <div className="pdv-cart" style={{
         width: '320px', flexShrink: 0,
-        background: '#1A1A1A',
-        border: '1px solid #252525',
+        background: 'var(--c-1a)',
+        border: '1px solid var(--c-25)',
         borderRadius: '12px',
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
         overflow: 'hidden',
       }}>
-        <div style={{ padding: '18px 20px', borderBottom: '1px solid #222', flexShrink: 0 }}>
+        <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--c-22)', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {editando ? <Pencil size={14} style={{ color: '#555' }} /> : <ShoppingCart size={15} style={{ color: '#555' }} />}
-            <span style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>{editando ? 'Editando venda' : 'Comanda'}</span>
+            {editando ? <Pencil size={14} style={{ color: 'var(--c-55)' }} /> : <ShoppingCart size={15} style={{ color: 'var(--c-55)' }} />}
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)' }}>{editando ? 'Editando venda' : 'Comanda'}</span>
             {cart.length > 0 && (
               <span style={{
                 marginLeft: 'auto', fontSize: '11px', padding: '2px 8px',
-                borderRadius: '99px', background: 'rgba(255,255,255,0.07)', color: '#A3A3A3',
+                borderRadius: '99px', background: 'rgba(var(--ink),0.07)', color: 'var(--c-a3)',
               }}>
                 {cart.length}
               </span>
             )}
           </div>
           {editando && edicao && (
-            <p style={{ fontSize: '11px', color: '#666', marginTop: '6px' }}>Venda de {formatDateTime(edicao.created_at ?? edicao.data)}</p>
+            <p style={{ fontSize: '11px', color: 'var(--c-66)', marginTop: '6px' }}>Venda de {formatDateTime(edicao.created_at ?? edicao.data)}</p>
           )}
           {origemAgenda && (
-            <p style={{ fontSize: '11px', color: '#A3A3A3', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <CalendarDays size={12} style={{ color: '#555', flexShrink: 0 }} />
+            <p style={{ fontSize: '11px', color: 'var(--c-a3)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <CalendarDays size={12} style={{ color: 'var(--c-55)', flexShrink: 0 }} />
               <span className="texto-cortado">Agenda: {origemAgenda.descricao}</span>
             </p>
           )}
@@ -682,7 +682,7 @@ export default function Vendas() {
         <div className="pdv-cart-items" style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
           <AnimatePresence>
             {cart.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 20px', color: '#333', fontSize: '13px' }}>
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--c-33)', fontSize: '13px' }}>
                 Adicione itens à comanda
               </div>
             ) : cart.map(item => (
@@ -694,15 +694,15 @@ export default function Vendas() {
                   padding: '10px 12px',
                   borderRadius: '8px',
                   marginBottom: '6px',
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid #252525',
+                  background: 'rgba(var(--ink),0.03)',
+                  border: '1px solid var(--c-25)',
                 }}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: '12px', fontWeight: 500, color: '#FFFFFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <p style={{ fontSize: '12px', fontWeight: 500, color: 'var(--c-fff)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {item.nome}
                   </p>
-                  <p style={{ fontSize: '11px', color: '#555', marginTop: '2px' }}>{formatCurrency(item.preco_unitario)}</p>
+                  <p style={{ fontSize: '11px', color: 'var(--c-55)', marginTop: '2px' }}>{formatCurrency(item.preco_unitario)}</p>
                   {profissionais.length > 0 && (
                     <select
                       aria-label={`Profissional de ${item.nome}`}
@@ -710,8 +710,8 @@ export default function Vendas() {
                       onChange={e => mudarProfissionalItem(item.id, e.target.value)}
                       style={{
                         marginTop: '6px', width: '100%', fontSize: '11px', padding: '4px 6px', borderRadius: '6px',
-                        background: '#111', color: item.profissional_id ? '#A3A3A3' : '#FFFFFF', fontFamily: 'inherit',
-                        border: item.tipo === 'servico' && !item.profissional_id ? '1px dashed #A3A3A3' : '1px solid #2A2A2A',
+                        background: 'var(--c-11)', color: item.profissional_id ? 'var(--c-a3)' : 'var(--c-fff)', fontFamily: 'inherit',
+                        border: item.tipo === 'servico' && !item.profissional_id ? '1px dashed var(--c-a3)' : '1px solid var(--c-2a)',
                       }}
                     >
                       <option value="">{item.tipo === 'servico' ? 'Escolha o profissional *' : 'Sem profissional'}</option>
@@ -723,20 +723,20 @@ export default function Vendas() {
                   <button
                     onClick={() => changeQty(item.id, -1)}
                     aria-label="Diminuir quantidade"
-                    style={{ width: '22px', height: '22px', borderRadius: '5px', border: '1px solid #333', background: 'transparent', color: '#666', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ width: '22px', height: '22px', borderRadius: '5px', border: '1px solid var(--c-33)', background: 'transparent', color: 'var(--c-66)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
                     <Minus size={10} />
                   </button>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#FFFFFF', minWidth: '16px', textAlign: 'center' }}>{item.quantidade}</span>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--c-fff)', minWidth: '16px', textAlign: 'center' }}>{item.quantidade}</span>
                   <button
                     onClick={() => changeQty(item.id, 1)}
                     aria-label="Aumentar quantidade"
-                    style={{ width: '22px', height: '22px', borderRadius: '5px', border: '1px solid #333', background: 'transparent', color: '#666', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ width: '22px', height: '22px', borderRadius: '5px', border: '1px solid var(--c-33)', background: 'transparent', color: 'var(--c-66)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
                     <Plus size={10} />
                   </button>
                 </div>
-                <button onClick={() => removeItem(item.id)} aria-label={`Remover ${item.nome}`} style={{ background: 'transparent', border: 'none', color: '#333', cursor: 'pointer', padding: '2px', display: 'flex' }}>
+                <button onClick={() => removeItem(item.id)} aria-label={`Remover ${item.nome}`} style={{ background: 'transparent', border: 'none', color: 'var(--c-33)', cursor: 'pointer', padding: '2px', display: 'flex' }}>
                   <Trash2 size={12} />
                 </button>
               </motion.div>
@@ -744,7 +744,7 @@ export default function Vendas() {
           </AnimatePresence>
         </div>
 
-        <div style={{ padding: '16px 20px', borderTop: '1px solid #222', flexShrink: 0 }}>
+        <div style={{ padding: '16px 20px', borderTop: '1px solid var(--c-22)', flexShrink: 0 }}>
           {podeTirarComissao && (
             <label className="check-rotulo" style={{ marginBottom: '12px' }} title="A venda não gera comissão para ninguém">
               <input type="checkbox" checked={semComissao} onChange={e => setSemComissao(e.target.checked)} />
@@ -752,12 +752,12 @@ export default function Vendas() {
             </label>
           )}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-            <span style={{ fontSize: '13px', color: '#A3A3A3' }}>Total</span>
-            <span style={{ fontSize: '20px', fontWeight: 700, color: '#FFFFFF', fontVariantNumeric: 'tabular-nums', fontFamily: 'DM Sans, sans-serif' }}>
+            <span style={{ fontSize: '13px', color: 'var(--c-a3)' }}>Total</span>
+            <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--c-fff)', fontVariantNumeric: 'tabular-nums', fontFamily: 'DM Sans, sans-serif' }}>
               {formatCurrency(total)}
             </span>
           </div>
-          {error && !showPayModal && <p style={{ fontSize: '12px', color: '#A3A3A3', marginBottom: '10px' }}>{error}</p>}
+          {error && !showPayModal && <p style={{ fontSize: '12px', color: 'var(--c-a3)', marginBottom: '10px' }}>{error}</p>}
           <button className="btn btn-primary btn-full" onClick={abrirPagamento} disabled={cart.length === 0}>
             {editando ? 'Salvar Edição' : 'Finalizar Venda'}
           </button>
@@ -769,7 +769,7 @@ export default function Vendas() {
         {showPayModal && (
           <motion.div
             className="modal-overlay"
-            style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+            style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'var(--overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
             <motion.div
@@ -779,7 +779,7 @@ export default function Vendas() {
               initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 16 }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '18px', color: '#FFFFFF' }}>Forma de Pagamento</h2>
+                <h2 style={{ fontSize: '18px', color: 'var(--c-fff)' }}>Forma de Pagamento</h2>
                 <button className="btn btn-icon" onClick={() => setShowPayModal(false)}><X size={14} /></button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px' }}>
@@ -789,9 +789,9 @@ export default function Vendas() {
                     onClick={() => setPagamento(p.id)}
                     style={{
                       padding: '14px 16px', borderRadius: '8px',
-                      border: pagamento === p.id ? '1px solid #FFFFFF' : '1px solid #2A2A2A',
-                      background: pagamento === p.id ? 'rgba(255,255,255,0.07)' : 'transparent',
-                      color: pagamento === p.id ? '#FFFFFF' : '#666',
+                      border: pagamento === p.id ? '1px solid var(--c-fff)' : '1px solid var(--c-2a)',
+                      background: pagamento === p.id ? 'rgba(var(--ink),0.07)' : 'transparent',
+                      color: pagamento === p.id ? 'var(--c-fff)' : 'var(--c-66)',
                       fontSize: '14px', fontWeight: pagamento === p.id ? 600 : 400,
                       cursor: 'pointer', textAlign: 'left',
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -803,12 +803,12 @@ export default function Vendas() {
                   </button>
                 ))}
               </div>
-              <div style={{ padding: '14px 16px', background: 'rgba(255,255,255,0.04)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', marginBottom: semComissao ? '10px' : '20px' }}>
-                <span style={{ fontSize: '13px', color: '#A3A3A3' }}>Total a cobrar</span>
-                <span style={{ fontSize: '18px', fontWeight: 700, color: '#FFFFFF' }}>{formatCurrency(total)}</span>
+              <div style={{ padding: '14px 16px', background: 'rgba(var(--ink),0.04)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', marginBottom: semComissao ? '10px' : '20px' }}>
+                <span style={{ fontSize: '13px', color: 'var(--c-a3)' }}>Total a cobrar</span>
+                <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--c-fff)' }}>{formatCurrency(total)}</span>
               </div>
-              {semComissao && <p style={{ fontSize: '12px', color: '#666', marginBottom: '16px' }}>Esta venda não vai gerar comissão.</p>}
-              {error && <p style={{ fontSize: '12px', color: '#A3A3A3', marginBottom: '12px' }}>{error}</p>}
+              {semComissao && <p style={{ fontSize: '12px', color: 'var(--c-66)', marginBottom: '16px' }}>Esta venda não vai gerar comissão.</p>}
+              {error && <p style={{ fontSize: '12px', color: 'var(--c-a3)', marginBottom: '12px' }}>{error}</p>}
               <button className="btn btn-primary btn-full" onClick={finalizarVenda} disabled={saving}>
                 {saving ? 'Processando...' : editando ? 'Salvar Edição (F10)' : 'Confirmar Pagamento (F10)'}
               </button>

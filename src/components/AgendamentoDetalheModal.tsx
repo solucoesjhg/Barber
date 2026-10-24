@@ -120,7 +120,7 @@ export default function AgendamentoDetalheModal({ agendamento: ag, podeEditar, p
         <Info rotulo="Venda">{vendaId ? 'Registrada' : undefined}</Info>
       </InfoGrade>
 
-      <SecaoDetalhe titulo="Observação" acao={salvo ? <span style={{ textTransform: 'none', letterSpacing: 0, color: '#A3A3A3' }}>Salvo</span> : undefined}>
+      <SecaoDetalhe titulo="Observação" acao={salvo ? <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--c-a3)' }}>Salvo</span> : undefined}>
         {podeEditar ? (
           <>
             <textarea
@@ -132,7 +132,7 @@ export default function AgendamentoDetalheModal({ agendamento: ag, podeEditar, p
             />
             {(obsAlterada || erro) && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px' }}>
-                {erro && <p style={{ fontSize: '12px', color: '#A3A3A3', flex: 1 }}>{erro}</p>}
+                {erro && <p style={{ fontSize: '12px', color: 'var(--c-a3)', flex: 1 }}>{erro}</p>}
                 <span style={{ flex: erro ? 0 : 1 }} />
                 <button className="btn btn-ghost btn-sm" onClick={() => setObs(ag.observacoes ?? '')} disabled={salvando}>Desfazer</button>
                 <button className="btn btn-primary btn-sm" onClick={salvarObservacao} disabled={salvando || !obsAlterada}>
@@ -142,7 +142,7 @@ export default function AgendamentoDetalheModal({ agendamento: ag, podeEditar, p
             )}
           </>
         ) : (
-          <p className="detalhe-valor" style={{ color: ag.observacoes ? '#FFFFFF' : '#555', whiteSpace: 'pre-wrap' }}>
+          <p className="detalhe-valor" style={{ color: ag.observacoes ? 'var(--c-fff)' : 'var(--c-55)', whiteSpace: 'pre-wrap' }}>
             {ag.observacoes || 'Sem observação.'}
           </p>
         )}

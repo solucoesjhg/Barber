@@ -36,10 +36,10 @@ const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number; dataKey: string }[]; label?: string }) {
   if (!active || !payload?.length) return null
   return (
-    <div style={{ background: '#1E1E1E', border: '1px solid #333', borderRadius: '8px', padding: '12px 14px', fontSize: '13px' }}>
-      <p style={{ color: '#666', marginBottom: '6px', fontSize: '11px' }}>{label}</p>
+    <div style={{ background: 'var(--c-1e)', border: '1px solid var(--c-33)', borderRadius: '8px', padding: '12px 14px', fontSize: '13px' }}>
+      <p style={{ color: 'var(--c-66)', marginBottom: '6px', fontSize: '11px' }}>{label}</p>
       {payload.map(p => (
-        <p key={p.dataKey} style={{ color: p.dataKey === 'entrada' ? '#FFFFFF' : '#A3A3A3', marginBottom: '2px' }}>
+        <p key={p.dataKey} style={{ color: p.dataKey === 'entrada' ? 'var(--c-fff)' : 'var(--c-a3)', marginBottom: '2px' }}>
           {p.dataKey === 'entrada' ? 'Entradas' : 'Saídas'}: {formatCurrency(p.value)}
         </p>
       ))}
@@ -184,8 +184,8 @@ export default function Financeiro() {
       {/* Header */}
       <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Financeiro</h1>
-          <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>{rotuloIntervalo(periodo)}</p>
+          <h1 style={{ fontSize: '24px', color: 'var(--c-fff)' }}>Financeiro</h1>
+          <p style={{ fontSize: '13px', color: 'var(--c-55)', marginTop: '3px' }}>{rotuloIntervalo(periodo)}</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <FiltroPeriodo valor={periodo} onChange={v => v && setPeriodo(v)} />
@@ -200,7 +200,7 @@ export default function Financeiro() {
       {/* Contas financeiras */}
       <div style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-          <span style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>Contas</span>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)' }}>Contas</span>
           {podeEditar && (
             <button className="btn btn-ghost btn-sm" onClick={() => { setContaEditando(null); setShowContaModal(true) }} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <Plus size={11} /> Nova conta
@@ -214,21 +214,21 @@ export default function Financeiro() {
               onClick={() => { if (!podeEditar) return; setContaEditando({ id: c.conta_id, nome: c.nome, tipo: c.tipo as 'caixa' | 'banco', padrao: c.padrao, ativo: true, created_at: '' }); setShowContaModal(true) }}
               disabled={!podeEditar}
               className="card"
-              style={{ flex: '1 1 180px', minWidth: '160px', textAlign: 'left', cursor: podeEditar ? 'pointer' : 'default', border: '1px solid #252525', opacity: 1 }}
+              style={{ flex: '1 1 180px', minWidth: '160px', textAlign: 'left', cursor: podeEditar ? 'pointer' : 'default', border: '1px solid var(--c-25)', opacity: 1 }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Wallet size={13} style={{ color: '#555' }} />
-                  <span style={{ fontSize: '12px', color: '#A3A3A3' }}>{c.nome}</span>
-                  {c.padrao && <span style={{ fontSize: '9px', padding: '1px 6px', borderRadius: '99px', border: '1px solid #2A2A2A', color: '#666' }}>padrão</span>}
+                  <Wallet size={13} style={{ color: 'var(--c-55)' }} />
+                  <span style={{ fontSize: '12px', color: 'var(--c-a3)' }}>{c.nome}</span>
+                  {c.padrao && <span style={{ fontSize: '9px', padding: '1px 6px', borderRadius: '99px', border: '1px solid var(--c-2a)', color: 'var(--c-66)' }}>padrão</span>}
                 </div>
-                {podeEditar && <Pencil size={11} style={{ color: '#444' }} />}
+                {podeEditar && <Pencil size={11} style={{ color: 'var(--c-44)' }} />}
               </div>
-              <p style={{ fontSize: '18px', fontWeight: 700, color: '#FFFFFF', fontFamily: 'DM Sans, sans-serif' }}>{formatCurrency(c.saldo)}</p>
+              <p style={{ fontSize: '18px', fontWeight: 700, color: 'var(--c-fff)', fontFamily: 'DM Sans, sans-serif' }}>{formatCurrency(c.saldo)}</p>
             </button>
           ))}
           {contas.length === 0 && (
-            <p style={{ fontSize: '12px', color: '#444' }}>Nenhuma conta cadastrada ainda.</p>
+            <p style={{ fontSize: '12px', color: 'var(--c-44)' }}>Nenhuma conta cadastrada ainda.</p>
           )}
         </div>
       </div>
@@ -244,49 +244,49 @@ export default function Financeiro() {
 
       {/* Fluxo de caixa */}
       <div className="card" style={{ marginBottom: '24px' }}>
-        <span style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF', marginBottom: '16px', display: 'block' }}>
+        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)', marginBottom: '16px', display: 'block' }}>
           Fluxo de Caixa
         </span>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
           <div>
-            <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px' }}>Realizado no período</p>
+            <p style={{ fontSize: '10px', color: 'var(--c-44)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px' }}>Realizado no período</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#666' }}>Saldo inicial</span>
-                <span style={{ color: '#A3A3A3' }}>{formatCurrency(saldoInicialPeriodo)}</span>
+                <span style={{ color: 'var(--c-66)' }}>Saldo inicial</span>
+                <span style={{ color: 'var(--c-a3)' }}>{formatCurrency(saldoInicialPeriodo)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#666' }}>+ Entradas realizadas</span>
-                <span style={{ color: '#A3A3A3' }}>{formatCurrency(entradas)}</span>
+                <span style={{ color: 'var(--c-66)' }}>+ Entradas realizadas</span>
+                <span style={{ color: 'var(--c-a3)' }}>{formatCurrency(entradas)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#666' }}>− Saídas realizadas</span>
-                <span style={{ color: '#A3A3A3' }}>{formatCurrency(saidas)}</span>
+                <span style={{ color: 'var(--c-66)' }}>− Saídas realizadas</span>
+                <span style={{ color: 'var(--c-a3)' }}>{formatCurrency(saidas)}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '6px', borderTop: '1px solid #262626' }}>
-                <span style={{ color: '#A3A3A3', fontWeight: 600 }}>Saldo final</span>
-                <span style={{ color: '#FFFFFF', fontWeight: 700 }}>{formatCurrency(saldoInicialPeriodo + entradas - saidas)}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '6px', borderTop: '1px solid var(--c-26)' }}>
+                <span style={{ color: 'var(--c-a3)', fontWeight: 600 }}>Saldo final</span>
+                <span style={{ color: 'var(--c-fff)', fontWeight: 700 }}>{formatCurrency(saldoInicialPeriodo + entradas - saidas)}</span>
               </div>
             </div>
           </div>
           <div>
-            <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px' }}>Projetado</p>
+            <p style={{ fontSize: '10px', color: 'var(--c-44)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px' }}>Projetado</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#666' }}>Saldo atual (todas as contas)</span>
-                <span style={{ color: '#A3A3A3' }}>{formatCurrency(saldoAtualConsolidado)}</span>
+                <span style={{ color: 'var(--c-66)' }}>Saldo atual (todas as contas)</span>
+                <span style={{ color: 'var(--c-a3)' }}>{formatCurrency(saldoAtualConsolidado)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#666' }}>+ A receber (em aberto)</span>
-                <span style={{ color: '#A3A3A3' }}>{formatCurrency(aReceber.aberto)}</span>
+                <span style={{ color: 'var(--c-66)' }}>+ A receber (em aberto)</span>
+                <span style={{ color: 'var(--c-a3)' }}>{formatCurrency(aReceber.aberto)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#666' }}>− A pagar (em aberto)</span>
-                <span style={{ color: '#A3A3A3' }}>{formatCurrency(aPagar.aberto)}</span>
+                <span style={{ color: 'var(--c-66)' }}>− A pagar (em aberto)</span>
+                <span style={{ color: 'var(--c-a3)' }}>{formatCurrency(aPagar.aberto)}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '6px', borderTop: '1px solid #262626' }}>
-                <span style={{ color: '#A3A3A3', fontWeight: 600 }}>Projeção</span>
-                <span style={{ color: '#FFFFFF', fontWeight: 700 }}>{formatCurrency(saldoAtualConsolidado + aReceber.aberto - aPagar.aberto)}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '6px', borderTop: '1px solid var(--c-26)' }}>
+                <span style={{ color: 'var(--c-a3)', fontWeight: 600 }}>Projeção</span>
+                <span style={{ color: 'var(--c-fff)', fontWeight: 700 }}>{formatCurrency(saldoAtualConsolidado + aReceber.aberto - aPagar.aberto)}</span>
               </div>
             </div>
           </div>
@@ -309,8 +309,8 @@ export default function Financeiro() {
             marginBottom: graficoAberto ? '20px' : 0, fontFamily: 'inherit',
           }}
         >
-          <span style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>Últimos 7 dias</span>
-          {graficoAberto ? <ChevronUp size={15} style={{ color: '#555' }} /> : <ChevronDown size={15} style={{ color: '#555' }} />}
+          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)' }}>Últimos 7 dias</span>
+          {graficoAberto ? <ChevronUp size={15} style={{ color: 'var(--c-55)' }} /> : <ChevronDown size={15} style={{ color: 'var(--c-55)' }} />}
         </button>
         {graficoAberto && (
           <>
@@ -318,28 +318,28 @@ export default function Financeiro() {
               <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="gEntrada" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#FFFFFF" stopOpacity={0.08} />
-                    <stop offset="95%" stopColor="#FFFFFF" stopOpacity={0} />
+                    <stop offset="5%"  stopColor="var(--c-fff)" stopOpacity={0.08} />
+                    <stop offset="95%" stopColor="var(--c-fff)" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="gSaida" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#666666" stopOpacity={0.08} />
-                    <stop offset="95%" stopColor="#666666" stopOpacity={0} />
+                    <stop offset="5%"  stopColor="var(--c-66)" stopOpacity={0.08} />
+                    <stop offset="95%" stopColor="var(--c-66)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1F1F1F" vertical={false} />
-                <XAxis dataKey="dia" tick={{ fontSize: 11, fill: '#444' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#444' }} axisLine={false} tickLine={false} tickFormatter={v => `R$${v}`} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--c-1f)" vertical={false} />
+                <XAxis dataKey="dia" tick={{ fontSize: 11, fill: 'var(--c-44)' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: 'var(--c-44)' }} axisLine={false} tickLine={false} tickFormatter={v => `R$${v}`} />
                 <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="entrada" stroke="#FFFFFF" strokeWidth={1.5} fill="url(#gEntrada)" dot={false} />
-                <Area type="monotone" dataKey="saida"   stroke="#444444" strokeWidth={1.5} fill="url(#gSaida)"   dot={false} />
+                <Area type="monotone" dataKey="entrada" stroke="var(--c-fff)" strokeWidth={1.5} fill="url(#gEntrada)" dot={false} />
+                <Area type="monotone" dataKey="saida"   stroke="var(--c-44)" strokeWidth={1.5} fill="url(#gSaida)"   dot={false} />
               </AreaChart>
             </ResponsiveContainer>
             <div style={{ display: 'flex', gap: '20px', marginTop: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#666' }}>
-                <div style={{ width: '16px', height: '2px', background: '#FFFFFF', borderRadius: '1px' }} /> Entradas
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--c-66)' }}>
+                <div style={{ width: '16px', height: '2px', background: 'var(--c-fff)', borderRadius: '1px' }} /> Entradas
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#666' }}>
-                <div style={{ width: '16px', height: '2px', background: '#444', borderRadius: '1px' }} /> Saídas
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--c-66)' }}>
+                <div style={{ width: '16px', height: '2px', background: 'var(--c-44)', borderRadius: '1px' }} /> Saídas
               </div>
             </div>
           </>
@@ -358,10 +358,10 @@ export default function Financeiro() {
           display: 'grid',
           minWidth: '600px', gridTemplateColumns: '22px minmax(200px, 1fr) 150px 96px 120px', gap: '12px', alignItems: 'center',
           padding: '10px 20px',
-          borderBottom: '1px solid #1A1A1A',
-          fontSize: '10px', fontWeight: 600, color: '#444',
+          borderBottom: '1px solid var(--c-1a)',
+          fontSize: '10px', fontWeight: 600, color: 'var(--c-44)',
           textTransform: 'uppercase', letterSpacing: '0.1em',
-          background: 'rgba(0,0,0,0.2)',
+          background: 'var(--header-bg)',
         }}>
           <span className="celula-check">
             <Checkbox label="Selecionar todos os lançamentos" checked={selecao.todos} indeterminate={selecao.alguns} onChange={selecao.alternarTodos} disabled={movimentos.length === 0} />
@@ -372,7 +372,7 @@ export default function Financeiro() {
           <span style={{ textAlign: 'right' }}>Valor</span>
         </div>
         {movimentos.length === 0 ? (
-          <div style={{ padding: '48px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+          <div style={{ padding: '48px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>
             Nenhum lançamento no período.
           </div>
         ) : movimentos.map((m, i) => (
@@ -384,7 +384,7 @@ export default function Financeiro() {
               display: 'grid',
               minWidth: '600px', gridTemplateColumns: '22px minmax(200px, 1fr) 150px 96px 120px', gap: '12px',
               padding: '12px 20px',
-              borderBottom: i < movimentos.length - 1 ? '1px solid #1A1A1A' : 'none',
+              borderBottom: i < movimentos.length - 1 ? '1px solid var(--c-1a)' : 'none',
               alignItems: 'center',
             }}
           >
@@ -393,16 +393,16 @@ export default function Financeiro() {
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
               {m.tipo === 'entrada'
-                ? <ArrowUpRight size={13} style={{ color: '#FFFFFF', flexShrink: 0 }} />
-                : <ArrowDownRight size={13} style={{ color: '#555', flexShrink: 0 }} />
+                ? <ArrowUpRight size={13} style={{ color: 'var(--c-fff)', flexShrink: 0 }} />
+                : <ArrowDownRight size={13} style={{ color: 'var(--c-55)', flexShrink: 0 }} />
               }
-              <span className="texto-cortado" style={{ fontSize: '13px', color: m.tipo === 'entrada' ? '#FFFFFF' : '#A3A3A3', fontWeight: m.tipo === 'entrada' ? 500 : 400 }}>
+              <span className="texto-cortado" style={{ fontSize: '13px', color: m.tipo === 'entrada' ? 'var(--c-fff)' : 'var(--c-a3)', fontWeight: m.tipo === 'entrada' ? 500 : 400 }}>
                 {m.descricao}
               </span>
             </div>
-            <span className="texto-cortado" style={{ fontSize: '12px', color: '#555' }}>{CATEGORIA_LABEL[m.categoria] ?? m.categoria}</span>
-            <span style={{ fontSize: '12px', color: '#444' }}>{formatDate(m.data)}</span>
-            <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: m.tipo === 'entrada' ? '#FFFFFF' : '#777', textAlign: 'right' }}>
+            <span className="texto-cortado" style={{ fontSize: '12px', color: 'var(--c-55)' }}>{CATEGORIA_LABEL[m.categoria] ?? m.categoria}</span>
+            <span style={{ fontSize: '12px', color: 'var(--c-44)' }}>{formatDate(m.data)}</span>
+            <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: m.tipo === 'entrada' ? 'var(--c-fff)' : 'var(--c-77)', textAlign: 'right' }}>
               {m.tipo === 'saida' ? '−' : '+'}{formatCurrency(m.valor)}
             </span>
           </div>

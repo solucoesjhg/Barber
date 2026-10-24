@@ -170,7 +170,7 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
             </button>
           )}
           {onDelete && (
-            <button className="btn btn-secondary" style={{ color: '#A3A3A3' }} onClick={handleExcluir} disabled={excluindo}>
+            <button className="btn btn-secondary" style={{ color: 'var(--c-a3)' }} onClick={handleExcluir} disabled={excluindo}>
               <Trash2 size={13} /> {excluindo ? 'Excluindo...' : 'Excluir lançamento'}
             </button>
           )}
@@ -178,9 +178,9 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
       ) : undefined}
     >
       {loading ? (
-        <p style={{ fontSize: '13px', color: '#555', padding: '32px 0', textAlign: 'center' }}>Carregando...</p>
+        <p style={{ fontSize: '13px', color: 'var(--c-55)', padding: '32px 0', textAlign: 'center' }}>Carregando...</p>
       ) : !comanda ? (
-        <p style={{ fontSize: '13px', color: '#555', padding: '32px 0', textAlign: 'center' }}>Venda não encontrada ou sem permissão para ver.</p>
+        <p style={{ fontSize: '13px', color: 'var(--c-55)', padding: '32px 0', textAlign: 'center' }}>Venda não encontrada ou sem permissão para ver.</p>
       ) : (
         <>
           <InfoGrade>
@@ -189,7 +189,7 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
             {comanda.agendamento_id && (
               <Info rotulo="Origem" largo>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <CalendarDays size={12} style={{ color: '#666' }} /> Gerada por um atendimento da Agenda
+                  <CalendarDays size={12} style={{ color: 'var(--c-66)' }} /> Gerada por um atendimento da Agenda
                 </span>
               </Info>
             )}
@@ -197,7 +197,7 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
 
           <SecaoDetalhe titulo={`Itens (${itens.length})`}>
             {itens.length === 0 ? (
-              <p style={{ fontSize: '12px', color: '#555' }}>Nenhum item encontrado.</p>
+              <p style={{ fontSize: '12px', color: 'var(--c-55)' }}>Nenhum item encontrado.</p>
             ) : (
               <div className="detalhe-lista">
                 {itens.map(item => {
@@ -205,19 +205,19 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
                   const meu = !!destacarProfissionalId && item.profissional_id === destacarProfissionalId
                   return (
                     <div key={item.id} className="detalhe-lista-item" style={{
-                      background: meu ? 'rgba(255,255,255,0.08)' : undefined,
-                      borderColor: meu ? 'rgba(255,255,255,0.35)' : undefined,
+                      background: meu ? 'rgba(var(--ink),0.08)' : undefined,
+                      borderColor: meu ? 'rgba(var(--ink),0.35)' : undefined,
                       opacity: destacarProfissionalId && !meu ? 0.6 : 1,
                     }}>
                       {foto ? (
-                        <img src={foto} alt="" style={{ width: '30px', height: '30px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0, border: '1px solid #2A2A2A' }} />
+                        <img src={foto} alt="" style={{ width: '30px', height: '30px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--c-2a)' }} />
                       ) : (
-                        <div style={{ width: '30px', height: '30px', borderRadius: '6px', background: '#1F1F1F', border: '1px solid #2A2A2A', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          {item.tipo === 'servico' ? <Scissors size={13} style={{ color: '#555' }} /> : <Package size={13} style={{ color: '#555' }} />}
+                        <div style={{ width: '30px', height: '30px', borderRadius: '6px', background: 'var(--c-1f)', border: '1px solid var(--c-2a)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {item.tipo === 'servico' ? <Scissors size={13} style={{ color: 'var(--c-55)' }} /> : <Package size={13} style={{ color: 'var(--c-55)' }} />}
                         </div>
                       )}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p className="texto-cortado" style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <p className="texto-cortado" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--c-fff)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           {item.nome}
                           {meu && <span className="badge badge-confirmed">Seu</span>}
                         </p>
@@ -225,7 +225,7 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
                           {item.quantidade}x {formatCurrency(item.preco_unitario)}{item.profissional?.nome ? ` · ${item.profissional.nome}` : ''}
                         </p>
                       </div>
-                      <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: '#A3A3A3', flexShrink: 0 }}>
+                      <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-a3)', flexShrink: 0 }}>
                         {formatCurrency(item.preco_unitario * item.quantidade)}
                       </span>
                     </div>
@@ -249,16 +249,16 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
               ) : undefined}
             >
               {ativas.length === 0 ? (
-                <p style={{ fontSize: '12px', color: '#666' }}>A comissão desta venda foi retirada.</p>
+                <p style={{ fontSize: '12px', color: 'var(--c-66)' }}>A comissão desta venda foi retirada.</p>
               ) : (
                 <div className="detalhe-lista">
                   {ativas.map(c => (
                     <div key={c.id} className="detalhe-lista-item">
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p className="texto-cortado" style={{ fontSize: '13px', color: '#FFFFFF' }}>{nomeComissao(c)}</p>
+                        <p className="texto-cortado" style={{ fontSize: '13px', color: 'var(--c-fff)' }}>{nomeComissao(c)}</p>
                         <p className="subtexto">{Number(c.percentual)}% de {formatCurrency(Number(c.valor_base))}</p>
                       </div>
-                      <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>{formatCurrency(Number(c.valor_comissao))}</span>
+                      <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)' }}>{formatCurrency(Number(c.valor_comissao))}</span>
                       {podeTirarComissao && (
                         <button className="btn btn-icon" title="Tirar esta comissão" aria-label="Tirar esta comissão" onClick={() => tirarComissao([c.id])} disabled={salvandoComissao} style={{ width: '28px', height: '28px' }}>
                           <X size={12} />

@@ -65,7 +65,7 @@ function CategoriaDetalhe({ categoria: c, categorias, podeEditar, onClose, onEdi
       {!pai && (
         <SecaoDetalhe titulo={`Subcategorias (${filhas.length})`}>
           {filhas.length === 0 ? (
-            <p style={{ fontSize: '12px', color: '#555' }}>Nenhuma. Os lançamentos vão direto nesta categoria.</p>
+            <p style={{ fontSize: '12px', color: 'var(--c-55)' }}>Nenhuma. Os lançamentos vão direto nesta categoria.</p>
           ) : (
             <div className="chip-lista">
               {filhas.map(f => (
@@ -213,8 +213,8 @@ export default function Categorias() {
     <div className="page">
       <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Categorias & Pagamentos</h1>
-          <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
+          <h1 style={{ fontSize: '24px', color: 'var(--c-fff)' }}>Categorias & Pagamentos</h1>
+          <p style={{ fontSize: '13px', color: 'var(--c-55)', marginTop: '3px' }}>
             {secao === 'categorias' ? 'Categorias financeiras da sua loja' : 'Formas de pagamento aceitas'}
           </p>
         </div>
@@ -229,7 +229,7 @@ export default function Categorias() {
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: '2px', padding: '4px', background: '#1A1A1A', border: '1px solid #252525', borderRadius: '9px', width: 'fit-content', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', gap: '2px', padding: '4px', background: 'var(--c-1a)', border: '1px solid var(--c-25)', borderRadius: '9px', width: 'fit-content', marginBottom: '24px' }}>
         {(['categorias', 'formas'] as Secao[]).map(sVal => (
           <button
             key={sVal}
@@ -237,9 +237,9 @@ export default function Categorias() {
             style={{
               display: 'flex', alignItems: 'center', gap: '6px',
               padding: '7px 16px', borderRadius: '7px',
-              border: secao === sVal ? '1px solid #FFFFFF' : '1px solid transparent',
-              background: secao === sVal ? 'rgba(255,255,255,0.07)' : 'transparent',
-              color: secao === sVal ? '#FFFFFF' : '#555',
+              border: secao === sVal ? '1px solid var(--c-fff)' : '1px solid transparent',
+              background: secao === sVal ? 'rgba(var(--ink),0.07)' : 'transparent',
+              color: secao === sVal ? 'var(--c-fff)' : 'var(--c-55)',
               fontSize: '13px', fontWeight: secao === sVal ? 600 : 400,
               cursor: 'pointer', transition: 'all 0.15s ease', fontFamily: 'inherit',
             }}
@@ -249,18 +249,18 @@ export default function Categorias() {
         ))}
       </div>
 
-      {error && !showCatModal && !showFormaModal && <p style={{ fontSize: '12px', color: '#666', marginBottom: '16px' }}>{error}</p>}
+      {error && !showCatModal && !showFormaModal && <p style={{ fontSize: '12px', color: 'var(--c-66)', marginBottom: '16px' }}>{error}</p>}
 
       <AnimatePresence mode="wait">
         {secao === 'categorias' ? (
           <motion.div key="categorias" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
             {loading ? (
-              <div className="card" style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Carregando...</div>
+              <div className="card" style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>Carregando...</div>
             ) : (
               <>
-                <p style={{ fontSize: '12px', color: '#555', margin: '0 0 8px' }}>Receitas</p>
+                <p style={{ fontSize: '12px', color: 'var(--c-55)', margin: '0 0 8px' }}>Receitas</p>
                 <ListaCategorias itens={receitas} onAbrir={c => setCatAbertaId(c.id)} onEditar={abrirEditarCategoria} podeEditar={podeEditar} onToggle={toggleAtivoCategoria} onExcluir={excluirCategoria} vazio="Nenhuma categoria de receita." />
-                <p style={{ fontSize: '12px', color: '#555', margin: '20px 0 8px' }}>Despesas</p>
+                <p style={{ fontSize: '12px', color: 'var(--c-55)', margin: '20px 0 8px' }}>Despesas</p>
                 <ListaCategorias itens={despesas} onAbrir={c => setCatAbertaId(c.id)} onEditar={abrirEditarCategoria} podeEditar={podeEditar} onToggle={toggleAtivoCategoria} onExcluir={excluirCategoria} vazio="Nenhuma categoria de despesa." />
               </>
             )}
@@ -270,16 +270,16 @@ export default function Categorias() {
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
               <div className="list-header" style={{
                 display: 'grid', minWidth: '450px', gridTemplateColumns: '1fr 90px 130px',
-                padding: '10px 24px', borderBottom: '1px solid #222',
-                fontSize: '10px', fontWeight: 600, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em',
-                background: 'rgba(0,0,0,0.2)',
+                padding: '10px 24px', borderBottom: '1px solid var(--c-22)',
+                fontSize: '10px', fontWeight: 600, color: 'var(--c-44)', textTransform: 'uppercase', letterSpacing: '0.1em',
+                background: 'var(--header-bg)',
               }}>
                 <span>Nome</span><span>Status</span><span></span>
               </div>
               {loading ? (
-                <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Carregando...</div>
+                <div style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>Carregando...</div>
               ) : formas.length === 0 ? (
-                <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Nenhuma forma de pagamento cadastrada.</div>
+                <div style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>Nenhuma forma de pagamento cadastrada.</div>
               ) : formas.map((f, i) => (
                 <motion.div
                   key={f.id}
@@ -289,11 +289,11 @@ export default function Categorias() {
                   style={{
                     display: 'grid', minWidth: '450px', gridTemplateColumns: '1fr 90px 130px',
                     padding: '12px 24px', alignItems: 'center',
-                    borderBottom: i < formas.length - 1 ? '1px solid #1F1F1F' : 'none',
+                    borderBottom: i < formas.length - 1 ? '1px solid var(--c-1f)' : 'none',
                   }}
-                  whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+                  whileHover={{ backgroundColor: 'rgba(var(--ink),0.02)' }}
                 >
-                  <span style={{ fontSize: '13px', color: '#FFFFFF' }}>{f.nome}</span>
+                  <span style={{ fontSize: '13px', color: 'var(--c-fff)' }}>{f.nome}</span>
                   <button
                     className={`status-pill${f.ativo ? '' : ' inativo'}`}
                     onClick={e => { e.stopPropagation(); if (podeEditar) toggleAtivoForma(f) }}
@@ -433,7 +433,7 @@ function ListaCategorias({ itens, podeEditar, onAbrir, onEditar, onToggle, onExc
   return (
     <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: '4px' }}>
       {linhas.length === 0 ? (
-        <div style={{ padding: '32px', textAlign: 'center', color: '#444', fontSize: '13px' }}>{vazio}</div>
+        <div style={{ padding: '32px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>{vazio}</div>
       ) : linhas.map(({ c, nivel }, i) => (
         <motion.div
           key={c.id}
@@ -443,11 +443,11 @@ function ListaCategorias({ itens, podeEditar, onAbrir, onEditar, onToggle, onExc
           style={{
             display: 'grid', minWidth: '450px', gridTemplateColumns: '1fr 90px 130px',
             padding: '12px 24px', alignItems: 'center',
-            borderBottom: i < linhas.length - 1 ? '1px solid #1F1F1F' : 'none',
+            borderBottom: i < linhas.length - 1 ? '1px solid var(--c-1f)' : 'none',
           }}
-          whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+          whileHover={{ backgroundColor: 'rgba(var(--ink),0.02)' }}
         >
-          <span style={{ fontSize: '13px', color: nivel > 0 ? '#A3A3A3' : '#FFFFFF', fontWeight: nivel > 0 ? 400 : 600, paddingLeft: nivel > 0 ? '18px' : 0 }}>
+          <span style={{ fontSize: '13px', color: nivel > 0 ? 'var(--c-a3)' : 'var(--c-fff)', fontWeight: nivel > 0 ? 400 : 600, paddingLeft: nivel > 0 ? '18px' : 0 }}>
             {nivel > 0 && '↳ '}{c.nome}
           </span>
           <button

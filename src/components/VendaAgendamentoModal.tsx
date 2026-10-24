@@ -101,7 +101,7 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
         {FORMAS.map(f => (
           <button key={f} type="button" className={`opcao${pagamento === f ? ' marcada' : ''}`} onClick={() => setPagamento(f)} aria-pressed={pagamento === f}>
             <span className="opcao-caixa">{pagamento === f && <Check size={10} strokeWidth={3} />}</span>
-            <span style={{ fontSize: '13px', color: '#FFFFFF' }}>{PAGAMENTO_LABEL[f]}</span>
+            <span style={{ fontSize: '13px', color: 'var(--c-fff)' }}>{PAGAMENTO_LABEL[f]}</span>
           </button>
         ))}
       </div>

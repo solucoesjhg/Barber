@@ -51,17 +51,17 @@ export default function EmpresaDetalhe() {
   const temAdmin = vinculados.some(u => u.papel === 'administrador' && u.ativo)
 
   if (loading) {
-    return <div className="page"><p style={{ color: '#666', fontSize: '13px' }}>Carregando...</p></div>
+    return <div className="page"><p style={{ color: 'var(--c-66)', fontSize: '13px' }}>Carregando...</p></div>
   }
   if (!empresa) {
-    return <div className="page"><p style={{ color: '#666', fontSize: '13px' }}>Loja não encontrada.</p></div>
+    return <div className="page"><p style={{ color: 'var(--c-66)', fontSize: '13px' }}>Loja não encontrada.</p></div>
   }
 
   return (
     <div className="page">
       <button
         onClick={() => navigate('/empresas')}
-        style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#A3A3A3', background: 'none', border: 'none', cursor: 'pointer', marginBottom: '20px', padding: 0 }}
+        style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--c-a3)', background: 'none', border: 'none', cursor: 'pointer', marginBottom: '20px', padding: 0 }}
       >
         <ArrowLeft size={13} /> Empresas
       </button>
@@ -71,8 +71,8 @@ export default function EmpresaDetalhe() {
           <Building2 size={18} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 style={{ fontSize: '22px', color: '#FFFFFF', overflowWrap: 'anywhere' }}>{empresa.nome}</h1>
-          <p style={{ fontSize: '12px', color: '#A3A3A3', marginTop: '2px' }}>
+          <h1 style={{ fontSize: '22px', color: 'var(--c-fff)', overflowWrap: 'anywhere' }}>{empresa.nome}</h1>
+          <p style={{ fontSize: '12px', color: 'var(--c-a3)', marginTop: '2px' }}>
             Desde {formatDate(empresa.created_at)} · {empresa.email ?? 'sem e-mail de contato'}
           </p>
         </div>
@@ -87,9 +87,9 @@ export default function EmpresaDetalhe() {
       {/* Usuários da loja */}
       <div className="secao-cabecalho" style={{ marginBottom: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <UserCheck size={14} style={{ color: '#A3A3A3' }} />
-          <p style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>Usuários desta loja</p>
-          <span style={{ fontSize: '11px', color: '#A3A3A3' }}>({vinculados.length})</span>
+          <UserCheck size={14} style={{ color: 'var(--c-a3)' }} />
+          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)' }}>Usuários desta loja</p>
+          <span style={{ fontSize: '11px', color: 'var(--c-a3)' }}>({vinculados.length})</span>
         </div>
         <button className="btn btn-primary btn-sm" onClick={() => setShowNovo(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
           <Plus size={13} strokeWidth={2.5} /> {temAdmin ? 'Novo Usuário' : 'Cadastrar Administrador'}
@@ -103,7 +103,7 @@ export default function EmpresaDetalhe() {
       )}
 
       {vinculados.length === 0 ? (
-        <div className="card" style={{ padding: '32px', textAlign: 'center', color: '#666', fontSize: '13px', marginBottom: '28px' }}>Nenhum usuário nesta loja ainda.</div>
+        <div className="card" style={{ padding: '32px', textAlign: 'center', color: 'var(--c-66)', fontSize: '13px', marginBottom: '28px' }}>Nenhum usuário nesta loja ainda.</div>
       ) : (
         <div className="usuarios-lista" style={{ marginBottom: '28px' }}>
           {vinculados.map(u => (

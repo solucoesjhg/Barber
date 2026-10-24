@@ -69,8 +69,8 @@ export default function Usuarios() {
     <div className="page">
       <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '24px' }}>
         <div style={{ minWidth: 0 }}>
-          <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Usuários</h1>
-          <p style={{ fontSize: '13px', color: '#A3A3A3', marginTop: '3px' }}>
+          <h1 style={{ fontSize: '24px', color: 'var(--c-fff)' }}>Usuários</h1>
+          <p style={{ fontSize: '13px', color: 'var(--c-a3)', marginTop: '3px' }}>
             {usuarios.filter(u => u.ativo).length} ativos · {usuarios.length} cadastrados · toque num usuário para ver os dados e as permissões
           </p>
         </div>
@@ -91,9 +91,9 @@ export default function Usuarios() {
       {error && <p className="aviso-erro" style={{ marginBottom: '16px' }}>{error}</p>}
 
       {loading ? (
-        <div className="card" style={{ padding: '56px', textAlign: 'center', color: '#666', fontSize: '13px' }}>Carregando...</div>
+        <div className="card" style={{ padding: '56px', textAlign: 'center', color: 'var(--c-66)', fontSize: '13px' }}>Carregando...</div>
       ) : visiveis.length === 0 ? (
-        <div className="card" style={{ padding: '56px', textAlign: 'center', color: '#666', fontSize: '13px' }}>
+        <div className="card" style={{ padding: '56px', textAlign: 'center', color: 'var(--c-66)', fontSize: '13px' }}>
           {termo ? 'Nenhum usuário encontrado.' : 'Nenhum usuário cadastrado ainda. Use "Novo Usuário" para cadastrar a equipe.'}
         </div>
       ) : (

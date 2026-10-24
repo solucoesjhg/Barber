@@ -60,9 +60,9 @@ function ProfissionalDetalhe({ profissional: p, podeEditar, onClose, onEditar, o
 
       <SecaoDetalhe titulo={servicos ? `Serviços que realiza (${servicos.length})` : 'Serviços que realiza'}>
         {servicos === null ? (
-          <p style={{ fontSize: '12px', color: '#555' }}>Carregando...</p>
+          <p style={{ fontSize: '12px', color: 'var(--c-55)' }}>Carregando...</p>
         ) : servicos.length === 0 ? (
-          <p style={{ fontSize: '12px', color: '#555' }}>Nenhum serviço vinculado. O vínculo é feito no cadastro do serviço.</p>
+          <p style={{ fontSize: '12px', color: 'var(--c-55)' }}>Nenhum serviço vinculado. O vínculo é feito no cadastro do serviço.</p>
         ) : (
           <div className="chip-lista">
             {servicos.map(s => (
@@ -153,8 +153,8 @@ export default function Profissionais() {
     <div className="page">
       <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Profissionais</h1>
-          <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
+          <h1 style={{ fontSize: '24px', color: 'var(--c-fff)' }}>Profissionais</h1>
+          <p style={{ fontSize: '13px', color: 'var(--c-55)', marginTop: '3px' }}>
             {profissionais.filter(p => p.ativo).length} ativos · {profissionais.length} cadastrados
           </p>
         </div>
@@ -166,9 +166,9 @@ export default function Profissionais() {
       </div>
 
       {loading ? (
-        <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>Carregando...</div>
+        <div style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>Carregando...</div>
       ) : profissionais.length === 0 ? (
-        <div className="card" style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+        <div className="card" style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>
           Nenhum profissional cadastrado.
         </div>
       ) : (
@@ -187,27 +187,27 @@ export default function Profissionais() {
               <div style={{
                 width: '36px', height: '36px',
                 borderRadius: '50%',
-                background: '#262626',
-                border: '1px solid #333',
+                background: 'var(--c-26)',
+                border: '1px solid var(--c-33)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '12px', fontWeight: 700, color: '#A3A3A3',
+                fontSize: '12px', fontWeight: 700, color: 'var(--c-a3)',
                 flexShrink: 0,
               }}>
                 {initials(p.nome)}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <h3 className="texto-cortado" title={p.nome} style={{ fontSize: '14px', fontWeight: 600, color: '#FFFFFF', fontFamily: 'DM Sans, sans-serif' }}>{p.nome}</h3>
-                <p className="texto-cortado" style={{ fontSize: '12px', color: '#666', marginTop: '1px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <Scissors size={10} style={{ color: '#444', flexShrink: 0 }} /> <span className="texto-cortado">{p.especialidade}</span>
+                <h3 className="texto-cortado" title={p.nome} style={{ fontSize: '14px', fontWeight: 600, color: 'var(--c-fff)', fontFamily: 'DM Sans, sans-serif' }}>{p.nome}</h3>
+                <p className="texto-cortado" style={{ fontSize: '12px', color: 'var(--c-66)', marginTop: '1px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Scissors size={10} style={{ color: 'var(--c-44)', flexShrink: 0 }} /> <span className="texto-cortado">{p.especialidade}</span>
                 </p>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #222' }}>
-              <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', fontSize: '12px', color: '#777' }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: '#FFFFFF', fontWeight: 600 }}>
-                  <Percent size={11} style={{ color: '#888' }} /> {p.comissao_percentual}
-                  <span style={{ color: '#666', fontWeight: 400, marginLeft: '2px' }}>comissão</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--c-22)' }}>
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', fontSize: '12px', color: 'var(--c-77)' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: 'var(--c-fff)', fontWeight: 600 }}>
+                  <Percent size={11} style={{ color: 'var(--c-88)' }} /> {p.comissao_percentual}
+                  <span style={{ color: 'var(--c-66)', fontWeight: 400, marginLeft: '2px' }}>comissão</span>
                 </span>
               </div>
               <span className={`status-pill${p.ativo ? '' : ' inativo'}`} style={{ flexShrink: 0 }}>{p.ativo ? 'Ativo' : 'Inativo'}</span>
@@ -229,7 +229,7 @@ export default function Profissionais() {
               )}
             </div>
             {(p.valor_fixo || p.telefone || p.email || p.documento) && (
-              <p className="texto-cortado" style={{ fontSize: '11px', color: '#555', marginTop: '6px' }}>
+              <p className="texto-cortado" style={{ fontSize: '11px', color: 'var(--c-55)', marginTop: '6px' }}>
                 {[p.valor_fixo ? `fixo ${formatCurrency(p.valor_fixo)}` : null, p.telefone, p.email, p.documento].filter(Boolean).join(' · ')}
               </p>
             )}

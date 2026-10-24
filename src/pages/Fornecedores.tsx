@@ -63,9 +63,9 @@ function FornecedorDetalhe({ fornecedor: f, podeEditar, verContas, onClose, onEd
       {verContas && (
         <SecaoDetalhe titulo={contas && abertas.length > 0 ? `Contas a pagar · ${formatCurrency(totalAberto)} em aberto` : 'Contas a pagar'}>
           {contas === null ? (
-            <p style={{ fontSize: '12px', color: '#555' }}>Carregando...</p>
+            <p style={{ fontSize: '12px', color: 'var(--c-55)' }}>Carregando...</p>
           ) : contas.length === 0 ? (
-            <p style={{ fontSize: '12px', color: '#555' }}>Nenhuma conta lançada para este fornecedor.</p>
+            <p style={{ fontSize: '12px', color: 'var(--c-55)' }}>Nenhuma conta lançada para este fornecedor.</p>
           ) : (
             <div className="detalhe-lista">
               {contas.slice(0, 6).map(c => {
@@ -73,8 +73,8 @@ function FornecedorDetalhe({ fornecedor: f, podeEditar, verContas, onClose, onEd
                 const vencida = aberta && c.data_vencimento < hoje
                 return (
                   <div key={c.id} className="detalhe-lista-item">
-                    <span className="texto-cortado" style={{ flex: 1, color: '#FFFFFF' }}>{c.descricao}</span>
-                    <span style={{ color: vencida ? '#FFFFFF' : '#666', flexShrink: 0 }}>{formatDate(c.data_vencimento)}</span>
+                    <span className="texto-cortado" style={{ flex: 1, color: 'var(--c-fff)' }}>{c.descricao}</span>
+                    <span style={{ color: vencida ? 'var(--c-fff)' : 'var(--c-66)', flexShrink: 0 }}>{formatDate(c.data_vencimento)}</span>
                     <span className={c.status === 'paga' ? 'badge badge-done' : vencida || c.status === 'cancelada' ? 'badge badge-canceled' : 'badge badge-pending'}>
                       {vencida ? 'Vencida' : c.status === 'paga' ? 'Paga' : c.status === 'parcial' ? 'Parcial' : c.status === 'cancelada' ? 'Cancelada' : 'Aberta'}
                     </span>
@@ -178,8 +178,8 @@ export default function Fornecedores() {
       {/* Header */}
       <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Fornecedores</h1>
-          <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
+          <h1 style={{ fontSize: '24px', color: 'var(--c-fff)' }}>Fornecedores</h1>
+          <p style={{ fontSize: '13px', color: 'var(--c-55)', marginTop: '3px' }}>
             {fornecedores.filter(f => f.ativo).length} ativos · {fornecedores.length} cadastrados
           </p>
         </div>
@@ -194,24 +194,24 @@ export default function Fornecedores() {
       <div style={{
         display: 'flex', alignItems: 'center', gap: '10px',
         padding: '11px 14px',
-        background: '#1A1A1A',
-        border: '1px solid #252525',
+        background: 'var(--c-1a)',
+        border: '1px solid var(--c-25)',
         borderRadius: '8px',
         marginBottom: '20px',
       }}>
-        <Search size={14} style={{ color: '#444', flexShrink: 0 }} />
+        <Search size={14} style={{ color: 'var(--c-44)', flexShrink: 0 }} />
         <input
-          style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: '13px', color: '#FFFFFF', fontFamily: 'inherit' }}
+          style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: '13px', color: 'var(--c-fff)', fontFamily: 'inherit' }}
           placeholder="Buscar por nome..."
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
         {search && (
-          <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', padding: '2px' }}>
+          <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', color: 'var(--c-55)', cursor: 'pointer', padding: '2px' }}>
             <X size={13} />
           </button>
         )}
-        <label className="check-rotulo" style={{ flexShrink: 0, paddingLeft: '10px', borderLeft: '1px solid #252525' }}>
+        <label className="check-rotulo" style={{ flexShrink: 0, paddingLeft: '10px', borderLeft: '1px solid var(--c-25)' }}>
           <input type="checkbox" checked={mostrarInativos} onChange={e => setMostrarInativos(e.target.checked)} />
           Mostrar inativos
         </label>
@@ -223,10 +223,10 @@ export default function Fornecedores() {
           display: 'grid',
           minWidth: '640px', gridTemplateColumns: COLUNAS, gap: '12px', alignItems: 'center',
           padding: '10px 20px',
-          borderBottom: '1px solid #222',
-          fontSize: '10px', fontWeight: 600, color: '#444',
+          borderBottom: '1px solid var(--c-22)',
+          fontSize: '10px', fontWeight: 600, color: 'var(--c-44)',
           textTransform: 'uppercase', letterSpacing: '0.1em',
-          background: 'rgba(0,0,0,0.2)',
+          background: 'var(--header-bg)',
         }}>
           <span>Nome</span>
           <span>Telefone</span>
@@ -236,11 +236,11 @@ export default function Fornecedores() {
         </div>
 
         {loading ? (
-          <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+          <div style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>
             Carregando...
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+          <div style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>
             Nenhum fornecedor encontrado.
           </div>
         ) : filtered.map((f, i) => (
@@ -255,33 +255,33 @@ export default function Fornecedores() {
               display: 'grid',
               minWidth: '640px', gridTemplateColumns: COLUNAS, gap: '12px',
               padding: '11px 20px',
-              borderBottom: i < filtered.length - 1 ? '1px solid #1F1F1F' : 'none',
+              borderBottom: i < filtered.length - 1 ? '1px solid var(--c-1f)' : 'none',
               alignItems: 'center',
             }}
-            whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+            whileHover={{ backgroundColor: 'rgba(var(--ink),0.02)' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
               <div style={{
                 width: '30px', height: '30px',
                 borderRadius: '50%',
-                background: '#262626',
-                border: '1px solid #333',
+                background: 'var(--c-26)',
+                border: '1px solid var(--c-33)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '11px', fontWeight: 700, color: '#A3A3A3',
+                fontSize: '11px', fontWeight: 700, color: 'var(--c-a3)',
                 flexShrink: 0,
               }}>
                 {initials(f.nome)}
               </div>
               <div style={{ minWidth: 0 }}>
-                <p className="texto-cortado" style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{f.nome}</p>
+                <p className="texto-cortado" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--c-fff)' }}>{f.nome}</p>
                 {f.nome_fantasia && <p className="subtexto texto-cortado">{f.nome_fantasia}</p>}
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#A3A3A3', minWidth: 0 }}>
-              {f.telefone ? <><Phone size={11} style={{ color: '#444', flexShrink: 0 }} /> <span className="texto-cortado">{f.telefone}</span></> : <span style={{ color: '#333' }}>—</span>}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--c-a3)', minWidth: 0 }}>
+              {f.telefone ? <><Phone size={11} style={{ color: 'var(--c-44)', flexShrink: 0 }} /> <span className="texto-cortado">{f.telefone}</span></> : <span style={{ color: 'var(--c-33)' }}>—</span>}
             </div>
-            <div className="texto-cortado" style={{ fontSize: '12px', color: '#555' }}>
-              {f.email ?? <span style={{ color: '#333' }}>—</span>}
+            <div className="texto-cortado" style={{ fontSize: '12px', color: 'var(--c-55)' }}>
+              {f.email ?? <span style={{ color: 'var(--c-33)' }}>—</span>}
             </div>
             <button
               className={`status-pill${f.ativo ? '' : ' inativo'}`}
@@ -317,10 +317,10 @@ export default function Fornecedores() {
                 <div className="entity-avatar" style={{
                   width: '44px', height: '44px',
                   borderRadius: '50%',
-                  background: '#262626',
-                  border: '1px solid #333',
+                  background: 'var(--c-26)',
+                  border: '1px solid var(--c-33)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '14px', fontWeight: 700, color: '#A3A3A3',
+                  fontSize: '14px', fontWeight: 700, color: 'var(--c-a3)',
                   flexShrink: 0,
                 }}>
                   {initials(f.nome)}
@@ -328,27 +328,27 @@ export default function Fornecedores() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
                     <h3 className="entity-title" style={{
-                      fontSize: '15px', fontWeight: 600, color: '#FFFFFF', fontFamily: 'DM Sans, sans-serif',
+                      fontSize: '15px', fontWeight: 600, color: 'var(--c-fff)', fontFamily: 'DM Sans, sans-serif',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
                     }}>{f.nome}</h3>
                     <span className={`status-pill${f.ativo ? '' : ' inativo'}`} style={{ flexShrink: 0 }}>
                       {f.ativo ? 'Ativo' : 'Inativo'}
                     </span>
                   </div>
-                  {f.nome_fantasia && <p className="entity-subtle" style={{ fontSize: '11px', color: '#555' }}>{f.nome_fantasia}</p>}
+                  {f.nome_fantasia && <p className="entity-subtle" style={{ fontSize: '11px', color: 'var(--c-55)' }}>{f.nome_fantasia}</p>}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-                    <Phone size={11} style={{ color: '#444' }} />
-                    <span style={{ fontSize: '12px', color: '#666' }}>{f.telefone ?? '—'}</span>
+                    <Phone size={11} style={{ color: 'var(--c-44)' }} />
+                    <span style={{ fontSize: '12px', color: 'var(--c-66)' }}>{f.telefone ?? '—'}</span>
                   </div>
                   {f.email && (
-                    <p className="entity-subtle" style={{ fontSize: '11px', color: '#444', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <p className="entity-subtle" style={{ fontSize: '11px', color: 'var(--c-44)', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {f.email}
                     </p>
                   )}
                 </div>
               </div>
 
-              <div className="entity-divider" style={{ height: '1px', background: '#222', margin: '16px 0' }} />
+              <div className="entity-divider" style={{ height: '1px', background: 'var(--c-22)', margin: '16px 0' }} />
 
               <div className="entity-footer" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
                 {podeEditar && (
@@ -367,7 +367,7 @@ export default function Fornecedores() {
         </div>
       )}
       {!loading && filtered.length === 0 && (
-        <div className="card mobile-only-grid" style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+        <div className="card mobile-only-grid" style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>
           Nenhum fornecedor encontrado.
         </div>
       )}

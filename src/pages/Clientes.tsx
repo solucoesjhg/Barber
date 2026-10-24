@@ -75,15 +75,15 @@ function ClienteDetalhe({ cliente: c, podeEditar, verAgenda, onClose, onEditar, 
       {verAgenda && (
         <SecaoDetalhe titulo="Últimos atendimentos">
           {atendimentos === null ? (
-            <p style={{ fontSize: '12px', color: '#555' }}>Carregando...</p>
+            <p style={{ fontSize: '12px', color: 'var(--c-55)' }}>Carregando...</p>
           ) : atendimentos.length === 0 ? (
-            <p style={{ fontSize: '12px', color: '#555' }}>Nenhum agendamento para este cliente.</p>
+            <p style={{ fontSize: '12px', color: 'var(--c-55)' }}>Nenhum agendamento para este cliente.</p>
           ) : (
             <div className="detalhe-lista">
               {atendimentos.map(a => (
                 <div key={a.id} className="detalhe-lista-item">
-                  <span className="valor-num" style={{ color: '#FFFFFF', flexShrink: 0 }}>
-                    {formatDate(a.data_hora)} <span style={{ color: '#666' }}>{formatTime(a.data_hora)}</span>
+                  <span className="valor-num" style={{ color: 'var(--c-fff)', flexShrink: 0 }}>
+                    {formatDate(a.data_hora)} <span style={{ color: 'var(--c-66)' }}>{formatTime(a.data_hora)}</span>
                   </span>
                   <span className="texto-cortado" style={{ flex: 1 }}>
                     {[a.servico?.nome, a.profissional?.nome].filter(Boolean).join(' · ') || '—'}
@@ -187,8 +187,8 @@ export default function Clientes() {
       {/* Header */}
       <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', color: '#FFFFFF' }}>Clientes</h1>
-          <p style={{ fontSize: '13px', color: '#555', marginTop: '3px' }}>
+          <h1 style={{ fontSize: '24px', color: 'var(--c-fff)' }}>Clientes</h1>
+          <p style={{ fontSize: '13px', color: 'var(--c-55)', marginTop: '3px' }}>
             {clientes.filter(c => c.ativo).length} ativos · {clientes.length} cadastrados
           </p>
         </div>
@@ -203,24 +203,24 @@ export default function Clientes() {
       <div style={{
         display: 'flex', alignItems: 'center', gap: '10px',
         padding: '11px 14px',
-        background: '#1A1A1A',
-        border: '1px solid #252525',
+        background: 'var(--c-1a)',
+        border: '1px solid var(--c-25)',
         borderRadius: '8px',
         marginBottom: '20px',
       }}>
-        <Search size={14} style={{ color: '#444', flexShrink: 0 }} />
+        <Search size={14} style={{ color: 'var(--c-44)', flexShrink: 0 }} />
         <input
-          style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: '13px', color: '#FFFFFF', fontFamily: 'inherit' }}
+          style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: '13px', color: 'var(--c-fff)', fontFamily: 'inherit' }}
           placeholder="Buscar por nome ou telefone..."
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
         {search && (
-          <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', padding: '2px' }}>
+          <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', color: 'var(--c-55)', cursor: 'pointer', padding: '2px' }}>
             <X size={13} />
           </button>
         )}
-        <label className="check-rotulo" style={{ flexShrink: 0, paddingLeft: '10px', borderLeft: '1px solid #252525' }}>
+        <label className="check-rotulo" style={{ flexShrink: 0, paddingLeft: '10px', borderLeft: '1px solid var(--c-25)' }}>
           <input type="checkbox" checked={mostrarInativos} onChange={e => setMostrarInativos(e.target.checked)} />
           Mostrar inativos
         </label>
@@ -232,10 +232,10 @@ export default function Clientes() {
           display: 'grid',
           minWidth: '720px', gridTemplateColumns: '1fr 150px minmax(150px, 200px) 96px 70px 36px', gap: '12px', alignItems: 'center',
           padding: '10px 20px',
-          borderBottom: '1px solid #222',
-          fontSize: '10px', fontWeight: 600, color: '#444',
+          borderBottom: '1px solid var(--c-22)',
+          fontSize: '10px', fontWeight: 600, color: 'var(--c-44)',
           textTransform: 'uppercase', letterSpacing: '0.1em',
-          background: 'rgba(0,0,0,0.2)',
+          background: 'var(--header-bg)',
         }}>
           <span>Nome</span>
           <span>Telefone</span>
@@ -246,11 +246,11 @@ export default function Clientes() {
         </div>
 
         {loading ? (
-          <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+          <div style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>
             Carregando...
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+          <div style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>
             Nenhum cliente encontrado.
           </div>
         ) : filtered.map((c, i) => (
@@ -265,33 +265,33 @@ export default function Clientes() {
               display: 'grid',
               minWidth: '720px', gridTemplateColumns: '1fr 150px minmax(150px, 200px) 96px 70px 36px', gap: '12px',
               padding: '11px 20px',
-              borderBottom: i < filtered.length - 1 ? '1px solid #1F1F1F' : 'none',
+              borderBottom: i < filtered.length - 1 ? '1px solid var(--c-1f)' : 'none',
               alignItems: 'center',
               transition: 'background 0.12s',
             }}
-            whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+            whileHover={{ backgroundColor: 'rgba(var(--ink),0.02)' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
               <div style={{
                 width: '32px', height: '32px',
                 borderRadius: '50%',
-                background: '#262626',
-                border: '1px solid #333',
+                background: 'var(--c-26)',
+                border: '1px solid var(--c-33)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '11px', fontWeight: 700, color: '#A3A3A3',
+                fontSize: '11px', fontWeight: 700, color: 'var(--c-a3)',
                 flexShrink: 0,
               }}>
                 {initials(c.nome)}
               </div>
-              <span className="texto-cortado" style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF' }}>{c.nome}</span>
+              <span className="texto-cortado" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--c-fff)' }}>{c.nome}</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#A3A3A3' }}>
-              <Phone size={11} style={{ color: '#444' }} /> {c.telefone}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--c-a3)' }}>
+              <Phone size={11} style={{ color: 'var(--c-44)' }} /> {c.telefone}
             </div>
-            <div className="texto-cortado" style={{ fontSize: '13px', color: '#555' }}>
-              {c.email ?? <span style={{ color: '#333' }}>—</span>}
+            <div className="texto-cortado" style={{ fontSize: '13px', color: 'var(--c-55)' }}>
+              {c.email ?? <span style={{ color: 'var(--c-33)' }}>—</span>}
             </div>
-            <div style={{ fontSize: '12px', color: '#444' }}>{formatDate(c.created_at)}</div>
+            <div style={{ fontSize: '12px', color: 'var(--c-44)' }}>{formatDate(c.created_at)}</div>
             <div>
               <button
                 className={`status-pill${c.ativo ? '' : ' inativo'}`}
@@ -328,10 +328,10 @@ export default function Clientes() {
                 <div className="entity-avatar" style={{
                   width: '44px', height: '44px',
                   borderRadius: '50%',
-                  background: '#262626',
-                  border: '1px solid #333',
+                  background: 'var(--c-26)',
+                  border: '1px solid var(--c-33)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '14px', fontWeight: 700, color: '#A3A3A3',
+                  fontSize: '14px', fontWeight: 700, color: 'var(--c-a3)',
                   flexShrink: 0,
                 }}>
                   {initials(c.nome)}
@@ -339,7 +339,7 @@ export default function Clientes() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
                     <h3 className="entity-title" style={{
-                      fontSize: '15px', fontWeight: 600, color: '#FFFFFF', fontFamily: 'DM Sans, sans-serif',
+                      fontSize: '15px', fontWeight: 600, color: 'var(--c-fff)', fontFamily: 'DM Sans, sans-serif',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
                     }}>{c.nome}</h3>
                     <span className={`status-pill${c.ativo ? '' : ' inativo'}`} style={{ flexShrink: 0 }}>
@@ -347,23 +347,23 @@ export default function Clientes() {
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Phone size={11} style={{ color: '#444' }} />
-                    <span style={{ fontSize: '12px', color: '#666' }}>{c.telefone}</span>
+                    <Phone size={11} style={{ color: 'var(--c-44)' }} />
+                    <span style={{ fontSize: '12px', color: 'var(--c-66)' }}>{c.telefone}</span>
                   </div>
                   {c.email && (
-                    <p className="entity-subtle" style={{ fontSize: '11px', color: '#444', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <p className="entity-subtle" style={{ fontSize: '11px', color: 'var(--c-44)', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {c.email}
                     </p>
                   )}
                 </div>
               </div>
 
-              <div className="entity-divider" style={{ height: '1px', background: '#222', margin: '16px 0' }} />
+              <div className="entity-divider" style={{ height: '1px', background: 'var(--c-22)', margin: '16px 0' }} />
 
               <div className="entity-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div className="entity-subtle">
-                  <p style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Cadastro</p>
-                  <p style={{ fontSize: '13px', color: '#A3A3A3' }}>{formatDate(c.created_at)}</p>
+                  <p style={{ fontSize: '10px', color: 'var(--c-44)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Cadastro</p>
+                  <p style={{ fontSize: '13px', color: 'var(--c-a3)' }}>{formatDate(c.created_at)}</p>
                 </div>
                 {podeEditar && (
                   <div style={{ display: 'flex', gap: '6px' }}>
@@ -381,7 +381,7 @@ export default function Clientes() {
         </div>
       )}
       {!loading && filtered.length === 0 && (
-        <div className="card mobile-only-grid" style={{ padding: '56px', textAlign: 'center', color: '#444', fontSize: '13px' }}>
+        <div className="card mobile-only-grid" style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>
           Nenhum cliente encontrado.
         </div>
       )}
