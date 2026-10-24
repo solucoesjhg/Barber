@@ -1198,3 +1198,24 @@ button.status-pill:disabled { cursor: default; }
 
 /* Mensalidade em atraso: o único destaque em cor do painel ADM. */
 .badge-atrasada { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.35); }
+
+/* Filtro de profissional da agenda */
+.filtro-prof { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; margin-bottom: 20px; scrollbar-width: thin; }
+.filtro-prof-item {
+  display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0;
+  padding: 5px 10px 5px 5px; border-radius: 99px; font-family: inherit; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--border); color: var(--text-muted);
+  transition: border-color .15s, background .15s, color .15s, transform .15s;
+}
+.filtro-prof-item:hover { border-color: var(--border-strong); color: var(--text); transform: translateY(-1px); }
+.filtro-prof-item.ativo { color: var(--text); background: rgba(var(--ink), 0.06); border-color: var(--c-fff); }
+.filtro-prof-avatar {
+  width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.02em; border: 1px solid transparent; flex-shrink: 0;
+}
+.filtro-prof-todos { background: rgba(var(--ink), 0.08); color: var(--text); border-color: var(--border); }
+.filtro-prof-nome { font-size: 12px; font-weight: 500; white-space: nowrap; }
+.filtro-prof-contagem {
+  min-width: 20px; height: 18px; padding: 0 6px; border-radius: 99px; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 600; background: rgba(var(--ink), 0.06); color: var(--text-dim); font-variant-numeric: tabular-nums;
+}

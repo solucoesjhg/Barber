@@ -13,6 +13,7 @@ import AgendamentoDetalheModal, { STATUS_AGENDA, vendaDoAgendamento } from '../c
 import VendaDetalheModal from '../components/VendaDetalheModal'
 import VendaAgendamentoModal from '../components/VendaAgendamentoModal'
 import ModalFormulario, { Campo, FormGrade } from '../components/ui/ModalFormulario'
+import FiltroProfissional from '../components/agenda/FiltroProfissional'
 import type { Agendamento, AgendamentoStatus, Cliente, Profissional, Servico } from '../types'
 
 /* ── Types ──────────────────────────────────────────────── */
@@ -22,6 +23,7 @@ type ViewMode = 'lista' | 'semanal' | 'mensal'
 const STATUS_CFG = STATUS_AGENDA
 
 // vendas: a venda gerada a partir do agendamento (comandas.agendamento_id).
+const FILTRO_PROF_KEY = 'barber-agenda-profissional'
 const SELECT_AGENDA = '*, cliente:clientes(*), profissional:profissionais(*), servico:servicos(*), vendas:comandas(id, status)'
 
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 8) // 8–20
@@ -305,12 +307,11 @@ function ListaView({
    SEMANAL VIEW — time grid
 ══════════════════════════════════════════════════════════ */
 function SemanalView({
-  baseDate, setBaseDate, agenda, filterProfId, onDayClick, onAbrir,
+  baseDate, setBaseDate, agenda, onDayClick, onAbrir,
 }: {
   baseDate: Date
   setBaseDate: (d: Date) => void
   agenda: Agendamento[]
-  filterProfId: string
   onDayClick: (d: Date) => void
   onAbrir: (id: string) => void
 }) {
@@ -323,9 +324,7 @@ function SemanalView({
     setBaseDate(d)
   }
 
-  const filtered = filterProfId
-    ? agenda.filter(a => a.profissional_id === filterProfId)
-    : agenda
+  const filtered = agenda
 
   // Get appointments for a specific day key, sorted
   function agForDay(dayKey: string) {
@@ -520,12 +519,11 @@ function SemanalView({
    MENSAL VIEW — month calendar
 ══════════════════════════════════════════════════════════ */
 function MensalView({
-  baseDate, setBaseDate, agenda, filterProfId, onDayClick, selectedDate, onAbrir,
+  baseDate, setBaseDate, agenda, onDayClick, selectedDate, onAbrir,
 }: {
   baseDate: Date
   setBaseDate: (d: Date) => void
   agenda: Agendamento[]
-  filterProfId: string
   onDayClick: (d: Date) => void
   selectedDate: Date
   onAbrir: (id: string) => void
@@ -541,9 +539,7 @@ function MensalView({
     setBaseDate(d)
   }
 
-  const filtered = filterProfId
-    ? agenda.filter(a => a.profissional_id === filterProfId)
-    : agenda
+  const filtered = agenda
 
   function agForDay(dayKey: string) {
     return filtered.filter(a => a.data_hora.startsWith(dayKey))
@@ -688,7 +684,7 @@ export default function Agenda() {
   const [viewMode, setViewMode]     = useState<ViewMode>('lista')
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [calBase, setCalBase]       = useState(new Date()) // week/month navigation base
-  const [filterProfId, setFilterProfId] = useState('')
+  const [filterProfId, setFilterProfId] = useState(() => { try { return localStorage.getItem(FILTRO_PROF_KEY) ?? '' } catch { return '' } })
 
   const [agenda, setAgenda]         = useState<Agendamento[]>([])
   const [profissionais, setProfissionais] = useState<Profissional[]>([])
@@ -824,7 +820,27 @@ export default function Agenda() {
     setViewMode('lista')
   }
 
-  const showCalFilters = viewMode === 'semanal' || viewMode === 'mensal'
+  // Filtro de profissional vale para as três visões; a contagem é do
+  // período que a tela mostra (o dia na lista, a semana, o mês).
+  const chaveDia = toKey(selectedDate)
+  const agendaPeriodo = viewMode === 'lista' ? agenda.filter(a => a.data_hora.startsWith(chaveDia)) : agenda
+  const contagemProf: Record<string, number> = {}
+  agendaPeriodo.forEach(a => { contagemProf[a.profissional_id] = (contagemProf[a.profissional_id] ?? 0) + 1 })
+  // Filtro salvo de um profissional que saiu da lista não esconde a agenda.
+  const filtroAtivo = profissionais.some(p => p.id === filterProfId) ? filterProfId : ''
+  const agendaFiltrada = filtroAtivo ? agenda.filter(a => a.profissional_id === filtroAtivo) : agenda
+
+  // Com um profissional filtrado, o novo agendamento já vem com ele.
+  function abrirNovo() {
+    setError('')
+    if (filtroAtivo) setForm(f => ({ ...f, profissional_id: filtroAtivo, servico_id: f.profissional_id === filtroAtivo ? f.servico_id : '' }))
+    setShowModal(true)
+  }
+
+  function escolherProfissional(id: string) {
+    setFilterProfId(id)
+    try { localStorage.setItem(FILTRO_PROF_KEY, id) } catch { /* sem storage */ }
+  }
 
   // Só os serviços que o profissional faz; profissional sem nenhum
   // serviço vinculado vê todos (antes ficava com a lista vazia e o
@@ -867,7 +883,7 @@ export default function Agenda() {
           {podeEditar && (
             <button
               className="btn btn-primary"
-              onClick={() => { setError(''); setShowModal(true) }}
+              onClick={abrirNovo}
               style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
             >
               <Plus size={14} strokeWidth={2.5} /> Agendar
@@ -876,50 +892,13 @@ export default function Agenda() {
         </div>
       </div>
 
-      {/* Calendar-mode filters */}
-      <AnimatePresence>
-        {showCalFilters && (
-          <motion.div
-            initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-            animate={{ opacity: 1, height: 'auto', marginBottom: 20 }}
-            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-            style={{ overflow: 'hidden' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '12px', color: 'var(--c-44)' }}>Filtrar por profissional:</span>
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                <button
-                  onClick={() => setFilterProfId('')}
-                  style={{
-                    padding: '5px 12px', borderRadius: '99px', fontFamily: 'inherit',
-                    border: filterProfId === '' ? '1px solid var(--c-fff)' : '1px solid var(--c-2a)',
-                    background: filterProfId === '' ? 'rgba(var(--ink),0.08)' : 'transparent',
-                    color: filterProfId === '' ? 'var(--c-fff)' : 'var(--c-55)',
-                    fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s',
-                  }}
-                >
-                  Todos
-                </button>
-                {profissionais.map(p => (
-                  <button
-                    key={p.id}
-                    onClick={() => setFilterProfId(p.id)}
-                    style={{
-                      padding: '5px 12px', borderRadius: '99px', fontFamily: 'inherit',
-                      border: filterProfId === p.id ? '1px solid var(--c-fff)' : '1px solid var(--c-2a)',
-                      background: filterProfId === p.id ? 'rgba(var(--ink),0.08)' : 'transparent',
-                      color: filterProfId === p.id ? 'var(--c-fff)' : 'var(--c-55)',
-                      fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s',
-                    }}
-                  >
-                    {p.nome}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <FiltroProfissional
+        profissionais={profissionais}
+        contagem={contagemProf}
+        total={agendaPeriodo.length}
+        valor={filtroAtivo}
+        onChange={escolherProfissional}
+      />
 
       {/* Views */}
       <AnimatePresence mode="wait">
@@ -934,12 +913,12 @@ export default function Agenda() {
             <ListaView
               selectedDate={selectedDate}
               setSelectedDate={setSelectedDate}
-              agenda={agenda}
+              agenda={agendaFiltrada}
               updateStatus={updateStatus}
               podeEditar={podeEditar}
               podeVender={podeVender}
               verTodasVendas={verVendasOutros}
-              onOpenModal={() => { setError(''); setShowModal(true) }}
+              onOpenModal={abrirNovo}
               setFormDate={k => setForm(f => ({ ...f, data: k }))}
               onAbrir={setAgAbertoId}
               onGerarVenda={gerarVenda}
@@ -949,8 +928,7 @@ export default function Agenda() {
             <SemanalView
               baseDate={calBase}
               setBaseDate={setCalBase}
-              agenda={agenda}
-              filterProfId={filterProfId}
+              agenda={agendaFiltrada}
               onDayClick={handleDayClick}
               onAbrir={setAgAbertoId}
             />
@@ -959,8 +937,7 @@ export default function Agenda() {
             <MensalView
               baseDate={calBase}
               setBaseDate={setCalBase}
-              agenda={agenda}
-              filterProfId={filterProfId}
+              agenda={agendaFiltrada}
               onDayClick={handleDayClick}
               selectedDate={selectedDate}
               onAbrir={setAgAbertoId}
