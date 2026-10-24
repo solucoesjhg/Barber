@@ -253,7 +253,7 @@ function ListaView({
                   {temVenda && <span className="badge badge-done" title="Venda registrada para este atendimento">Venda</span>}
                 </div>
                 <p className="texto-cortado" style={{ fontSize: '12px', color: 'var(--c-55)' }}>
-                  {ag.servico?.nome}{ag.servico?.preco ? ` · ${formatCurrency(ag.valor ?? ag.servico.preco)}` : ''}
+                  {ag.servico?.nome}{ag.valor != null ? ` · ${formatCurrency(ag.valor)}` : ag.servico?.preco_na_venda ? ' · valor na venda' : ag.servico?.preco ? ` · ${formatCurrency(ag.servico.preco)}` : ''}
                   {ag.profissional ? ` · ${ag.profissional.nome}` : ''}
                 </p>
                 {ag.observacoes && (
@@ -694,6 +694,7 @@ export default function Agenda() {
   const [profServMap, setProfServMap] = useState<Record<string, string[]>>({})
   const [clientes, setClientes]     = useState<Cliente[]>([])
   const [showModal, setShowModal]   = useState(false)
+  const [avisoAgenda, setAvisoAgenda] = useState('')
 
   const [form, setForm] = useState({
     cliente_id: '', profissional_id: '', servico_id: '',
@@ -758,7 +759,8 @@ export default function Agenda() {
       servico_id: form.servico_id || null,
       data_hora,
       duracao_minutos: servicoSelecionado?.duracao_minutos ?? 30,
-      valor: servicoSelecionado?.preco ?? null,
+      // Serviço com valor decidido na venda fica sem valor no agendamento.
+      valor: servicoSelecionado && !servicoSelecionado.preco_na_venda ? servicoSelecionado.preco : null,
       observacoes: form.obs, status: 'pendente',
     })
     if (err) {
@@ -770,6 +772,13 @@ export default function Agenda() {
       setSaving(false); return
     }
     setShowModal(false)
+    // Agendou para um profissional cuja agenda o usuário não vê: avisa,
+    // porque o agendamento não vai aparecer na tela dele.
+    if (!verAgendamentosOutros && form.profissional_id !== meuProfissional) {
+      const nome = profissionais.find(p => p.id === form.profissional_id)?.nome ?? 'o profissional'
+      setAvisoAgenda(`Agendado para ${nome}. O agendamento aparece na agenda de ${nome}, não na sua.`)
+      setTimeout(() => setAvisoAgenda(''), 6000)
+    }
     setForm({ cliente_id: '', profissional_id: '', servico_id: '', data: toKey(new Date()), hora: '09:00', obs: '' })
     setSaving(false)
     supabase
@@ -837,10 +846,11 @@ export default function Agenda() {
   const agendaFiltrada = filtroAtivo ? agenda.filter(a => a.profissional_id === filtroAtivo) : agenda
 
   // O novo agendamento já vem com o profissional filtrado ou, sem
-  // filtro, com o profissional vinculado ao usuário.
+  // filtro, com o profissional vinculado ao usuário. Dá para agendar
+  // para qualquer profissional, mesmo sem ver a agenda dos outros.
   function abrirNovo() {
     setError('')
-    const vinculado = meuProfissional && profissionaisVisiveis.some(p => p.id === meuProfissional) ? meuProfissional : ''
+    const vinculado = meuProfissional && profissionais.some(p => p.id === meuProfissional) ? meuProfissional : ''
     setForm(f => {
       const prof = filtroAtivo || f.profissional_id || vinculado
       return prof === f.profissional_id ? f : { ...f, profissional_id: prof, servico_id: '' }
@@ -1013,6 +1023,19 @@ export default function Agenda() {
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {avisoAgenda && !vendaFeita && (
+          <motion.div
+            className="aviso-flutuante"
+            role="status"
+            initial={{ opacity: 0, y: 16, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16 }}
+          >
+            <span className="aviso-flutuante-icone"><Check size={14} /></span>
+            <span style={{ flex: 1, minWidth: 0, fontSize: '13px', color: 'var(--c-fff)' }}>{avisoAgenda}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Novo agendamento */}
       <AnimatePresence>
         {showModal && (
@@ -1038,13 +1061,13 @@ export default function Agenda() {
               <Campo rotulo="Profissional *" span={2}>
                 <select className="input" value={form.profissional_id} onChange={e => setForm(f => ({ ...f, profissional_id: e.target.value, servico_id: '' }))}>
                   <option value="">Selecionar...</option>
-                  {profissionaisVisiveis.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                  {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
                 </select>
               </Campo>
               <Campo rotulo="Serviço *" span={2}>
                 <select className="input" value={form.servico_id} onChange={e => setForm(f => ({ ...f, servico_id: e.target.value }))}>
                   <option value="">Selecionar...</option>
-                  {servicosFiltrados.map(s => <option key={s.id} value={s.id}>{s.nome} · {formatCurrency(s.preco)}</option>)}
+                  {servicosFiltrados.map(s => <option key={s.id} value={s.id}>{s.nome} · {s.preco_na_venda ? 'valor na venda' : formatCurrency(s.preco)}</option>)}
                 </select>
               </Campo>
               <Campo rotulo="Data">

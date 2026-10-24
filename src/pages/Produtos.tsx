@@ -122,7 +122,7 @@ export default function Produtos() {
   const [editServId, setEditServId] = useState<string | null>(null)
   const [servForm, setServForm] = useState({
     nome: '', preco: '', duracao_minutos: '30', descricao: '', categoria: '', comissao_percentual: '',
-    profissional_ids: [] as string[],
+    preco_na_venda: false, profissional_ids: [] as string[],
   })
 
   const [loading, setLoading] = useState(true)
@@ -269,13 +269,15 @@ export default function Produtos() {
   }
 
   async function handleSaveServ() {
-    if (!servForm.nome.trim() || !servForm.preco) {
-      setError('Nome e preço são obrigatórios.'); return
+    if (!servForm.nome.trim()) { setError('O nome é obrigatório.'); return }
+    if (!servForm.preco_na_venda && !servForm.preco) {
+      setError('Informe o preço ou marque "Valor definido na venda".'); return
     }
     setSaving(true); setError('')
     const payload = {
       nome: servForm.nome,
-      preco: Number(servForm.preco),
+      preco: Number(servForm.preco) || 0,
+      preco_na_venda: servForm.preco_na_venda,
       duracao_minutos: Number(servForm.duracao_minutos) || 30,
       descricao: servForm.descricao || null,
       categoria: servForm.categoria || null,
@@ -315,7 +317,7 @@ export default function Produtos() {
 
   function abrirNovoServ() {
     setEditServId(null)
-    setServForm({ nome: '', preco: '', duracao_minutos: '30', descricao: '', categoria: '', comissao_percentual: '', profissional_ids: [] })
+    setServForm({ nome: '', preco: '', duracao_minutos: '30', descricao: '', categoria: '', comissao_percentual: '', preco_na_venda: false, profissional_ids: [] })
     setError('')
     setShowServModal(true)
   }
@@ -323,7 +325,8 @@ export default function Produtos() {
   function abrirEdicaoServ(s: Servico) {
     setEditServId(s.id)
     setServForm({
-      nome: s.nome, preco: String(s.preco), duracao_minutos: String(s.duracao_minutos),
+      nome: s.nome, preco: s.preco_na_venda && !s.preco ? '' : String(s.preco), duracao_minutos: String(s.duracao_minutos),
+      preco_na_venda: !!s.preco_na_venda,
       descricao: s.descricao ?? '', categoria: s.categoria ?? '',
       comissao_percentual: s.comissao_percentual != null ? String(s.comissao_percentual) : '',
       profissional_ids: (s.profissionais ?? []).map(p => p.id),
@@ -742,7 +745,7 @@ export default function Produtos() {
                       {s.categoria && <p className="subtexto texto-cortado">{s.categoria}</p>}
                     </div>
                   </div>
-                  <span className="valor-num" style={{ fontSize: '13px', color: 'var(--c-a3)', fontWeight: 500, textAlign: 'right' }}>{formatCurrency(s.preco)}</span>
+                  <span className="valor-num" style={{ fontSize: '13px', color: 'var(--c-a3)', fontWeight: 500, textAlign: 'right' }}>{s.preco_na_venda ? 'Na venda' : formatCurrency(s.preco)}</span>
                   <span style={{ fontSize: '12px', color: 'var(--c-66)' }}>{s.duracao_minutos} min</span>
                   <span style={{ fontSize: '12px', color: 'var(--c-66)' }}>{s.comissao_percentual != null ? `${s.comissao_percentual}%` : '—'}</span>
                   <span className="texto-cortado" style={{ fontSize: '12px', color: 'var(--c-a3)' }} title={s.profissionais?.map(p => p.nome).join(', ')}>
@@ -806,7 +809,7 @@ export default function Produtos() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
                       <div>
                         <p style={{ fontSize: '10px', color: 'var(--c-44)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Preço</p>
-                        <p style={{ fontSize: '13px', color: 'var(--c-a3)', fontWeight: 500 }}>{formatCurrency(s.preco)}</p>
+                        <p style={{ fontSize: '13px', color: 'var(--c-a3)', fontWeight: 500 }}>{s.preco_na_venda ? 'Na venda' : formatCurrency(s.preco)}</p>
                       </div>
                       <div>
                         <p style={{ fontSize: '10px', color: 'var(--c-44)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Duração</p>
@@ -933,7 +936,7 @@ export default function Produtos() {
           <ModalFormulario
             icone={<Scissors size={18} />}
             titulo={editServId ? 'Editar Serviço' : 'Novo Serviço'}
-            descricao={editServId ? servicos.find(s => s.id === editServId)?.nome : 'Nome e preço são obrigatórios.'}
+            descricao={editServId ? servicos.find(s => s.id === editServId)?.nome : 'Nome e preço são obrigatórios (ou marque "Valor definido na venda").'}
             onClose={fecharModalServ}
             onSalvar={handleSaveServ}
             salvando={saving}
@@ -947,8 +950,8 @@ export default function Produtos() {
               <Campo rotulo="Categoria">
                 <input className="input" placeholder="Ex: Cabelo, Barba..." value={servForm.categoria} onChange={e => setServForm(f => ({ ...f, categoria: e.target.value }))} />
               </Campo>
-              <Campo rotulo="Preço *">
-                <input className="input" type="number" min={0} step={0.01} placeholder="0,00" value={servForm.preco} onChange={e => setServForm(f => ({ ...f, preco: e.target.value }))} />
+              <Campo rotulo={servForm.preco_na_venda ? 'Preço de referência' : 'Preço *'}>
+                <input className="input" type="number" min={0} step={0.01} placeholder={servForm.preco_na_venda ? 'opcional' : '0,00'} value={servForm.preco} onChange={e => setServForm(f => ({ ...f, preco: e.target.value }))} />
               </Campo>
               <Campo rotulo="Duração (min)">
                 <input className="input" type="number" min={5} step={5} placeholder="30" value={servForm.duracao_minutos} onChange={e => setServForm(f => ({ ...f, duracao_minutos: e.target.value }))} />
@@ -956,6 +959,12 @@ export default function Produtos() {
               <Campo rotulo="Comissão (%)">
                 <input className="input" type="number" min={0} max={100} placeholder="usa a do profissional" value={servForm.comissao_percentual} onChange={e => setServForm(f => ({ ...f, comissao_percentual: e.target.value }))} />
               </Campo>
+              <div className="field span-total">
+                <label className="check-rotulo" title="O agendamento fica sem valor e o valor é informado na hora da venda">
+                  <input type="checkbox" checked={servForm.preco_na_venda} onChange={e => setServForm(f => ({ ...f, preco_na_venda: e.target.checked }))} />
+                  Valor definido na venda (o preço é decidido na hora de vender)
+                </label>
+              </div>
               <Campo rotulo="Descrição" span="total">
                 <textarea className="input textarea" style={{ minHeight: '64px' }} placeholder="opcional" value={servForm.descricao} onChange={e => setServForm(f => ({ ...f, descricao: e.target.value }))} />
               </Campo>

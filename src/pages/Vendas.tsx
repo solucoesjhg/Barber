@@ -175,7 +175,8 @@ export default function Vendas() {
         setProfissionalId(ag.profissional_id ?? '')
         setCart(ag.servico ? [{
           id: uid(), tipo: 'servico', referencia_id: ag.servico.id, nome: ag.servico.nome, quantidade: 1,
-          preco_unitario: Number(ag.valor ?? ag.servico.preco), profissional_id: ag.profissional_id ?? undefined,
+          preco_unitario: Number(ag.valor ?? (ag.servico.preco_na_venda ? 0 : ag.servico.preco)),
+          preco_na_venda: !!ag.servico.preco_na_venda, profissional_id: ag.profissional_id ?? undefined,
         }] : [])
         setEdicao(null)
         setSemComissao(false)
@@ -241,7 +242,7 @@ export default function Vendas() {
       // Mesmo serviço com outro profissional vira outra linha (comissões separadas).
       const ex = prev.find(i => i.tipo === 'servico' && i.referencia_id === s.id && (i.profissional_id ?? '') === profissionalId)
       if (ex) return prev.map(i => i.id === ex.id ? { ...i, quantidade: i.quantidade + 1 } : i)
-      return [...prev, { id: uid(), tipo: 'servico', referencia_id: s.id, nome: s.nome, quantidade: 1, preco_unitario: s.preco, profissional_id: profissionalId || undefined }]
+      return [...prev, { id: uid(), tipo: 'servico', referencia_id: s.id, nome: s.nome, quantidade: 1, preco_unitario: s.preco_na_venda ? 0 : s.preco, preco_na_venda: !!s.preco_na_venda, profissional_id: profissionalId || undefined }]
     })
   }
 
@@ -263,6 +264,13 @@ export default function Vendas() {
     setCart(prev => prev.filter(i => i.id !== id))
   }
 
+  // Valor do serviço pode ser ajustado na venda (e é obrigatório nos
+  // serviços com valor decidido na venda).
+  function mudarPrecoItem(id: string, texto: string) {
+    const valor = Math.max(0, Number(texto.replace(',', '.')) || 0)
+    setCart(prev => prev.map(i => i.id === id ? { ...i, preco_unitario: valor } : i))
+  }
+
   function mudarProfissionalItem(id: string, profId: string) {
     setCart(prev => prev.map(i => i.id === id ? { ...i, profissional_id: profId || undefined } : i))
   }
@@ -276,9 +284,15 @@ export default function Vendas() {
 
   const servicosSemProfissional = cart.filter(i => i.tipo === 'servico' && !i.profissional_id)
 
+  const servicosSemValor = cart.filter(i => i.tipo === 'servico' && i.preco_na_venda && !(i.preco_unitario > 0))
+
   function abrirPagamento() {
     if (servicosSemProfissional.length > 0) {
       setError(`Escolha o profissional de: ${servicosSemProfissional.map(i => i.nome).join(', ')}.`)
+      return
+    }
+    if (servicosSemValor.length > 0) {
+      setError(`Informe o valor de: ${servicosSemValor.map(i => i.nome).join(', ')}.`)
       return
     }
     setError('')
@@ -677,7 +691,9 @@ export default function Vendas() {
                       : `${item.dado.estoque_atual} ${item.dado.unidade} em estoque`}
                   </p>
                   <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--c-fff)', marginTop: '5px' }}>
-                    {formatCurrency(item.tipo === 'servico' ? item.dado.preco : item.dado.preco_venda)}
+                    {item.tipo === 'servico' && item.dado.preco_na_venda
+                      ? <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--c-a3)' }}>Valor na venda</span>
+                      : formatCurrency(item.tipo === 'servico' ? item.dado.preco : item.dado.preco_venda)}
                   </p>
                 </motion.button>
               )
@@ -762,7 +778,21 @@ export default function Vendas() {
                   <p style={{ fontSize: '12px', fontWeight: 500, color: 'var(--c-fff)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {item.nome}
                   </p>
-                  <p style={{ fontSize: '11px', color: 'var(--c-55)', marginTop: '2px' }}>{formatCurrency(item.preco_unitario)}</p>
+                  {item.tipo === 'servico' ? (
+                    <label className="pdv-item-preco" title="Valor do serviço nesta venda">
+                      <span>R$</span>
+                      <input
+                        type="number" min={0} step={0.01} inputMode="decimal"
+                        aria-label={`Valor de ${item.nome}`}
+                        placeholder={item.preco_na_venda ? 'Valor *' : '0,00'}
+                        value={item.preco_unitario > 0 || !item.preco_na_venda ? item.preco_unitario : ''}
+                        onChange={e => mudarPrecoItem(item.id, e.target.value)}
+                        className={item.preco_na_venda && !(item.preco_unitario > 0) ? 'pendente' : undefined}
+                      />
+                    </label>
+                  ) : (
+                    <p style={{ fontSize: '11px', color: 'var(--c-55)', marginTop: '2px' }}>{formatCurrency(item.preco_unitario)}</p>
+                  )}
                   {profissionais.length > 0 && (
                     <select
                       aria-label={`Profissional de ${item.nome}`}

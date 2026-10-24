@@ -112,7 +112,7 @@ export function ServicoDetalheModal({ servico: s, podeEditar, onClose, onEditar 
       acoes={podeEditar ? <button className="btn btn-primary" onClick={onEditar}><Pencil size={13} /> Editar</button> : undefined}
     >
       <InfoGrade>
-        <Info rotulo="Preço">{formatCurrency(s.preco)}</Info>
+        <Info rotulo="Preço">{s.preco_na_venda ? `Definido na venda${s.preco > 0 ? ` (referência ${formatCurrency(s.preco)})` : ''}` : formatCurrency(s.preco)}</Info>
         <Info rotulo="Duração">{`${s.duracao_minutos} min`}</Info>
         <Info rotulo="Comissão">{s.comissao_percentual != null ? `${s.comissao_percentual}%` : 'Usa a do profissional'}</Info>
         <Info rotulo="Categoria">{s.categoria}</Info>

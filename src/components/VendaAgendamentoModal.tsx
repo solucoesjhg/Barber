@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Check, Plus, ShoppingCart } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
-import ModalFormulario from './ui/ModalFormulario'
+import ModalFormulario, { Campo } from './ui/ModalFormulario'
 import { Info, InfoGrade } from './ui/ModalDetalhe'
 import { PAGAMENTO_LABEL } from './VendaDetalheModal'
 import PagamentoTaxa from './PagamentoTaxa'
@@ -38,7 +38,14 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
 
-  const valor = Number(ag.valor ?? ag.servico?.preco ?? 0)
+  // O valor pode ser ajustado aqui; serviço com valor decidido na venda
+  // chega sem valor e precisa ser informado.
+  const precoNaVenda = !!ag.servico?.preco_na_venda
+  const [valorTexto, setValorTexto] = useState(() => {
+    const inicial = ag.valor ?? (precoNaVenda ? null : ag.servico?.preco)
+    return inicial != null ? String(Number(inicial)) : ''
+  })
+  const valor = Math.max(0, Number(valorTexto.replace(',', '.')) || 0)
   const cobranca = calcularCobranca(valor, percentualTaxa(taxas, maquininhaId, pagamento, parcelas), repassar)
   const quando = new Date(ag.data_hora).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
   const semCaixa = ehErroSemCaixa(erro)
@@ -48,6 +55,7 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
       setErro('Este agendamento não tem serviço. Use "Adicionar produtos ou serviços" para montar a venda.')
       return
     }
+    if (precoNaVenda && !(valor > 0)) { setErro('Informe o valor do serviço.'); return }
     if (maquininhaObrigatoria(pagamento, taxas) && !maquininhaId) { setErro('Escolha a maquininha do cartão.'); return }
     setSalvando(true); setErro('')
     const { data, error } = await supabase.rpc('finalizar_venda', {
@@ -102,6 +110,18 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
         <Info rotulo="Serviço">{ag.servico?.nome}</Info>
         <Info rotulo="Profissional">{ag.profissional?.nome}</Info>
       </InfoGrade>
+
+      <div style={{ maxWidth: '260px', marginTop: '16px' }}>
+        <Campo rotulo={precoNaVenda ? 'Valor do serviço *' : 'Valor do serviço'}>
+          <input
+            className="input" type="number" min={0} step={0.01} inputMode="decimal"
+            placeholder={precoNaVenda ? 'Informe o valor' : '0,00'}
+            value={valorTexto}
+            onChange={e => { setValorTexto(e.target.value); setErro('') }}
+            autoFocus={precoNaVenda && !valorTexto}
+          />
+        </Campo>
+      </div>
 
       <div className="detalhe-total">
         <span>Total a cobrar</span>

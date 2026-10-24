@@ -112,7 +112,7 @@ export default function AgendamentoDetalheModal({ agendamento: ag, podeEditar, p
     >
       <InfoGrade>
         <Info rotulo="Serviço">{ag.servico?.nome}</Info>
-        <Info rotulo="Valor">{valor != null ? formatCurrency(Number(valor)) : undefined}</Info>
+        <Info rotulo="Valor">{ag.valor != null ? formatCurrency(Number(ag.valor)) : ag.servico?.preco_na_venda ? 'Definido na venda' : valor != null ? formatCurrency(Number(valor)) : undefined}</Info>
         <Info rotulo="Profissional">{ag.profissional?.nome}</Info>
         <Info rotulo="Duração">{`${duracao} min`}</Info>
         <Info rotulo="Telefone">{ag.cliente?.telefone}</Info>

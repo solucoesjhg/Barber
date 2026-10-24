@@ -45,6 +45,8 @@ export interface Servico {
   categoria?: string
   comissao_percentual?: number
   ativo: boolean
+  /** Sem preço fixo: o valor é decidido na hora da venda. */
+  preco_na_venda?: boolean
   profissionais?: Profissional[]
 }
 
@@ -95,6 +97,8 @@ export interface ItemComanda {
   quantidade: number
   preco_unitario: number
   profissional_id?: string
+  /** Só na tela: serviço com valor decidido na venda (precisa informar). */
+  preco_na_venda?: boolean
 }
 
 export interface Comanda {
