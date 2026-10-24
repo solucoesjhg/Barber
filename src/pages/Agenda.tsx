@@ -24,6 +24,12 @@ type ViewMode = 'lista' | 'semanal' | 'mensal'
 const STATUS_CFG = STATUS_AGENDA
 
 // vendas: a venda gerada a partir do agendamento (comandas.agendamento_id).
+function somarDias(d: Date, n: number): Date {
+  const r = new Date(d)
+  r.setDate(r.getDate() + n)
+  return r
+}
+
 const FILTRO_PROF_KEY = 'barber-agenda-profissional'
 const SELECT_AGENDA = '*, cliente:clientes(*), profissional:profissionais(*), servico:servicos(*), vendas:comandas(id, status)'
 
@@ -114,7 +120,7 @@ function ViewBtn({
    LISTA VIEW (existing)
 ══════════════════════════════════════════════════════════ */
 function ListaView({
-  selectedDate, setSelectedDate, agenda, updateStatus,
+  selectedDate, setSelectedDate, inicioFaixa, onNavegar, agenda, updateStatus,
   onOpenModal, setFormDate, podeEditar, podeVender, verTodasVendas, onAbrir, onGerarVenda,
 }: {
   podeEditar: boolean
@@ -122,6 +128,9 @@ function ListaView({
   verTodasVendas: boolean
   selectedDate: Date
   setSelectedDate: (d: Date) => void
+  /** Primeiro dos 7 dias da faixa (as setas andam uma semana). */
+  inicioFaixa: Date
+  onNavegar: (semanas: number) => void
   agenda: Agendamento[]
   updateStatus: (id: string, s: AgendamentoStatus) => void
   onOpenModal: () => void
@@ -135,25 +144,19 @@ function ListaView({
     .filter(a => a.data_hora.startsWith(dateKey))
     .sort((a, b) => a.data_hora.localeCompare(b.data_hora))
 
-  const weekBase = new Date()
   const weekDays: Date[] = []
-  for (let i = -2; i <= 4; i++) {
-    const d = new Date(weekBase)
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(inicioFaixa)
     d.setDate(d.getDate() + i)
     weekDays.push(d)
   }
 
-  const navDay = (n: number) => {
-    const d = new Date(selectedDate)
-    d.setDate(d.getDate() + n)
-    setSelectedDate(d)
-  }
 
   return (
     <>
       {/* Week strip */}
       <div style={{ display: 'flex', gap: '6px', marginBottom: '28px', alignItems: 'center' }}>
-        <button className="btn-icon btn" style={{ flexShrink: 0 }} onClick={() => navDay(-7)}>
+        <button className="btn-icon btn" style={{ flexShrink: 0 }} onClick={() => onNavegar(-1)} aria-label="Semana anterior">
           <ChevronLeft size={14} />
         </button>
         <div className="agenda-days-scroll" style={{ display: 'flex', gap: '6px', flex: 1, minWidth: 0 }}>
@@ -184,7 +187,7 @@ function ListaView({
             )
           })}
         </div>
-        <button className="btn-icon btn" style={{ flexShrink: 0 }} onClick={() => navDay(7)}>
+        <button className="btn-icon btn" style={{ flexShrink: 0 }} onClick={() => onNavegar(1)} aria-label="Próxima semana">
           <ChevronRight size={14} />
         </button>
       </div>
@@ -686,6 +689,10 @@ export default function Agenda() {
   const [viewMode, setViewMode]     = useState<ViewMode>('lista')
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [calBase, setCalBase]       = useState(new Date()) // week/month navigation base
+  // Faixa de 7 dias da Lista: começa 2 dias antes de hoje e anda uma
+  // semana pelas setas; se o dia escolhido sair dela, ela o acompanha.
+  const [inicioFaixa, setInicioFaixa] = useState(() => somarDias(new Date(), -2))
+  const [recarga, setRecarga] = useState(0)
   const [filterProfId, setFilterProfId] = useState(() => { try { return localStorage.getItem(FILTRO_PROF_KEY) ?? '' } catch { return '' } })
 
   const [agenda, setAgenda]         = useState<Agendamento[]>([])
@@ -713,7 +720,7 @@ export default function Agenda() {
       const dias = getMonthGrid(calBase.getFullYear(), calBase.getMonth())
       inicio = toKey(dias[0]); fim = toKey(dias[dias.length - 1])
     } else {
-      inicio = toKey(selectedDate); fim = inicio
+      inicio = toKey(inicioFaixa); fim = toKey(somarDias(inicioFaixa, 6))
     }
     supabase
       .from('agendamentos')
@@ -722,7 +729,7 @@ export default function Agenda() {
       .lte('data_hora', `${fim}T23:59:59`)
       .order('data_hora')
       .then(({ data }) => { setAgenda((data ?? []) as Agendamento[]) })
-  }, [selectedDate, viewMode, calBase])
+  }, [inicioFaixa, viewMode, calBase, recarga])
 
   useEffect(() => {
     supabase.from('clientes').select('*').order('nome')
@@ -781,13 +788,7 @@ export default function Agenda() {
     }
     setForm({ cliente_id: '', profissional_id: '', servico_id: '', data: toKey(new Date()), hora: '09:00', obs: '' })
     setSaving(false)
-    supabase
-      .from('agendamentos')
-      .select(SELECT_AGENDA)
-      .gte('data_hora', `${form.data}T00:00:00`)
-      .lte('data_hora', `${form.data}T23:59:59`)
-      .order('data_hora')
-      .then(({ data }) => { if (data) setAgenda(data as Agendamento[]) })
+    setRecarga(n => n + 1)
   }
 
   // "Gerar venda" registra a venda ali mesmo (só falta a forma de
@@ -823,6 +824,19 @@ export default function Agenda() {
       setAgenda(prev => prev.map(a => a.id === id ? { ...a, status: anterior } : a))
       window.alert(`Não foi possível mudar o status: ${err.message}`)
     }
+  }
+
+  // Dia escolhido fora da faixa da Lista (pelo calendário ou ao agendar
+  // em outra data): a faixa vai até ele.
+  useEffect(() => {
+    const k = toKey(selectedDate)
+    if (k < toKey(inicioFaixa) || k > toKey(somarDias(inicioFaixa, 6))) setInicioFaixa(somarDias(selectedDate, -2))
+  }, [selectedDate])
+
+  // Setas da Lista: anda uma semana e leva o dia escolhido junto.
+  function navegarSemana(n: number) {
+    setInicioFaixa(d => somarDias(d, n * 7))
+    setSelectedDate(d => somarDias(d, n * 7))
   }
 
   // When clicking a day in semanal/mensal views
@@ -934,6 +948,8 @@ export default function Agenda() {
             <ListaView
               selectedDate={selectedDate}
               setSelectedDate={setSelectedDate}
+              inicioFaixa={inicioFaixa}
+              onNavegar={navegarSemana}
               agenda={agendaFiltrada}
               updateStatus={updateStatus}
               podeEditar={podeEditar}
