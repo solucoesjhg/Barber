@@ -8,6 +8,7 @@ import ModalDetalhe, { Info, InfoGrade, SecaoDetalhe } from '../components/ui/Mo
 import ModalFormulario, { Campo, FormGrade } from '../components/ui/ModalFormulario'
 import { STATUS_AGENDA } from '../components/AgendamentoDetalheModal'
 import type { Agendamento, Cliente } from '../types'
+import { exibirDocumento, exibirTelefone, mascaraCpf, mascaraTelefone } from '../lib/mascaras'
 
 const FORM_INICIAL = { nome: '', telefone: '', email: '', cpf: '', data_nascimento: '', endereco: '', observacoes: '' }
 
@@ -48,7 +49,7 @@ function ClienteDetalhe({ cliente: c, podeEditar, verAgenda, onClose, onEditar, 
       icone={initials(c.nome)}
       titulo={c.nome}
       subtitulo={<>
-        <span>{c.telefone}</span>
+        <span>{exibirTelefone(c.telefone)}</span>
         <span className={`status-pill${c.ativo ? '' : ' inativo'}`}>{c.ativo ? 'Ativo' : 'Inativo'}</span>
       </>}
       onClose={onClose}
@@ -60,8 +61,8 @@ function ClienteDetalhe({ cliente: c, podeEditar, verAgenda, onClose, onEditar, 
       ) : undefined}
     >
       <InfoGrade>
-        <Info rotulo="Telefone">{c.telefone}</Info>
-        <Info rotulo="CPF">{c.cpf}</Info>
+        <Info rotulo="Telefone">{exibirTelefone(c.telefone)}</Info>
+        <Info rotulo="CPF">{exibirDocumento(c.cpf)}</Info>
         <Info rotulo="E-mail" largo>{c.email}</Info>
         <Info rotulo="Nascimento">
           {c.data_nascimento ? `${formatDate(c.data_nascimento)}${idade != null ? ` · ${idade} anos` : ''}` : undefined}
@@ -163,7 +164,7 @@ export default function Clientes() {
   function abrirEdicao(c: Cliente) {
     setEditId(c.id)
     setForm({
-      nome: c.nome, telefone: c.telefone, email: c.email ?? '', cpf: c.cpf ?? '',
+      nome: c.nome, telefone: exibirTelefone(c.telefone), email: c.email ?? '', cpf: exibirDocumento(c.cpf),
       data_nascimento: c.data_nascimento ?? '', endereco: c.endereco ?? '', observacoes: c.observacoes ?? '',
     })
     setError('')
@@ -285,7 +286,7 @@ export default function Clientes() {
               <span className="texto-cortado" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--c-fff)' }}>{c.nome}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--c-a3)' }}>
-              <Phone size={11} style={{ color: 'var(--c-44)' }} /> {c.telefone}
+              <Phone size={11} style={{ color: 'var(--c-44)' }} /> {exibirTelefone(c.telefone)}
             </div>
             <div className="texto-cortado" style={{ fontSize: '13px', color: 'var(--c-55)' }}>
               {c.email ?? <span style={{ color: 'var(--c-33)' }}>—</span>}
@@ -347,7 +348,7 @@ export default function Clientes() {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Phone size={11} style={{ color: 'var(--c-44)' }} />
-                    <span style={{ fontSize: '12px', color: 'var(--c-66)' }}>{c.telefone}</span>
+                    <span style={{ fontSize: '12px', color: 'var(--c-66)' }}>{exibirTelefone(c.telefone)}</span>
                   </div>
                   {c.email && (
                     <p className="entity-subtle" style={{ fontSize: '11px', color: 'var(--c-44)', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -418,10 +419,10 @@ export default function Clientes() {
                 <input className="input" placeholder="Nome completo" value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} />
               </Campo>
               <Campo rotulo="Telefone *">
-                <input className="input" placeholder="(11) 99999-9999" value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} />
+                <input className="input" placeholder="(11) 99999-9999" inputMode="tel" value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: mascaraTelefone(e.target.value) }))} />
               </Campo>
               <Campo rotulo="CPF">
-                <input className="input" placeholder="000.000.000-00" value={form.cpf} onChange={e => setForm(f => ({ ...f, cpf: e.target.value }))} />
+                <input className="input" placeholder="000.000.000-00" inputMode="numeric" value={form.cpf} onChange={e => setForm(f => ({ ...f, cpf: mascaraCpf(e.target.value) }))} />
               </Campo>
               <Campo rotulo="E-mail">
                 <input className="input" type="email" placeholder="email@exemplo.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />

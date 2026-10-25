@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { UserCheck, UserPlus, X } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { exibirTelefone, mascaraTelefone } from '../../lib/mascaras'
 
 export interface ClienteResumo { id: string; nome: string; telefone?: string | null }
 
@@ -104,7 +105,7 @@ export default function ClienteBusca({ nome, clienteId, onChange, placeholder = 
         <div className="cliente-busca-cadastro">
           <p style={{ fontSize: '12px', color: 'var(--c-a3)' }}>Cadastrar <strong style={{ color: 'var(--text)' }}>{nome.trim() || 'cliente'}</strong></p>
           <div style={{ display: 'flex', gap: '6px' }}>
-            <input className="input" style={{ fontSize: '13px', flex: 1 }} placeholder="Telefone com DDD" inputMode="tel" value={telefone} onChange={e => setTelefone(e.target.value)} autoFocus
+            <input className="input" style={{ fontSize: '13px', flex: 1 }} placeholder="Telefone com DDD" inputMode="tel" value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} autoFocus
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); cadastrar() } }} />
             <button type="button" className="btn btn-primary btn-sm" onClick={cadastrar} disabled={salvando}>{salvando ? '...' : 'Salvar'}</button>
             <button type="button" className="btn btn-icon" aria-label="Cancelar cadastro" onClick={() => { setCadastrando(false); setErro('') }} style={{ width: '32px', height: '32px' }}><X size={12} /></button>
@@ -121,7 +122,7 @@ export default function ClienteBusca({ nome, clienteId, onChange, placeholder = 
               onMouseDown={e => { e.preventDefault(); escolher(c) }}
             >
               <span className="texto-cortado">{c.nome}</span>
-              {c.telefone && <span className="subtexto">{c.telefone}</span>}
+              {c.telefone && <span className="subtexto">{exibirTelefone(c.telefone)}</span>}
             </button>
           ))}
           {termoLivre && !nomeExato && (

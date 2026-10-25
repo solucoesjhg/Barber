@@ -7,6 +7,7 @@ import { usePermissoes } from '../hooks/usePermissoes'
 import { useLoja } from '../hooks/useLoja'
 import { MENSAGEM_PADRAO } from '../lib/whatsapp'
 import type { Configuracoes as ConfigRow } from '../types'
+import { exibirTelefone, mascaraCpfCnpj, mascaraTelefone } from '../lib/mascaras'
 
 const TAMANHO_MAX_ARQUIVO = 5 * 1024 * 1024
 const CORES_LOJA = ['#2563eb', '#0ea5e9', '#10b981', '#16a34a', '#f59e0b', '#ea580c', '#dc2626', '#db2777', '#7c3aed', '#a16207']
@@ -181,10 +182,10 @@ export default function Configuracoes() {
             <input className="input cfg-input" style={{ width: '260px' }} value={form.nome_empresa ?? ''} onChange={e => set('nome_empresa', e.target.value)} />
           </Linha>
           <Linha rotulo="CNPJ">
-            <input className="input cfg-input" style={{ width: '200px' }} value={form.cnpj ?? ''} onChange={e => set('cnpj', e.target.value)} />
+            <input className="input cfg-input" style={{ width: '200px' }} placeholder="00.000.000/0000-00" inputMode="numeric" value={mascaraCpfCnpj(form.cnpj)} onChange={e => set('cnpj', mascaraCpfCnpj(e.target.value))} />
           </Linha>
           <Linha rotulo="Telefone">
-            <input className="input cfg-input" style={{ width: '200px' }} value={form.telefone ?? ''} onChange={e => set('telefone', e.target.value)} />
+            <input className="input cfg-input" style={{ width: '200px' }} placeholder="(11) 99999-9999" inputMode="tel" value={exibirTelefone(form.telefone)} onChange={e => set('telefone', mascaraTelefone(e.target.value))} />
           </Linha>
           <Linha rotulo="Endereço">
             <input className="input cfg-input" style={{ width: '320px' }} value={form.endereco ?? ''} onChange={e => set('endereco', e.target.value)} />

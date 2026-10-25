@@ -8,6 +8,7 @@ import { inicioDoMes } from '../lib/mensalidades'
 import StatCard from '../components/ui/StatCard'
 import ModalFormulario, { Campo, FormGrade, SecaoForm } from '../components/ui/ModalFormulario'
 import type { PainelEmpresa } from '../types'
+import { mascaraCnpj, mascaraTelefone } from '../lib/mascaras'
 
 const FORM_INICIAL = {
   nome: '', cnpj: '', telefone: '', email: '', responsavel: '', cidade: '',
@@ -270,13 +271,13 @@ export default function Empresas() {
                 <input className="input" placeholder="Ex: Barbearia do João" value={form.nome} onChange={set('nome')} />
               </Campo>
               <Campo rotulo="CNPJ">
-                <input className="input" placeholder="opcional" value={form.cnpj} onChange={set('cnpj')} />
+                <input className="input" placeholder="00.000.000/0000-00" inputMode="numeric" value={form.cnpj} onChange={e => setForm(f => ({ ...f, cnpj: mascaraCnpj(e.target.value) }))} />
               </Campo>
               <Campo rotulo="Responsável">
                 <input className="input" placeholder="opcional" value={form.responsavel} onChange={set('responsavel')} />
               </Campo>
               <Campo rotulo="Telefone">
-                <input className="input" placeholder="opcional" value={form.telefone} onChange={set('telefone')} />
+                <input className="input" placeholder="(11) 99999-9999" inputMode="tel" value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: mascaraTelefone(e.target.value) }))} />
               </Campo>
               <Campo rotulo="Cidade">
                 <input className="input" placeholder="opcional" value={form.cidade} onChange={set('cidade')} />

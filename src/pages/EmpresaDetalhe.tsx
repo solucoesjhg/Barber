@@ -13,6 +13,7 @@ import ModalFormulario, { Campo, FormGrade, SecaoForm } from '../components/ui/M
 import MensalidadesLista from '../components/admin/MensalidadesLista'
 import NovaCobrancaModal from '../components/admin/NovaCobrancaModal'
 import type { Mensalidade, PainelEmpresa, UsuarioListado } from '../types'
+import { exibirTelefone, mascaraCnpj, mascaraTelefone } from '../lib/mascaras'
 
 const PAPEIS_SUPER = papeisQuePossoAtribuir('super_admin')
 
@@ -60,7 +61,7 @@ export default function EmpresaDetalhe() {
       setEmpresa(emp)
       if (emp) {
         setDados({
-          nome: emp.nome ?? '', cnpj: emp.cnpj ?? '', telefone: emp.telefone ?? '', email: emp.email ?? '',
+          nome: emp.nome ?? '', cnpj: mascaraCnpj(emp.cnpj), telefone: exibirTelefone(emp.telefone), email: emp.email ?? '',
           responsavel: emp.responsavel ?? '', endereco: emp.endereco ?? '', cidade: emp.cidade ?? '', observacoes: emp.observacoes ?? '',
         })
         setCobranca({
@@ -235,13 +236,13 @@ export default function EmpresaDetalhe() {
                 <input className="input" value={dados.nome} onChange={setD('nome')} />
               </Campo>
               <Campo rotulo="CNPJ">
-                <input className="input" value={dados.cnpj} onChange={setD('cnpj')} />
+                <input className="input" placeholder="00.000.000/0000-00" inputMode="numeric" value={dados.cnpj} onChange={e => setDados(d => ({ ...d, cnpj: mascaraCnpj(e.target.value) }))} />
               </Campo>
               <Campo rotulo="Responsável">
                 <input className="input" value={dados.responsavel} onChange={setD('responsavel')} />
               </Campo>
               <Campo rotulo="Telefone">
-                <input className="input" value={dados.telefone} onChange={setD('telefone')} />
+                <input className="input" placeholder="(11) 99999-9999" inputMode="tel" value={dados.telefone} onChange={e => setDados(d => ({ ...d, telefone: mascaraTelefone(e.target.value) }))} />
               </Campo>
               <Campo rotulo="E-mail de contato">
                 <input className="input" type="email" value={dados.email} onChange={setD('email')} />

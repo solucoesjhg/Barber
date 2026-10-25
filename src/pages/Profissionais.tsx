@@ -7,6 +7,7 @@ import { usePermissoes } from '../hooks/usePermissoes'
 import ModalDetalhe, { Info, InfoGrade, SecaoDetalhe } from '../components/ui/ModalDetalhe'
 import ModalFormulario, { Campo, FormGrade } from '../components/ui/ModalFormulario'
 import type { Profissional } from '../types'
+import { exibirDocumento, exibirTelefone, mascaraCpfCnpj, mascaraTelefone } from '../lib/mascaras'
 
 const FORM_INICIAL = { nome: '', especialidade: '', comissao_percentual: '50', telefone: '', email: '', documento: '', valor_fixo: '' }
 
@@ -51,8 +52,8 @@ function ProfissionalDetalhe({ profissional: p, podeEditar, onClose, onEditar, o
       <InfoGrade>
         <Info rotulo="Comissão">{`${p.comissao_percentual}%`}</Info>
         <Info rotulo="Valor fixo">{p.valor_fixo ? formatCurrency(p.valor_fixo) : undefined}</Info>
-        <Info rotulo="Telefone">{p.telefone}</Info>
-        <Info rotulo="Documento (CPF)">{p.documento}</Info>
+        <Info rotulo="Telefone">{exibirTelefone(p.telefone)}</Info>
+        <Info rotulo="Documento (CPF)">{exibirDocumento(p.documento)}</Info>
         <Info rotulo="E-mail" largo>{p.email}</Info>
         <Info rotulo="Cadastrado em">{formatDate(p.created_at)}</Info>
       </InfoGrade>
@@ -131,7 +132,7 @@ export default function Profissionais() {
     setEditId(p.id)
     setForm({
       nome: p.nome, especialidade: p.especialidade, comissao_percentual: String(p.comissao_percentual),
-      telefone: p.telefone ?? '', email: p.email ?? '', documento: p.documento ?? '', valor_fixo: p.valor_fixo != null ? String(p.valor_fixo) : '',
+      telefone: exibirTelefone(p.telefone), email: p.email ?? '', documento: exibirDocumento(p.documento), valor_fixo: p.valor_fixo != null ? String(p.valor_fixo) : '',
     })
     setError('')
     setShowModal(true)
@@ -229,7 +230,7 @@ export default function Profissionais() {
             </div>
             {(p.valor_fixo || p.telefone || p.email || p.documento) && (
               <p className="texto-cortado" style={{ fontSize: '11px', color: 'var(--c-55)', marginTop: '6px' }}>
-                {[p.valor_fixo ? `fixo ${formatCurrency(p.valor_fixo)}` : null, p.telefone, p.email, p.documento].filter(Boolean).join(' · ')}
+                {[p.valor_fixo ? `fixo ${formatCurrency(p.valor_fixo)}` : null, p.telefone ? exibirTelefone(p.telefone) : null, p.email, p.documento ? exibirDocumento(p.documento) : null].filter(Boolean).join(' · ')}
               </p>
             )}
           </motion.div>
@@ -278,10 +279,10 @@ export default function Profissionais() {
                 <input className="input" type="number" min={0} step={0.01} placeholder="opcional" value={form.valor_fixo} onChange={e => setForm(f => ({ ...f, valor_fixo: e.target.value }))} />
               </Campo>
               <Campo rotulo="Documento (CPF)">
-                <input className="input" placeholder="000.000.000-00" value={form.documento} onChange={e => setForm(f => ({ ...f, documento: e.target.value }))} />
+                <input className="input" placeholder="000.000.000-00" inputMode="numeric" value={form.documento} onChange={e => setForm(f => ({ ...f, documento: mascaraCpfCnpj(e.target.value) }))} />
               </Campo>
               <Campo rotulo="Telefone">
-                <input className="input" placeholder="(11) 99999-9999" value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} />
+                <input className="input" placeholder="(11) 99999-9999" inputMode="tel" value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: mascaraTelefone(e.target.value) }))} />
               </Campo>
               <Campo rotulo="E-mail" span={2}>
                 <input className="input" type="email" placeholder="email@exemplo.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />

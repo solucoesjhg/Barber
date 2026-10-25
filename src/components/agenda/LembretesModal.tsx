@@ -6,6 +6,7 @@ import { telefoneWhatsApp } from '../../lib/whatsapp'
 import ModalDetalhe from '../ui/ModalDetalhe'
 import BotaoWhatsApp from './BotaoWhatsApp'
 import type { Agendamento } from '../../types'
+import { exibirTelefone } from '../../lib/mascaras'
 
 function amanha() {
   const d = new Date()
@@ -71,7 +72,7 @@ export default function LembretesModal({ onClose, onEnviado }: {
                 <span style={{ minWidth: 0, flex: 1 }}>
                   <span className="texto-cortado" style={{ display: 'block', fontSize: '13px', color: 'var(--c-fff)' }}>{a.cliente?.nome ?? 'Sem cliente'}</span>
                   <span className="subtexto texto-cortado" style={{ display: 'block' }}>
-                    {[a.servico?.nome, a.profissional?.nome, a.cliente?.telefone].filter(Boolean).join(' · ')}
+                    {[a.servico?.nome, a.profissional?.nome, exibirTelefone(a.cliente?.telefone)].filter(Boolean).join(' · ')}
                   </span>
                 </span>
                 {a.cliente
