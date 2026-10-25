@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ChevronLeft, ChevronRight, Plus, Clock,
-  Check, Trash2, List, CalendarDays, CalendarRange, CalendarPlus, ShoppingCart, Play, MessageCircle,
+  Check, Trash2, List, CalendarDays, CalendarRange, CalendarPlus, ShoppingCart, Play, MessageCircle, Eye, EyeOff,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
@@ -34,6 +34,12 @@ function somarDias(d: Date, n: number): Date {
 }
 
 const FILTRO_PROF_KEY = 'barber-agenda-profissionais'
+// Última visão (lista/semanal/mensal) e "ocultar finalizados", lembrados no navegador.
+const VISAO_KEY = 'barber-agenda-visao'
+const OCULTAR_KEY = 'barber-agenda-ocultar-finalizados'
+const FINALIZADOS = ['concluido', 'cancelado', 'nao_compareceu']
+const lerStorage = (chave: string) => { try { return localStorage.getItem(chave) } catch { return null } }
+const gravarStorage = (chave: string, valor: string) => { try { localStorage.setItem(chave, valor) } catch { /* sem storage */ } }
 const SELECT_AGENDA = '*, cliente:clientes(*), profissional:profissionais(*), servico:servicos(*), vendas:comandas(id, status)'
 
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 8) // 8–20
@@ -745,7 +751,12 @@ export default function Agenda() {
   // "Gerar venda": modal de venda do atendimento e o aviso depois de vender.
   const [vendaAgId, setVendaAgId] = useState<string | null>(null)
   const [vendaFeita, setVendaFeita] = useState<{ comandaId: string; total: number; vinculada: boolean } | null>(null)
-  const [viewMode, setViewMode]     = useState<ViewMode>('lista')
+  const [viewMode, setViewMode]     = useState<ViewMode>(() => {
+    const v = lerStorage(VISAO_KEY)
+    return v === 'semanal' || v === 'mensal' ? v : 'lista'
+  })
+  const [ocultarFinalizados, setOcultarFinalizados] = useState(() => lerStorage(OCULTAR_KEY) === '1')
+  useEffect(() => { gravarStorage(VISAO_KEY, viewMode) }, [viewMode])
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [calBase, setCalBase]       = useState(new Date()) // week/month navigation base
   // Faixa de 7 dias da Lista: começa 2 dias antes de hoje e anda uma
@@ -929,7 +940,10 @@ export default function Agenda() {
   // Filtro de profissional vale para as três visões; a contagem é do
   // período que a tela mostra (o dia na lista, a semana, o mês).
   const chaveDia = toKey(selectedDate)
-  const agendaPeriodo = viewMode === 'lista' ? agenda.filter(a => a.data_hora.startsWith(chaveDia)) : agenda
+  // "Ocultar finalizados": some o que já foi feito (concluído) e o que não
+  // aconteceu (cancelado, não veio).
+  const agendaVisivel = ocultarFinalizados ? agenda.filter(a => !FINALIZADOS.includes(a.status)) : agenda
+  const agendaPeriodo = viewMode === 'lista' ? agendaVisivel.filter(a => a.data_hora.startsWith(chaveDia)) : agendaVisivel
   const contagemProf: Record<string, number> = {}
   agendaPeriodo.forEach(a => { contagemProf[a.profissional_id] = (contagemProf[a.profissional_id] ?? 0) + 1 })
   // Sem "ver agendamentos de outros", só o profissional vinculado ao
@@ -938,7 +952,12 @@ export default function Agenda() {
 
   // Filtro salvo de um profissional que saiu da lista não esconde a agenda.
   const filtroAtivo = filterProfIds.filter(id => profissionaisVisiveis.some(p => p.id === id))
-  const agendaFiltrada = filtroAtivo.length > 0 ? agenda.filter(a => filtroAtivo.includes(a.profissional_id)) : agenda
+  const agendaFiltrada = filtroAtivo.length > 0 ? agendaVisivel.filter(a => filtroAtivo.includes(a.profissional_id)) : agendaVisivel
+  const qtdFinalizados = agenda.filter(a => FINALIZADOS.includes(a.status) && (viewMode !== 'lista' || a.data_hora.startsWith(chaveDia))).length
+
+  function alternarFinalizados() {
+    setOcultarFinalizados(v => { gravarStorage(OCULTAR_KEY, v ? '0' : '1'); return !v })
+  }
 
   // O novo agendamento já vem com o profissional filtrado ou, sem
   // filtro, com o profissional vinculado ao usuário. Dá para agendar
@@ -1007,6 +1026,15 @@ export default function Agenda() {
             <ViewBtn active={viewMode === 'semanal'} onClick={() => { setViewMode('semanal'); setCalBase(selectedDate) }} icon={CalendarDays} label="Semanal" />
             <ViewBtn active={viewMode === 'mensal'}  onClick={() => { setViewMode('mensal');  setCalBase(selectedDate) }} icon={CalendarRange} label="Mensal"  />
           </div>
+
+          <button
+            className={`btn btn-secondary${ocultarFinalizados ? ' ativo' : ''}`} onClick={alternarFinalizados} aria-pressed={ocultarFinalizados}
+            title={ocultarFinalizados ? 'Mostrar os concluídos, cancelados e que não vieram' : 'Esconder os concluídos, cancelados e que não vieram'}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            {ocultarFinalizados ? <Eye size={14} /> : <EyeOff size={14} />}
+            {ocultarFinalizados ? `Mostrar finalizados${qtdFinalizados ? ` (${qtdFinalizados})` : ''}` : 'Ocultar finalizados'}
+          </button>
 
           {podeEditar && usarWhatsapp && (
             <button className="btn btn-secondary" onClick={() => setLembretesAberto(true)} title="Mandar lembrete no WhatsApp para os clientes de amanhã" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
