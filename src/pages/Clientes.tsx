@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Search, X, Phone, Pencil, Power, UserRound } from 'lucide-react'
+import { Plus, Search, X, Phone, Pencil, Power, UserRound, Receipt, AlertTriangle } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { formatDate, formatTime, initials } from '../lib/utils'
+import { formatCurrency, formatDate, formatTime, initials } from '../lib/utils'
+import { dataLocalISO } from '../lib/periodo'
 import { usePermissoes } from '../hooks/usePermissoes'
 import ModalDetalhe, { Info, InfoGrade, SecaoDetalhe } from '../components/ui/ModalDetalhe'
 import ModalFormulario, { Campo, FormGrade } from '../components/ui/ModalFormulario'
@@ -23,16 +25,36 @@ function idadeDe(nascimento?: string): number | null {
   return idade >= 0 && idade < 130 ? idade : null
 }
 
-/** Card do cliente: dados do cadastro e os últimos atendimentos. */
-function ClienteDetalhe({ cliente: c, podeEditar, verAgenda, onClose, onEditar, onAlternarAtivo }: {
+interface ParcelaAberta { id: string; descricao: string; valor: number; valor_pago: number; data_vencimento: string; numero_parcela: number; total_parcelas: number }
+
+/** Card do cliente: dados do cadastro, as parcelas em aberto (se tiver) e os últimos atendimentos. */
+function ClienteDetalhe({ cliente: c, podeEditar, verAgenda, verContas, abrirParcelas = false, onClose, onEditar, onAlternarAtivo }: {
   cliente: Cliente
   podeEditar: boolean
   verAgenda: boolean
+  /** Pode ver Contas a Receber: mostra as parcelas em aberto do cliente. */
+  verContas: boolean
+  abrirParcelas?: boolean
   onClose: () => void
   onEditar: () => void
   onAlternarAtivo: () => void
 }) {
+  const navigate = useNavigate()
   const [atendimentos, setAtendimentos] = useState<Agendamento[] | null>(null)
+  const [parcelas, setParcelas] = useState<ParcelaAberta[]>([])
+  const [mostrarParcelas, setMostrarParcelas] = useState(abrirParcelas)
+  const hoje = dataLocalISO()
+
+  useEffect(() => {
+    if (!verContas) return
+    supabase.from('contas_receber')
+      .select('id, descricao, valor, valor_pago, data_vencimento, numero_parcela, total_parcelas')
+      .eq('cliente_id', c.id).in('status', ['aberta', 'parcial']).order('data_vencimento')
+      .then(({ data }) => setParcelas((data ?? []) as ParcelaAberta[]))
+  }, [c.id, verContas])
+  const saldo = (p: ParcelaAberta) => Number(p.valor) - Number(p.valor_pago)
+  const totalAberto = parcelas.reduce((t, p) => t + saldo(p), 0)
+  const vencidas = parcelas.filter(p => p.data_vencimento < hoje)
 
   useEffect(() => {
     if (!verAgenda) return
@@ -53,13 +75,43 @@ function ClienteDetalhe({ cliente: c, podeEditar, verAgenda, onClose, onEditar, 
         <span className={`status-pill${c.ativo ? '' : ' inativo'}`}>{c.ativo ? 'Ativo' : 'Inativo'}</span>
       </>}
       onClose={onClose}
-      acoes={podeEditar ? (
+      acoes={podeEditar || parcelas.length > 0 ? (
         <>
+          {parcelas.length > 0 && (
+            <button className={`btn btn-secondary${mostrarParcelas ? ' ativo' : ''}`} onClick={() => setMostrarParcelas(v => !v)} aria-expanded={mostrarParcelas}
+              style={vencidas.length ? { color: '#f59e0b', borderColor: 'rgba(245,158,11,.45)' } : undefined}>
+              <Receipt size={13} /> Parcelas em aberto ({parcelas.length}) · {formatCurrency(totalAberto)}
+            </button>
+          )}
+          {podeEditar && <>
           <button className="btn btn-secondary" onClick={onAlternarAtivo}><Power size={13} /> {c.ativo ? 'Desativar' : 'Ativar'}</button>
           <button className="btn btn-primary" onClick={onEditar}><Pencil size={13} /> Editar</button>
+          </>}
         </>
       ) : undefined}
     >
+      {mostrarParcelas && parcelas.length > 0 && (
+        <div style={{ marginBottom: '18px' }}>
+        <SecaoDetalhe titulo={`Parcelas em aberto · ${formatCurrency(totalAberto)}${vencidas.length ? ` · ${vencidas.length} vencida${vencidas.length > 1 ? 's' : ''}` : ''}`}
+          acao={<button type="button" className="btn btn-ghost btn-sm" onClick={() => navigate('/contas-receber')}>Abrir Contas a Receber</button>}>
+          <div className="detalhe-lista">
+            {parcelas.map(p => {
+              const vencida = p.data_vencimento < hoje
+              return (
+                <div key={p.id} className="detalhe-lista-item">
+                  <span className="valor-num" style={{ flexShrink: 0, color: vencida ? '#f59e0b' : 'var(--c-fff)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {vencida && <AlertTriangle size={11} />}{formatDate(p.data_vencimento)}
+                  </span>
+                  <span className="texto-cortado" style={{ flex: 1 }}>{p.descricao}</span>
+                  <span className="valor-num" style={{ color: 'var(--c-fff)', fontWeight: 600 }}>{formatCurrency(saldo(p))}</span>
+                </div>
+              )
+            })}
+          </div>
+        </SecaoDetalhe>
+        </div>
+      )}
+
       <InfoGrade>
         <Info rotulo="Telefone">{exibirTelefone(c.telefone)}</Info>
         <Info rotulo="CPF">{exibirDocumento(c.cpf)}</Info>
@@ -107,6 +159,9 @@ export default function Clientes() {
   const [search, setSearch] = useState('')
   const [mostrarInativos, setMostrarInativos] = useState(false)
   const [abertoId, setAbertoId] = useState<string | null>(null)
+  const [abrirComParcelas, setAbrirComParcelas] = useState(false)
+  // Saldo em aberto por cliente (parcelado, contas a receber).
+  const [emAberto, setEmAberto] = useState<Record<string, number>>({})
   const [showModal, setShowModal] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState(FORM_INICIAL)
@@ -117,6 +172,17 @@ export default function Clientes() {
     supabase.from('clientes').select('*').order('nome')
       .then(({ data }) => { setClientes((data ?? []) as Cliente[]); setLoading(false) })
   }, [])
+
+  useEffect(() => {
+    if (!podeVer('contas_receber')) return
+    supabase.from('contas_receber').select('cliente_id, valor, valor_pago').in('status', ['aberta', 'parcial']).not('cliente_id', 'is', null)
+      .then(({ data }) => {
+        const mapa: Record<string, number> = {}
+        ;((data ?? []) as { cliente_id: string; valor: number; valor_pago: number }[])
+          .forEach(r => { mapa[r.cliente_id] = (mapa[r.cliente_id] ?? 0) + Number(r.valor) - Number(r.valor_pago) })
+        setEmAberto(mapa)
+      })
+  }, [podeVer])
 
   const filtered = clientes
     .filter(c => mostrarInativos || c.ativo)
@@ -260,7 +326,7 @@ export default function Clientes() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: Math.min(i, 20) * 0.02 }}
-            onClick={() => setAbertoId(c.id)}
+            onClick={() => { setAbrirComParcelas(false); setAbertoId(c.id) }}
             style={{
               display: 'grid',
               minWidth: '720px', gridTemplateColumns: '1fr 150px minmax(150px, 200px) 96px 70px 36px', gap: '12px',
@@ -284,6 +350,12 @@ export default function Clientes() {
                 {initials(c.nome)}
               </div>
               <span className="texto-cortado" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--c-fff)' }}>{c.nome}</span>
+              {emAberto[c.id] > 0.009 && (
+                <button type="button" className="pilula-aberto" title="Parcelas em aberto"
+                  onClick={e => { e.stopPropagation(); setAbrirComParcelas(true); setAbertoId(c.id) }}>
+                  {formatCurrency(emAberto[c.id])} em aberto
+                </button>
+              )}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--c-a3)' }}>
               <Phone size={11} style={{ color: 'var(--c-44)' }} /> {exibirTelefone(c.telefone)}
@@ -321,7 +393,7 @@ export default function Clientes() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: Math.min(i, 20) * 0.04 }}
-              onClick={() => setAbertoId(c.id)}
+              onClick={() => { setAbrirComParcelas(false); setAbertoId(c.id) }}
               style={{ cursor: 'pointer' }}
             >
               <div className="entity-header" style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
@@ -394,6 +466,8 @@ export default function Clientes() {
             cliente={clienteAberto}
             podeEditar={podeEditar}
             verAgenda={podeVer('agenda')}
+            verContas={podeVer('contas_receber')}
+            abrirParcelas={abrirComParcelas}
             onClose={() => setAbertoId(null)}
             onEditar={() => { setAbertoId(null); abrirEdicao(clienteAberto) }}
             onAlternarAtivo={() => toggleAtivo(clienteAberto.id, clienteAberto.ativo)}

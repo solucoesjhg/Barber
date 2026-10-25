@@ -1417,3 +1417,6 @@ fieldset:disabled .cfg-chave { cursor: default; opacity: .6; }
 .parcela-linha .input { padding-top: 6px; padding-bottom: 6px; font-size: 13px; min-height: 0; }
 .parcela-linha .parcela-editada { border-color: var(--cor-loja, #22c55e); }
 .parcela-linha input::placeholder { color: var(--text); opacity: .7; }
+.pilula-aberto { flex-shrink: 0; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 999px; cursor: pointer; font-family: inherit;
+  background: rgba(245,158,11,.1); color: #f59e0b; border: 1px solid rgba(245,158,11,.35); white-space: nowrap; }
+.pilula-aberto:hover { background: rgba(245,158,11,.18); }
