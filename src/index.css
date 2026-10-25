@@ -1388,3 +1388,14 @@ fieldset:disabled .cfg-chave { cursor: default; opacity: .6; }
 .cliente-busca-lista button.marcado, .cliente-busca-lista button:hover { background: rgba(var(--ink), 0.07); }
 .cliente-busca-novo { color: var(--cor-loja, #22c55e) !important; border-top: 1px solid var(--c-1f) !important; border-radius: 0 0 6px 6px !important; }
 .cliente-busca-cadastro { margin-top: 6px; padding: 10px; border: 1px dashed var(--border-strong); border-radius: 8px; display: flex; flex-direction: column; gap: 6px; }
+
+/* Lembrete pelo WhatsApp */
+.botao-whatsapp { width: 30px; height: 30px; }
+.botao-whatsapp.enviado, .botao-whatsapp-grande.enviado { color: #22c55e; border-color: rgba(34,197,94,.45); }
+.botao-whatsapp:not(:disabled):hover, .botao-whatsapp-grande:not(:disabled):hover { color: #22c55e; }
+.lembretes-lista { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.lembrete-linha { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-bottom: 1px solid var(--c-1a); }
+.lembrete-linha:last-child { border-bottom: none; }
+.lembrete-linha > strong { font-size: 13px; width: 42px; flex-shrink: 0; }
+.lembrete-linha.enviado { opacity: .65; }
+@media (max-width: 560px) { .lembrete-linha { flex-wrap: wrap; } .lembrete-linha .botao-whatsapp-grande { width: 100%; justify-content: center; } }

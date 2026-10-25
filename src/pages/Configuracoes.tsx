@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import { usePerfil } from '../hooks/usePerfil'
 import { usePermissoes } from '../hooks/usePermissoes'
 import { useLoja } from '../hooks/useLoja'
+import { MENSAGEM_PADRAO } from '../lib/whatsapp'
 import type { Configuracoes as ConfigRow } from '../types'
 
 const TAMANHO_MAX_ARQUIVO = 5 * 1024 * 1024
@@ -100,6 +101,7 @@ export default function Configuracoes() {
       cor_destaque: form.cor_destaque || null,
       permitir_fiado: form.permitir_fiado ?? true,
       fiado_prazo_dias: Math.min(365, Math.max(0, Math.round(Number(form.fiado_prazo_dias ?? 30)))),
+      mensagem_whatsapp: form.mensagem_whatsapp?.trim() && form.mensagem_whatsapp.trim() !== MENSAGEM_PADRAO ? form.mensagem_whatsapp.trim() : null,
       updated_at: new Date().toISOString(),
     }).eq('empresa_id', empresaId)
     setSaving(false)
@@ -205,6 +207,14 @@ export default function Configuracoes() {
           </Linha>
           <Linha rotulo="Agendamento já entra confirmado" ajuda="Sem precisar confirmar depois">
             <Chave checked={form.agendamento_confirmado ?? false} onChange={v => set('agendamento_confirmado', v)} />
+          </Linha>
+          <Linha rotulo="Mensagem do lembrete no WhatsApp" ajuda="{cliente} {servico} {profissional} {data} {hora} {loja}">
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+              <textarea className="input cfg-input" rows={3} style={{ width: '360px', maxWidth: '100%', height: 'auto', minHeight: '72px', resize: 'vertical', fontSize: '12px', lineHeight: 1.4 }} value={form.mensagem_whatsapp || MENSAGEM_PADRAO} onChange={e => set('mensagem_whatsapp', e.target.value)} />
+              {form.mensagem_whatsapp && form.mensagem_whatsapp !== MENSAGEM_PADRAO && (
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => set('mensagem_whatsapp', null)}>Usar padrão</button>
+              )}
+            </div>
           </Linha>
           <Linha rotulo="Regras de cancelamento">
             <input className="input cfg-input" style={{ width: '320px' }} placeholder="Ex: até 2h antes" value={form.regras_cancelamento ?? ''} onChange={e => set('regras_cancelamento', e.target.value)} />

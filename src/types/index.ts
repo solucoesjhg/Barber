@@ -87,6 +87,8 @@ export interface Agendamento {
   servico?: Servico
   /** Vendas geradas a partir deste agendamento (comandas.agendamento_id). */
   vendas?: { id: string; status: ComandaStatus }[]
+  /** Quando o lembrete foi aberto no WhatsApp. */
+  lembrete_enviado_em?: string | null
 }
 
 export interface ItemComanda {
@@ -392,6 +394,8 @@ export interface Configuracoes {
   cor_destaque?: string | null
   permitir_fiado?: boolean
   fiado_prazo_dias?: number
+  /** Texto do lembrete de WhatsApp ({cliente}, {servico}...); vazio = padrão. */
+  mensagem_whatsapp?: string | null
   updated_at: string
 }
 

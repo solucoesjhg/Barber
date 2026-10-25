@@ -3,6 +3,7 @@ import { Check, Clock, Play, ShoppingCart, XCircle, Receipt } from 'lucide-react
 import { supabase } from '../lib/supabase'
 import { formatCurrency, initials } from '../lib/utils'
 import ModalDetalhe, { Info, InfoGrade, SecaoDetalhe } from './ui/ModalDetalhe'
+import BotaoWhatsApp from './agenda/BotaoWhatsApp'
 import type { Agendamento, AgendamentoStatus } from '../types'
 
 export const STATUS_AGENDA: Record<AgendamentoStatus, { label: string; cls: string }> = {
@@ -24,7 +25,9 @@ export function vendaDoAgendamento(ag: Agendamento): string | null {
  * valor, observação (editável) e as ações do atendimento — confirmar,
  * iniciar, gerar a venda, concluir, não compareceu, cancelar.
  */
-export default function AgendamentoDetalheModal({ agendamento: ag, podeEditar, podeVender, verTodasVendas, onClose, onStatus, onObservacaoSalva, onGerarVenda, onVerVenda }: {
+export default function AgendamentoDetalheModal({ agendamento: ag, podeEditar, podeVender, verTodasVendas, onClose, onStatus, onObservacaoSalva, onGerarVenda, onVerVenda, onLembrete }: {
+  /** Lembrete aberto no WhatsApp (marca o agendamento). */
+  onLembrete?: (quando: string) => void
   agendamento: Agendamento
   podeEditar: boolean
   podeVender: boolean
@@ -88,6 +91,9 @@ export default function AgendamentoDetalheModal({ agendamento: ag, podeEditar, p
               <ShoppingCart size={13} /> Gerar venda
             </button>
           )}
+          {podeEditar && ag.cliente && !fechado && ag.status !== 'concluido' && (
+            <BotaoWhatsApp agendamento={ag} onEnviado={onLembrete} />
+          )}
           {podeEditar && ag.status === 'pendente' && (
             <button className="btn btn-secondary" onClick={() => onStatus('confirmado')}><Check size={13} /> Confirmar</button>
           )}
@@ -117,6 +123,7 @@ export default function AgendamentoDetalheModal({ agendamento: ag, podeEditar, p
         <Info rotulo="Duração">{`${duracao} min`}</Info>
         <Info rotulo="Telefone">{ag.cliente?.telefone}</Info>
         <Info rotulo="Venda">{vendaId ? 'Registrada' : undefined}</Info>
+        <Info rotulo="Lembrete WhatsApp">{ag.lembrete_enviado_em ? `Enviado ${new Date(ag.lembrete_enviado_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : undefined}</Info>
       </InfoGrade>
 
       <SecaoDetalhe titulo="Observação" acao={salvo ? <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--c-a3)' }}>Salvo</span> : undefined}>

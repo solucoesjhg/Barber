@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ChevronLeft, ChevronRight, Plus, Clock,
-  Check, Trash2, List, CalendarDays, CalendarRange, CalendarPlus, ShoppingCart, Play,
+  Check, Trash2, List, CalendarDays, CalendarRange, CalendarPlus, ShoppingCart, Play, MessageCircle,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
@@ -15,6 +15,8 @@ import VendaDetalheModal from '../components/VendaDetalheModal'
 import VendaAgendamentoModal from '../components/VendaAgendamentoModal'
 import ModalFormulario, { Campo, FormGrade } from '../components/ui/ModalFormulario'
 import FiltroProfissional, { corDoProfissional } from '../components/agenda/FiltroProfissional'
+import BotaoWhatsApp from '../components/agenda/BotaoWhatsApp'
+import LembretesModal from '../components/agenda/LembretesModal'
 import type { Agendamento, AgendamentoStatus, Cliente, Profissional, Servico } from '../types'
 
 /* ── Types ──────────────────────────────────────────────── */
@@ -121,8 +123,9 @@ function ViewBtn({
 ══════════════════════════════════════════════════════════ */
 function ListaView({
   selectedDate, setSelectedDate, inicioFaixa, onNavegar, agenda, updateStatus,
-  onOpenModal, setFormDate, podeEditar, podeVender, verTodasVendas, onAbrir, onGerarVenda,
+  onOpenModal, setFormDate, podeEditar, podeVender, verTodasVendas, onAbrir, onGerarVenda, onLembrete,
 }: {
+  onLembrete: (id: string, quando: string) => void
   podeEditar: boolean
   podeVender: boolean
   verTodasVendas: boolean
@@ -272,6 +275,9 @@ function ListaView({
                   >
                     <ShoppingCart size={12} /> Gerar venda
                   </button>
+                )}
+                {podeEditar && (ag.status === 'pendente' || ag.status === 'confirmado') && ag.cliente && (
+                  <BotaoWhatsApp agendamento={ag} compacto onEnviado={q => onLembrete(ag.id, q)} />
                 )}
                 {podeEditar && ag.status === 'pendente' && (
                   <button className="btn btn-icon" title="Confirmar" onClick={parar(() => updateStatus(ag.id, 'confirmado'))}>
@@ -732,6 +738,7 @@ export default function Agenda() {
   const podeTirarComissao = podeEditarTela('comissoes')
   const navigate = useNavigate()
   const [agAbertoId, setAgAbertoId] = useState<string | null>(null)
+  const [lembretesAberto, setLembretesAberto] = useState(false)
   const [vendaAbertaId, setVendaAbertaId] = useState<string | null>(null)
   // "Gerar venda": modal de venda do atendimento e o aviso depois de vender.
   const [vendaAgId, setVendaAgId] = useState<string | null>(null)
@@ -892,6 +899,11 @@ export default function Agenda() {
     setSelectedDate(d => somarDias(d, n * 7))
   }
 
+  // Lembrete aberto no WhatsApp: marca na lista sem recarregar.
+  function marcarLembrete(id: string, quando: string) {
+    setAgenda(prev => prev.map(a => a.id === id ? { ...a, lembrete_enviado_em: quando } : a))
+  }
+
   // Arrastar na semanal: muda o horário na hora e desfaz se o banco
   // recusar (ex.: o profissional já tem atendimento nesse horário).
   async function remarcar(id: string, dataHora: string) {
@@ -995,6 +1007,12 @@ export default function Agenda() {
           </div>
 
           {podeEditar && (
+            <button className="btn btn-secondary" onClick={() => setLembretesAberto(true)} title="Mandar lembrete no WhatsApp para os clientes de amanhã" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <MessageCircle size={14} /> Lembretes de amanhã
+            </button>
+          )}
+
+          {podeEditar && (
             <button
               className="btn btn-primary"
               onClick={abrirNovo}
@@ -1038,6 +1056,7 @@ export default function Agenda() {
               setFormDate={k => setForm(f => ({ ...f, data: k }))}
               onAbrir={setAgAbertoId}
               onGerarVenda={gerarVenda}
+              onLembrete={marcarLembrete}
             />
           )}
           {viewMode === 'semanal' && (
@@ -1077,7 +1096,14 @@ export default function Agenda() {
             onObservacaoSalva={texto => setAgenda(prev => prev.map(a => a.id === agAberto.id ? { ...a, observacoes: texto || undefined } : a))}
             onGerarVenda={() => gerarVenda(agAberto.id)}
             onVerVenda={comandaId => { setAgAbertoId(null); setVendaAbertaId(comandaId) }}
+            onLembrete={quando => marcarLembrete(agAberto.id, quando)}
           />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {lembretesAberto && (
+          <LembretesModal onClose={() => setLembretesAberto(false)} onEnviado={marcarLembrete} />
         )}
       </AnimatePresence>
 

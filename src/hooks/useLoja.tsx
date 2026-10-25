@@ -17,6 +17,8 @@ interface Loja {
   corDestaque: string | null
   permitirFiado: boolean
   fiadoPrazoDias: number
+  /** Modelo do lembrete de WhatsApp (null = padrão). */
+  mensagemWhatsapp: string | null
 }
 
 interface LojaCtx extends Loja {
@@ -26,7 +28,7 @@ interface LojaCtx extends Loja {
 const Ctx = createContext<LojaCtx | null>(null)
 const LOJA_VAZIA: Loja = {
   nome: null, logoUrl: null, controlaEstoqueMinimo: true, estoqueZerado: 'avisar',
-  caixaValorInicial: 0, corDestaque: null, permitirFiado: true, fiadoPrazoDias: 30,
+  caixaValorInicial: 0, corDestaque: null, permitirFiado: true, fiadoPrazoDias: 30, mensagemWhatsapp: null,
 }
 const chaveCache = (empresaId: string) => `barberos-loja-${empresaId}`
 
@@ -61,6 +63,7 @@ export function LojaProvider({ children }: { children: ReactNode }) {
           corDestaque: data?.cor_destaque || null,
           permitirFiado: data?.permitir_fiado ?? true,
           fiadoPrazoDias: Number(data?.fiado_prazo_dias ?? 30),
+          mensagemWhatsapp: data?.mensagem_whatsapp || null,
         }
         setLoja(nova)
         try { localStorage.setItem(chaveCache(empresaId), JSON.stringify(nova)) } catch { /* cheio ou bloqueado */ }
