@@ -55,7 +55,7 @@ const TOP_CATALOGO = 5
 
 export default function Vendas() {
   const { podeEditar, verVendasOutros, podeDarDesconto, descontoMaximo } = usePermissoes()
-  const { controlaEstoqueMinimo, estoqueZerado, permitirFiado } = useLoja()
+  const { controlaEstoqueMinimo, estoqueZerado, permitirFiado, fiadoPrazoDias } = useLoja()
   const { profissionalId: meuProfissional } = usePerfil()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -413,9 +413,9 @@ export default function Vendas() {
   // Uma forma só vai nos parâmetros antigos (funciona mesmo com o banco
   // sem a migração de pagamento dividido); mais de uma, em p_pagamentos.
   const pagamentoPayload = () => {
-    const [p] = pagamentosPayload(linhasPag, total)
+    const [p] = pagamentosPayload(linhasPag, total, fiadoPrazoDias)
     // Fiado (pode ser parcelado) também vai em p_pagamentos.
-    if (linhasPag.length > 1 || p.forma === 'fiado') return { p_forma_pagamento: p.forma, p_pagamentos: pagamentosPayload(linhasPag, total) }
+    if (linhasPag.length > 1 || p.forma === 'fiado') return { p_forma_pagamento: p.forma, p_pagamentos: pagamentosPayload(linhasPag, total, fiadoPrazoDias) }
     return {
       p_forma_pagamento: p.forma,
       ...(p.forma === 'credito' && p.parcelas > 1 ? { p_parcelas: p.parcelas } : {}),
@@ -429,7 +429,7 @@ export default function Vendas() {
 
   async function finalizarVenda() {
     if (saving) return
-    const erroPag = validarPagamentos(linhasPag, total, taxas)
+    const erroPag = validarPagamentos(linhasPag, total, taxas, fiadoPrazoDias)
     if (erroPag) { setError(erroPag); return }
     if (temFiado && !clienteDaVenda) { setError('Venda parcelada precisa de cliente: escolha o cliente da venda.'); return }
     setSaving(true); setError('')
@@ -1047,7 +1047,7 @@ export default function Vendas() {
                 <h2 style={{ fontSize: '18px', color: 'var(--c-fff)' }}>Forma de Pagamento</h2>
                 <button className="btn btn-icon" onClick={() => setShowPayModal(false)}><X size={14} /></button>
               </div>
-              <PagamentosEditor linhas={linhasPag} onChange={setLinhasPag} total={total} taxas={taxas} permitirFiado={permitirFiado && !editando} />
+              <PagamentosEditor linhas={linhasPag} onChange={setLinhasPag} total={total} taxas={taxas} permitirFiado={permitirFiado && !editando} prazoDias={fiadoPrazoDias} />
               {temFiado && !clienteDaVenda && (
                 <div className="field" style={{ marginTop: '12px' }}>
                   <label className="label">Cliente do parcelado * (cadastrado)</label>

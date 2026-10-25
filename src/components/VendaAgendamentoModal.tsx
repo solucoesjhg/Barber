@@ -28,7 +28,7 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
 }) {
   // Mesmo editor de pagamento da tela de Vendas: dividir em formas e fiado
   // (parcelado) na conta do cliente.
-  const { permitirFiado } = useLoja()
+  const { permitirFiado, fiadoPrazoDias } = useLoja()
   const [linhas, setLinhas] = useState<LinhaPagamento[]>(() => [novaLinhaPagamento()])
   const [clienteNome, setClienteNome] = useState(ag.cliente?.nome ?? '')
   const [clienteId, setClienteId] = useState<string | null>(ag.cliente_id ?? null)
@@ -57,7 +57,7 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
       return
     }
     if (precoNaVenda && !(valor > 0)) { setErro('Informe o valor do serviço.'); return }
-    const erroPag = validarPagamentos(linhas, valor, taxas)
+    const erroPag = validarPagamentos(linhas, valor, taxas, fiadoPrazoDias)
     if (erroPag) { setErro(erroPag); return }
     if (temFiado && !clienteId) { setErro('Venda parcelada precisa de cliente cadastrado: escolha o cliente.'); return }
     setSalvando(true); setErro('')
@@ -69,7 +69,7 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
         tipo: 'servico', referencia_id: ag.servico_id, nome: ag.servico.nome,
         quantidade: 1, preco_unitario: valor, profissional_id: ag.profissional_id,
       }],
-      p_pagamentos: pagamentosPayload(linhas, valor),
+      p_pagamentos: pagamentosPayload(linhas, valor, fiadoPrazoDias),
     })
     if (error || !data) {
       setSalvando(false)
@@ -130,7 +130,7 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
       </div>
 
       <div style={{ marginTop: '20px' }}>
-        <PagamentosEditor linhas={linhas} onChange={setLinhas} total={valor} taxas={taxas} permitirFiado={permitirFiado} />
+        <PagamentosEditor linhas={linhas} onChange={setLinhas} total={valor} taxas={taxas} permitirFiado={permitirFiado} prazoDias={fiadoPrazoDias} />
         {temFiado && !ag.cliente_id && (
           <div className="field" style={{ marginTop: '12px' }}>
             <label className="label">Cliente do parcelado * (cadastrado)</label>

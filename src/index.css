@@ -1412,3 +1412,8 @@ fieldset:disabled .cfg-chave { cursor: default; opacity: .6; }
 .seletor-conta-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .seletor-conta-chips .pilula { border: 1px solid var(--border); }
 .seletor-conta-lista { position: fixed; right: auto; z-index: 400; max-height: 240px; }
+.parcelas-lista { display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow-y: auto; }
+.parcela-linha { display: grid; grid-template-columns: 22px minmax(0, 1fr) 96px; gap: 6px; align-items: center; }
+.parcela-linha .input { padding-top: 6px; padding-bottom: 6px; font-size: 13px; min-height: 0; }
+.parcela-linha .parcela-editada { border-color: var(--cor-loja, #22c55e); }
+.parcela-linha input::placeholder { color: var(--text); opacity: .7; }
