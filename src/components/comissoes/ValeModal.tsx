@@ -3,6 +3,7 @@ import { HandCoins } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { dataLocalISO } from '../../lib/periodo'
 import ModalFormulario, { Campo, FormGrade } from '../ui/ModalFormulario'
+import CampoBusca from '../ui/CampoBusca'
 
 /**
  * Vale (adiantamento) para o profissional: sai do caixa ou da conta na
@@ -49,10 +50,11 @@ export default function ValeModal({ profissionais, profissionalId, onClose, onSa
     >
       <FormGrade colunas={2}>
         <Campo rotulo="Profissional *" span="total">
-          <select className="input" value={form.profissional} onChange={e => setForm(f => ({ ...f, profissional: e.target.value }))}>
-            <option value="">Escolha o profissional</option>
-            {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-          </select>
+          <CampoBusca
+            titulo="Profissionais" placeholder="Digite o nome do profissional..."
+            opcoes={profissionais.map(p => ({ id: p.id, nome: p.nome }))}
+            valor={form.profissional} onChange={id => setForm(f => ({ ...f, profissional: id }))}
+          />
         </Campo>
         <Campo rotulo="Valor (R$) *">
           <input className="input" type="number" min={0} step={0.01} inputMode="decimal" placeholder="0,00" value={form.valor} onChange={e => setForm(f => ({ ...f, valor: e.target.value }))} />

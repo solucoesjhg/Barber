@@ -5,6 +5,7 @@ import { formatCurrency, formatDate } from '../../lib/utils'
 import { intervaloMes } from '../../lib/periodo'
 import ModalFormulario, { Campo, FormGrade } from '../ui/ModalFormulario'
 import type { Comissao, ValeProfissional } from '../../types'
+import CampoBusca from '../ui/CampoBusca'
 
 /**
  * Fechamento de comissão: escolhe o profissional e o período, mostra as
@@ -87,10 +88,11 @@ export default function FecharComissaoModal({ profissionais, profissionalId, onC
     >
       <FormGrade colunas={3}>
         <Campo rotulo="Profissional *">
-          <select className="input" value={form.profissional} onChange={e => setForm(f => ({ ...f, profissional: e.target.value }))}>
-            <option value="">Escolha o profissional</option>
-            {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-          </select>
+          <CampoBusca
+            titulo="Profissionais" placeholder="Digite o nome do profissional..."
+            opcoes={profissionais.map(p => ({ id: p.id, nome: p.nome }))}
+            valor={form.profissional} onChange={id => setForm(f => ({ ...f, profissional: id }))}
+          />
         </Campo>
         <Campo rotulo="De">
           <input className="input" type="date" value={form.inicio} onChange={e => setForm(f => ({ ...f, inicio: e.target.value }))} />

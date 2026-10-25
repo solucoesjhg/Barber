@@ -17,6 +17,8 @@ import VendaAgendamentoModal from '../components/VendaAgendamentoModal'
 import ModalFormulario, { Campo, FormGrade } from '../components/ui/ModalFormulario'
 import FiltroProfissional, { corDoProfissional } from '../components/agenda/FiltroProfissional'
 import BotaoWhatsApp from '../components/agenda/BotaoWhatsApp'
+import CampoBusca from '../components/ui/CampoBusca'
+import { exibirTelefone } from '../lib/mascaras'
 import LembretesModal from '../components/agenda/LembretesModal'
 import type { Agendamento, AgendamentoStatus, Cliente, Profissional, Servico } from '../types'
 
@@ -1028,12 +1030,14 @@ export default function Agenda() {
           </div>
 
           <button
-            className={`btn btn-secondary${ocultarFinalizados ? ' ativo' : ''}`} onClick={alternarFinalizados} aria-pressed={ocultarFinalizados}
-            title={ocultarFinalizados ? 'Mostrar os concluídos, cancelados e que não vieram' : 'Esconder os concluídos, cancelados e que não vieram'}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            type="button" className={`btn btn-icon botao-finalizados${ocultarFinalizados ? ' ativo' : ''}`} onClick={alternarFinalizados} aria-pressed={ocultarFinalizados}
+            title={ocultarFinalizados
+              ? `Finalizados escondidos${qtdFinalizados ? ` (${qtdFinalizados})` : ''}: clique para mostrar`
+              : 'Esconder concluídos, cancelados e que não vieram'}
+            aria-label={ocultarFinalizados ? 'Mostrar finalizados' : 'Ocultar finalizados'}
           >
-            {ocultarFinalizados ? <Eye size={14} /> : <EyeOff size={14} />}
-            {ocultarFinalizados ? `Mostrar finalizados${qtdFinalizados ? ` (${qtdFinalizados})` : ''}` : 'Ocultar finalizados'}
+            {ocultarFinalizados ? <EyeOff size={14} /> : <Eye size={14} />}
+            {ocultarFinalizados && qtdFinalizados > 0 && <span className="botao-finalizados-qtd">{qtdFinalizados}</span>}
           </button>
 
           {podeEditar && usarWhatsapp && (
@@ -1202,25 +1206,26 @@ export default function Agenda() {
             erro={error}
           >
             <FormGrade colunas={4}>
-              {clientes.length > 0 && (
-                <Campo rotulo="Cliente" span={2}>
-                  <select className="input" value={form.cliente_id} onChange={e => setForm(f => ({ ...f, cliente_id: e.target.value }))}>
-                    <option value="">Selecionar...</option>
-                    {clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                  </select>
-                </Campo>
-              )}
+              <Campo rotulo="Cliente" span={2}>
+                <CampoBusca
+                  titulo="Clientes" placeholder="Digite o nome ou telefone..."
+                  opcoes={clientes.filter(c => c.ativo !== false || c.id === form.cliente_id).map(c => ({ id: c.id, nome: c.nome, detalhe: exibirTelefone(c.telefone) }))}
+                  valor={form.cliente_id} onChange={id => setForm(f => ({ ...f, cliente_id: id }))}
+                />
+              </Campo>
               <Campo rotulo="Profissional *" span={2}>
-                <select className="input" value={form.profissional_id} onChange={e => setForm(f => ({ ...f, profissional_id: e.target.value, servico_id: '' }))}>
-                  <option value="">Selecionar...</option>
-                  {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-                </select>
+                <CampoBusca
+                  titulo="Profissionais" placeholder="Digite o nome..."
+                  opcoes={profissionais.map(p => ({ id: p.id, nome: p.nome, detalhe: p.especialidade }))}
+                  valor={form.profissional_id} onChange={id => setForm(f => ({ ...f, profissional_id: id, servico_id: '' }))}
+                />
               </Campo>
               <Campo rotulo="Serviço *" span={2}>
-                <select className="input" value={form.servico_id} onChange={e => setForm(f => ({ ...f, servico_id: e.target.value }))}>
-                  <option value="">Selecionar...</option>
-                  {servicosFiltrados.map(s => <option key={s.id} value={s.id}>{s.nome} · {s.preco_na_venda ? 'valor na venda' : formatCurrency(s.preco)}</option>)}
-                </select>
+                <CampoBusca
+                  titulo="Serviços" placeholder="Digite o serviço..."
+                  opcoes={servicosFiltrados.map(s => ({ id: s.id, nome: s.nome, detalhe: s.preco_na_venda ? 'valor na venda' : formatCurrency(s.preco) }))}
+                  valor={form.servico_id} onChange={id => setForm(f => ({ ...f, servico_id: id }))}
+                />
               </Campo>
               <Campo rotulo="Data">
                 <input type="date" className="input" value={form.data} onChange={e => setForm(f => ({ ...f, data: e.target.value }))} />

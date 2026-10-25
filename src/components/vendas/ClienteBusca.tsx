@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { UserCheck, UserPlus, X } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { MoreHorizontal, UserCheck, UserPlus, X } from 'lucide-react'
+import { JanelaBusca } from '../ui/CampoBusca'
 import { supabase } from '../../lib/supabase'
 import { exibirTelefone, mascaraTelefone } from '../../lib/mascaras'
 
@@ -43,6 +45,7 @@ export default function ClienteBusca({ nome, clienteId, onChange, placeholder = 
   const [clientes, setClientes] = useState<ClienteResumo[]>(cache ?? [])
   const [aberto, setAberto] = useState(false)
   const [marcado, setMarcado] = useState(0)
+  const [janela, setJanela] = useState(false)
   const caixaRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -76,6 +79,8 @@ export default function ClienteBusca({ nome, clienteId, onChange, placeholder = 
 
   return (
     <div ref={caixaRef} className="cliente-busca">
+      <div style={{ display: 'flex', gap: '6px' }}>
+      <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
       <input
         className="input"
         style={{ fontSize: '13px', paddingRight: clienteId ? '34px' : undefined }}
@@ -97,6 +102,21 @@ export default function ClienteBusca({ nome, clienteId, onChange, placeholder = 
           <UserCheck size={13} />
           <button type="button" aria-label="Desligar do cliente cadastrado" onClick={() => onChange(nome, null)}><X size={11} /></button>
         </span>
+      )}
+      </div>
+      <button type="button" className="btn btn-icon" title="Ver todos os clientes" aria-label="Ver todos os clientes"
+        onClick={() => { setAberto(false); setJanela(true) }} style={{ width: '38px', height: '38px', flexShrink: 0 }}>
+        <MoreHorizontal size={15} />
+      </button>
+      </div>
+      {janela && createPortal(
+        <JanelaBusca
+          titulo="Clientes" valor={clienteId ?? undefined}
+          opcoes={clientes.map(c => ({ id: c.id, nome: c.nome, detalhe: c.telefone ? exibirTelefone(c.telefone) : null }))}
+          onEscolher={id => { const c = clientes.find(x => x.id === id); if (c) escolher(c); setJanela(false) }}
+          onClose={() => setJanela(false)}
+        />,
+        document.body,
       )}
       {exigirCadastro && !clienteId && !cadastrando && (
         <p className="subtexto" style={{ marginTop: '4px', color: '#f59e0b' }}>Precisa ser um cliente cadastrado: escolha na lista ou cadastre.</p>

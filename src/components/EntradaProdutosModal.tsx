@@ -7,6 +7,9 @@ import { formatCurrency, formatDate } from '../lib/utils'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
 import { confirmarSaldoSuficiente } from '../lib/contasFinanceiras'
 import type { ContaFinanceira, Fornecedor, Produto, ProdutoCategoria } from '../types'
+import CampoBusca, { JanelaBusca } from './ui/CampoBusca'
+import { MoreHorizontal } from 'lucide-react'
+import { createPortal } from 'react-dom'
 
 // Sugestão padrão de preço à vista: 80% de lucro em cima do valor pago
 // por peça (não em cima do custo já rateado com frete/despesa — é só
@@ -53,6 +56,8 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
 }) {
   const [itens, setItens] = useState<ItemEntrada[]>([novoItem()])
   const [buscaAberta, setBuscaAberta] = useState<string | null>(null)
+  // Item que abriu a lista completa de produtos (o "⋯").
+  const [janelaProdutos, setJanelaProdutos] = useState<string | null>(null)
   const [frete, setFrete] = useState('')
   const [despesas, setDespesas] = useState('')
   const [desconto, setDesconto] = useState('')
@@ -246,6 +251,15 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
           </>
         ) : (
           <>
+            {janelaProdutos && createPortal(
+              <JanelaBusca
+                titulo="Produtos"
+                opcoes={produtos.map(p => ({ id: p.id, nome: p.nome, detalhe: `custo atual ${formatCurrency(p.preco_custo)}` }))}
+                onEscolher={id => { const p = produtos.find(x => x.id === id); if (p) selecionarProduto(janelaProdutos, p); setJanelaProdutos(null) }}
+                onClose={() => setJanelaProdutos(null)}
+              />,
+              document.body,
+            )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', margin: '18px 0' }}>
               {itensCalculados.map(item => {
                 const lista = buscaAberta === item.id ? sugestoes(item.nome) : []
@@ -270,7 +284,15 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
                             onFocus={() => setBuscaAberta(item.id)}
                             onBlur={() => setTimeout(() => setBuscaAberta(prev => prev === item.id ? null : prev), 150)}
                             autoComplete="off"
+                            style={{ paddingRight: '42px' }}
                           />
+                        )}
+                        {!item.produtoId && (
+                          <button type="button" className="btn btn-icon" title="Ver todos os produtos" aria-label="Ver todos os produtos"
+                            onClick={() => setJanelaProdutos(item.id)}
+                            style={{ position: 'absolute', right: '4px', top: '4px', width: '32px', height: '32px' }}>
+                            <MoreHorizontal size={14} />
+                          </button>
                         )}
                         {lista.length > 0 && (
                           <div style={{
@@ -398,10 +420,11 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
                   <p style={{ fontSize: '11px', color: 'var(--c-55)' }}>
                     Não sai do caixa agora — cria um título em Contas a Pagar, vencendo em {formatDate(dataVencimento)}.
                   </p>
-                  <select className="input" value={fornecedorId} onChange={e => setFornecedorId(e.target.value)}>
-                    <option value="">Fornecedor (opcional)</option>
-                    {fornecedores.map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
-                  </select>
+                  <CampoBusca
+                    titulo="Fornecedores" placeholder="Fornecedor (opcional)"
+                    opcoes={fornecedores.map(f => ({ id: f.id, nome: f.nome }))}
+                    valor={fornecedorId} onChange={setFornecedorId}
+                  />
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <div className="field" style={{ flex: 1 }}>
                       <label className="label">1º Vencimento</label>

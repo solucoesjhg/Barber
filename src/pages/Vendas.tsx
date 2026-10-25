@@ -22,6 +22,7 @@ import { usePermissoes } from '../hooks/usePermissoes'
 import { useSelecao } from '../hooks/useSelecao'
 import { COLUNAS_PRODUTO } from '../lib/produtos'
 import type { Agendamento, Comanda, ItemComanda, PagamentoMetodo, Produto, Profissional, Servico } from '../types'
+import CampoBusca from '../components/ui/CampoBusca'
 
 
 const STATUS_LABEL: Record<string, string> = { fechada: 'Fechada', cancelada: 'Cancelada', aberta: 'Aberta' }
@@ -887,15 +888,13 @@ export default function Vendas() {
           )}
           <ClienteBusca nome={clienteNome} clienteId={clienteDaVenda} onChange={(n, id) => { setClienteNome(n); setClienteId(id) }} />
           {profissionais.length > 0 && (
-            <select
-              className="input"
-              style={{ marginTop: '8px', fontSize: '13px' }}
-              value={profissionalId}
-              onChange={e => mudarProfissionalPadrao(e.target.value)}
-            >
-              <option value="">Profissional que atendeu</option>
-              {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-            </select>
+            <div style={{ marginTop: '8px' }}>
+              <CampoBusca
+                titulo="Profissionais" placeholder="Profissional que atendeu"
+                opcoes={profissionais.map(p => ({ id: p.id, nome: p.nome }))}
+                valor={profissionalId} onChange={mudarProfissionalPadrao}
+              />
+            </div>
           )}
         </div>
 
@@ -938,19 +937,15 @@ export default function Vendas() {
                     <p style={{ fontSize: '11px', color: 'var(--c-55)', marginTop: '2px' }}>{formatCurrency(item.preco_unitario)}</p>
                   )}
                   {profissionais.length > 0 && (
-                    <select
-                      aria-label={`Profissional de ${item.nome}`}
-                      value={item.profissional_id ?? ''}
-                      onChange={e => mudarProfissionalItem(item.id, e.target.value)}
-                      style={{
-                        marginTop: '6px', width: '100%', fontSize: '11px', padding: '4px 6px', borderRadius: '6px',
-                        background: 'var(--c-11)', color: item.profissional_id ? 'var(--c-a3)' : 'var(--c-fff)', fontFamily: 'inherit',
-                        border: item.tipo === 'servico' && !item.profissional_id ? '1px dashed var(--c-a3)' : '1px solid var(--c-2a)',
-                      }}
-                    >
-                      <option value="">{item.tipo === 'servico' ? 'Escolha o profissional *' : 'Sem profissional'}</option>
-                      {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-                    </select>
+                    <div style={{ marginTop: '6px', width: '100%', minWidth: '170px' }}>
+                      <CampoBusca
+                        compacto titulo={`Profissional de ${item.nome}`}
+                        placeholder={item.tipo === 'servico' ? 'Profissional *' : 'Sem profissional'}
+                        destacarVazio={item.tipo === 'servico'}
+                        opcoes={profissionais.map(p => ({ id: p.id, nome: p.nome }))}
+                        valor={item.profissional_id ?? ''} onChange={id => mudarProfissionalItem(item.id, id)}
+                      />
+                    </div>
                   )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

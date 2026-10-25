@@ -6,6 +6,7 @@ import { initials } from '../../lib/utils'
 import { PAPEL_LABEL, nomeExibicao } from '../../lib/permissoes'
 import PermissoesEditor, { cardsAlterados, rascunhoDe, rascunhosIguais, relatoriosAlterados, type RascunhoPermissoes } from './PermissoesEditor'
 import type { PapelUsuario, PermissoesUsuario, Profissional, UsuarioListado } from '../../types'
+import CampoBusca from '../ui/CampoBusca'
 
 type Dados = { nome: string; papel: PapelUsuario; profissional_id: string; ativo: boolean }
 
@@ -215,10 +216,11 @@ export default function UsuarioCard({ usuario, aberto, onToggle, papeis, profiss
                   {profissionais.length > 0 && (
                     <div className="field">
                       <label className="label">Profissional vinculado</label>
-                      <select className="input" value={dados.profissional_id} onChange={e => setDados(d => ({ ...d, profissional_id: e.target.value }))}>
-                        <option value="">Nenhum</option>
-                        {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-                      </select>
+                      <CampoBusca
+                        titulo="Profissionais" placeholder="Nenhum (digite para buscar)"
+                        opcoes={profissionais.map(p => ({ id: p.id, nome: p.nome }))}
+                        valor={dados.profissional_id} onChange={id => setDados(d => ({ ...d, profissional_id: id }))}
+                      />
                     </div>
                   )}
                   <div className="field">

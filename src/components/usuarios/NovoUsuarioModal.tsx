@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { PAPEL_LABEL } from '../../lib/permissoes'
 import ModalFormulario, { Campo, FormGrade } from '../ui/ModalFormulario'
 import type { PapelUsuario, Profissional } from '../../types'
+import CampoBusca from '../ui/CampoBusca'
 
 /**
  * Cadastra um login novo (e-mail + senha inicial) já vinculado à loja.
@@ -82,10 +83,11 @@ export default function NovoUsuarioModal({ papeis, profissionais, empresaId, onC
         </Campo>
         {profissionais.length > 0 && (
           <Campo rotulo="Profissional vinculado">
-            <select className="input" value={form.profissional_id} onChange={e => setForm(f => ({ ...f, profissional_id: e.target.value }))}>
-              <option value="">Nenhum</option>
-              {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-            </select>
+            <CampoBusca
+              titulo="Profissionais" placeholder="Nenhum (digite para buscar)"
+              opcoes={profissionais.map(p => ({ id: p.id, nome: p.nome }))}
+              valor={form.profissional_id} onChange={id => setForm(f => ({ ...f, profissional_id: id }))}
+            />
           </Campo>
         )}
       </FormGrade>

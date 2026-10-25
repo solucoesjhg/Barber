@@ -29,7 +29,7 @@ export function ProdutoDetalheModal({ produto: p, verCusto, podeEditar, onClose,
 
   useEffect(() => {
     supabase.from('movimentacoes_estoque').select('id, produto_id, tipo, quantidade, motivo, created_at')
-      .eq('produto_id', p.id).order('created_at', { ascending: false }).limit(6)
+      .eq('produto_id', p.id).order('created_at', { ascending: false }).limit(5)
       .then(({ data }) => setMovimentos((data ?? []) as MovimentacaoEstoque[]))
   }, [p.id])
 

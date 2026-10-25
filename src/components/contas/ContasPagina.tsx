@@ -15,6 +15,7 @@ import BarraSelecao, { ItemSelecao } from '../ui/BarraSelecao'
 import ModalDetalhe, { Info, InfoGrade, SecaoDetalhe } from '../ui/ModalDetalhe'
 import ModalFormulario, { Campo, FormGrade } from '../ui/ModalFormulario'
 import type { CategoriaFinanceira, ContaPagar, ContaReceber, FormaPagamentoCadastro } from '../../types'
+import CampoBusca from '../ui/CampoBusca'
 
 export type TipoConta = 'pagar' | 'receber'
 
@@ -410,10 +411,11 @@ export default function ContasPagina({ tipo }: { tipo: TipoConta }) {
                   <input className="input" type="number" min={0} step={0.01} placeholder="0,00" value={form.valor} onChange={e => setForm(f => ({ ...f, valor: e.target.value }))} />
                 </Campo>
                 <Campo rotulo={cfg.pessoaRotulo}>
-                  <select className="input" value={form.pessoa_id} onChange={e => setForm(f => ({ ...f, pessoa_id: e.target.value }))}>
-                    <option value="">Nenhum</option>
-                    {pessoas.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-                  </select>
+                  <CampoBusca
+                    titulo={cfg.pessoaRotulo === 'Cliente' ? 'Clientes' : 'Fornecedores'} placeholder="Digite para buscar (opcional)"
+                    opcoes={pessoas.map(p => ({ id: p.id, nome: p.nome }))}
+                    valor={form.pessoa_id} onChange={id => setForm(f => ({ ...f, pessoa_id: id }))}
+                  />
                 </Campo>
                 <Campo rotulo="Categoria">
                   <select className="input" value={form.categoria_id} onChange={e => setForm(f => ({ ...f, categoria_id: e.target.value }))}>
