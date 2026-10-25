@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { formatCurrency, initials } from '../lib/utils'
 import ModalDetalhe, { Info, InfoGrade, SecaoDetalhe } from './ui/ModalDetalhe'
 import BotaoWhatsApp from './agenda/BotaoWhatsApp'
+import { useLoja } from '../hooks/useLoja'
 import type { Agendamento, AgendamentoStatus } from '../types'
 
 export const STATUS_AGENDA: Record<AgendamentoStatus, { label: string; cls: string }> = {
@@ -39,6 +40,7 @@ export default function AgendamentoDetalheModal({ agendamento: ag, podeEditar, p
   onGerarVenda: () => void
   onVerVenda: (comandaId: string) => void
 }) {
+  const { usarWhatsapp } = useLoja()
   const [obs, setObs] = useState(ag.observacoes ?? '')
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
@@ -123,7 +125,7 @@ export default function AgendamentoDetalheModal({ agendamento: ag, podeEditar, p
         <Info rotulo="Duração">{`${duracao} min`}</Info>
         <Info rotulo="Telefone">{ag.cliente?.telefone}</Info>
         <Info rotulo="Venda">{vendaId ? 'Registrada' : undefined}</Info>
-        <Info rotulo="Lembrete WhatsApp">{ag.lembrete_enviado_em ? `Enviado ${new Date(ag.lembrete_enviado_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : undefined}</Info>
+        {(usarWhatsapp || ag.lembrete_enviado_em) && <Info rotulo="Lembrete WhatsApp">{ag.lembrete_enviado_em ? `Enviado ${new Date(ag.lembrete_enviado_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : undefined}</Info>}
       </InfoGrade>
 
       <SecaoDetalhe titulo="Observação" acao={salvo ? <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--c-a3)' }}>Salvo</span> : undefined}>

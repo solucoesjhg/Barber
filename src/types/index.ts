@@ -155,6 +155,9 @@ export interface MovimentoCaixa {
   conta_financeira_id?: string
   /** Os dois lados de uma transferência entre contas têm o mesmo id. */
   transferencia_id?: string | null
+  /** Conta analítica do plano de contas (lançamento avulso). */
+  categoria_id?: string | null
+  conta?: { nome: string } | null
   created_at: string
 }
 
@@ -396,6 +399,8 @@ export interface Configuracoes {
   fiado_prazo_dias?: number
   /** Texto do lembrete de WhatsApp ({cliente}, {servico}...); vazio = padrão. */
   mensagem_whatsapp?: string | null
+  /** A loja usa o lembrete de agendamento pelo WhatsApp. */
+  usar_whatsapp?: boolean
   updated_at: string
 }
 

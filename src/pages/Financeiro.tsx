@@ -15,6 +15,7 @@ import VendaDetalheModal from '../components/VendaDetalheModal'
 import LancamentoDetalheModal from '../components/LancamentoDetalheModal'
 import ContaFinanceiraModal from '../components/ContaFinanceiraModal'
 import ModalFormulario, { Campo, FormGrade } from '../components/ui/ModalFormulario'
+import SeletorConta from '../components/financeiro/SeletorConta'
 import FiltroPeriodo from '../components/ui/FiltroPeriodo'
 import Checkbox from '../components/ui/Checkbox'
 import StatCard from '../components/ui/StatCard'
@@ -58,7 +59,7 @@ export default function Financeiro() {
   const [showModal, setShowModal]   = useState(false)
   const [showTransferencia, setShowTransferencia] = useState(false)
   const [transf, setTransf] = useState({ origem: '', destino: '', valor: '', descricao: '' })
-  const [form, setForm] = useState({ tipo: 'saida', categoria: '', descricao: '', valor: '', contaId: '' })
+  const [form, setForm] = useState({ tipo: 'saida', categoriaId: '', descricao: '', valor: '', contaId: '' })
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
   const [lancamentoSelecionado, setLancamentoSelecionado] = useState<MovimentoCaixa | null>(null)
@@ -85,8 +86,11 @@ export default function Financeiro() {
   const entradasHoje = movHoje.filter(m => m.tipo === 'entrada').reduce((s, m) => s + m.valor, 0)
 
   function carregarMovimentos() {
-    supabase.from('movimentos_caixa').select('*').gte('data', inicio).lte('data', fim).order('created_at', { ascending: false })
-      .then(({ data }) => { setMovimentos((data ?? []) as MovimentoCaixa[]) })
+    const buscar = (campos: string) => supabase.from('movimentos_caixa').select(campos).gte('data', inicio).lte('data', fim).order('created_at', { ascending: false })
+    // Antes da migração do plano de contas nos lançamentos, sem o nome da conta.
+    buscar('*, conta:categorias_financeiras(nome)')
+      .then(({ data, error }) => error ? buscar('*') : { data })
+      .then(({ data }) => { setMovimentos((data ?? []) as unknown as MovimentoCaixa[]) })
   }
 
   function carregarContas() {
@@ -160,20 +164,22 @@ export default function Financeiro() {
 
   async function handleSave() {
     if (!form.descricao || !form.valor || saving) return
+    if (form.tipo === 'saida' && !form.categoriaId) { setFormError('Escolha a conta do plano de contas (ex.: Água, Luz, Aluguel).'); return }
     setSaving(true); setFormError('')
     if (form.tipo === 'saida' && !(await confirmarSaldoSuficiente(form.contaId || null, Number(form.valor)))) {
       setSaving(false); return
     }
     const { error: err } = await supabase.rpc('registrar_movimento_caixa', {
-      p_tipo: form.tipo, p_categoria: form.categoria || form.tipo,
+      p_tipo: form.tipo, p_categoria: form.tipo,
       p_descricao: form.descricao, p_valor: Number(form.valor),
       p_conta_financeira_id: form.contaId || null,
+      p_categoria_id: form.categoriaId || null,
     })
     setSaving(false)
     if (err) { setFormError(err.message); return }
     carregarMovimentos()
     carregarContas()
-    setForm({ tipo: 'saida', categoria: '', descricao: '', valor: '', contaId: '' })
+    setForm({ tipo: 'saida', categoriaId: '', descricao: '', valor: '', contaId: '' })
     setShowModal(false)
   }
 
@@ -440,7 +446,7 @@ export default function Financeiro() {
                 {m.descricao}
               </span>
             </div>
-            <span className="texto-cortado" style={{ fontSize: '12px', color: 'var(--c-55)' }}>{CATEGORIA_LABEL[m.categoria] ?? m.categoria}</span>
+            <span className="texto-cortado" style={{ fontSize: '12px', color: 'var(--c-55)' }}>{m.conta?.nome ?? CATEGORIA_LABEL[m.categoria] ?? m.categoria}</span>
             <span style={{ fontSize: '12px', color: 'var(--c-44)' }}>{formatDate(m.data)}</span>
             <span className="valor-num" style={{ fontSize: '13px', fontWeight: 600, color: m.tipo === 'entrada' ? 'var(--c-fff)' : 'var(--c-77)', textAlign: 'right' }}>
               {m.tipo === 'saida' ? '−' : '+'}{formatCurrency(m.valor)}
@@ -471,7 +477,7 @@ export default function Financeiro() {
           >
             <FormGrade colunas={2}>
               <Campo rotulo="Tipo">
-                <select className="input" value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}>
+                <select className="input" value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value, categoriaId: '' }))}>
                   <option value="entrada">Entrada</option>
                   <option value="saida">Saída</option>
                 </select>
@@ -482,8 +488,8 @@ export default function Financeiro() {
               <Campo rotulo="Descrição *" span="total">
                 <input className="input" placeholder="Descrição do lançamento" value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))} />
               </Campo>
-              <Campo rotulo="Categoria">
-                <input className="input" placeholder="Ex: comissão, custo fixo..." value={form.categoria} onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))} />
+              <Campo rotulo={form.tipo === 'saida' ? 'Conta (plano de contas) *' : 'Conta (plano de contas)'}>
+                <SeletorConta tipo={form.tipo === 'entrada' ? 'entrada' : 'saida'} valor={form.categoriaId} onChange={id => setForm(f => ({ ...f, categoriaId: id }))} vazio={form.tipo === 'saida' ? 'Selecionar...' : 'Sem classificação'} />
               </Campo>
               <Campo rotulo="Conta">
                 <select className="input" value={form.contaId} onChange={e => setForm(f => ({ ...f, contaId: e.target.value }))}>
@@ -546,6 +552,8 @@ export default function Financeiro() {
               movimento={lancamentoSelecionado}
               onClose={() => setLancamentoSelecionado(null)}
               onDelete={podeEditar ? handleExcluirLancamento : undefined}
+              podeClassificar={podeEditar}
+              onClassificado={() => carregarMovimentos()}
             />
           )
         )}

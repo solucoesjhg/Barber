@@ -16,7 +16,7 @@ export default function BotaoWhatsApp({ agendamento: ag, onEnviado, compacto = f
   /** Só o ícone (lista da agenda). */
   compacto?: boolean
 }) {
-  const { nome, mensagemWhatsapp } = useLoja()
+  const { nome, mensagemWhatsapp, usarWhatsapp } = useLoja()
   const [marcando, setMarcando] = useState(false)
   const fone = telefoneWhatsApp(ag.cliente?.telefone)
   const enviado = !!ag.lembrete_enviado_em
@@ -37,6 +37,7 @@ export default function BotaoWhatsApp({ agendamento: ag, onEnviado, compacto = f
     if (!error) onEnviado?.(quando)
   }
 
+  if (!usarWhatsapp) return null
   if (compacto) {
     return (
       <button

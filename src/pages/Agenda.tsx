@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
 import { dataLocalISO } from '../lib/periodo'
 import { usePermissoes } from '../hooks/usePermissoes'
+import { useLoja } from '../hooks/useLoja'
 import { usePerfil } from '../hooks/usePerfil'
 import AgendamentoDetalheModal, { STATUS_AGENDA, vendaDoAgendamento } from '../components/AgendamentoDetalheModal'
 import VendaDetalheModal from '../components/VendaDetalheModal'
@@ -733,6 +734,7 @@ function MensalView({
 export default function Agenda() {
   const { podeEditar: podeEditarTela, verVendasOutros, verAgendamentosOutros } = usePermissoes()
   const { profissionalId: meuProfissional } = usePerfil()
+  const { usarWhatsapp } = useLoja()
   const podeEditar = podeEditarTela('agenda')
   const podeVender = podeEditarTela('pdv')
   const podeTirarComissao = podeEditarTela('comissoes')
@@ -1006,7 +1008,7 @@ export default function Agenda() {
             <ViewBtn active={viewMode === 'mensal'}  onClick={() => { setViewMode('mensal');  setCalBase(selectedDate) }} icon={CalendarRange} label="Mensal"  />
           </div>
 
-          {podeEditar && (
+          {podeEditar && usarWhatsapp && (
             <button className="btn btn-secondary" onClick={() => setLembretesAberto(true)} title="Mandar lembrete no WhatsApp para os clientes de amanhã" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <MessageCircle size={14} /> Lembretes de amanhã
             </button>

@@ -15,6 +15,7 @@ import StatCard from '../components/ui/StatCard'
 import BarraSelecao, { ItemSelecao } from '../components/ui/BarraSelecao'
 import VendaDetalheModal from '../components/VendaDetalheModal'
 import LancamentoDetalheModal from '../components/LancamentoDetalheModal'
+import SeletorConta from '../components/financeiro/SeletorConta'
 import type { SessaoCaixa, MovimentoCaixa } from '../types'
 
 const CATEGORIA_LABEL: Record<string, string> = {
@@ -36,6 +37,7 @@ export default function Caixa() {
   const [modal, setModal] = useState<ModalTipo>(null)
   const [valorInput, setValorInput] = useState('')
   const [descricaoInput, setDescricaoInput] = useState('')
+  const [contaPlano, setContaPlano] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [resultadoFechamento, setResultadoFechamento] = useState<SessaoCaixa | null>(null)
@@ -110,7 +112,7 @@ export default function Caixa() {
   ]
 
   function abrirModal(tipo: ModalTipo) {
-    setError(''); setDescricaoInput(''); setModal(tipo)
+    setError(''); setDescricaoInput(''); setContaPlano(''); setModal(tipo)
     // Abertura: já vem com o troco padrão da loja (Configurações).
     setValorInput(tipo === 'abrir' && caixaValorInicial > 0 ? String(caixaValorInicial) : '')
   }
@@ -136,6 +138,7 @@ export default function Caixa() {
       p_categoria: tipo,
       p_descricao: descricaoInput || (tipo === 'sangria' ? 'Sangria' : 'Suprimento'),
       p_valor: Number(valorInput),
+      ...(tipo === 'sangria' && contaPlano ? { p_categoria_id: contaPlano } : {}),
     })
     setSaving(false)
     if (err) { setError(err.message); return }
@@ -336,6 +339,12 @@ export default function Caixa() {
                   <div className="field">
                     <label className="label">{modal === 'fechar' ? 'Observação' : 'Descrição'}</label>
                     <input className="input" placeholder="opcional" value={descricaoInput} onChange={e => setDescricaoInput(e.target.value)} />
+                  </div>
+                )}
+                {modal === 'sangria' && (
+                  <div className="field">
+                    <label className="label">Pagou alguma conta? (plano de contas)</label>
+                    <SeletorConta tipo="saida" valor={contaPlano} onChange={setContaPlano} vazio="Não, só retirada do dinheiro" />
                   </div>
                 )}
                 {error && <p style={{ fontSize: '12px', color: 'var(--c-66)' }}>{error}</p>}
