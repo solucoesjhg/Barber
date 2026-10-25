@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef, type ChangeEvent } from 'react'
-import { motion } from 'framer-motion'
+import { useState, useEffect, useRef, type ChangeEvent, type ReactNode } from 'react'
 import { Save, Upload, Trash2, ImageIcon } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { Link } from 'react-router-dom'
@@ -54,6 +53,7 @@ export default function Configuracoes() {
   const [saved, setSaved] = useState(false)
   const [processandoLogo, setProcessandoLogo] = useState(false)
   const logoInputRef = useRef<HTMLInputElement>(null)
+  const [aba, setAba] = useState<(typeof ABAS_CONFIG)[number]>('Loja')
 
   async function escolherLogo(e: ChangeEvent<HTMLInputElement>) {
     const arquivo = e.target.files?.[0]
@@ -122,178 +122,153 @@ export default function Configuracoes() {
     )
   }
 
+  const set = <K extends keyof ConfigRow>(campo: K, valor: ConfigRow[K]) => setForm(f => ({ ...f, [campo]: valor }))
+
   return (
-    <div className="page" style={{ maxWidth: '640px' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', color: 'var(--c-fff)' }}>Configurações</h1>
-        <p style={{ fontSize: '13px', color: 'var(--c-55)', marginTop: '3px' }}>
-          {podeEditar ? 'Dados da empresa e regras de operação' : 'Dados da empresa e regras de operação · somente leitura'}
-        </p>
+    <div className="page" style={{ maxWidth: '820px' }}>
+      <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
+        <div>
+          <h1 style={{ fontSize: '22px', color: 'var(--c-fff)' }}>Configurações</h1>
+          {!podeEditar && <p style={{ fontSize: '12px', color: 'var(--c-55)', marginTop: '2px' }}>Somente leitura</p>}
+        </div>
+        {podeEditar && (
+          <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Save size={13} /> {saving ? 'Salvando...' : saved ? 'Salvo!' : 'Salvar'}
+          </button>
+        )}
+      </div>
+      {error && <p className="aviso-erro" style={{ marginBottom: '12px' }}>{error}</p>}
+
+      <div className="perm-abas" role="tablist" style={{ marginBottom: '12px' }}>
+        {ABAS_CONFIG.map(a => (
+          <button key={a} role="tab" aria-selected={aba === a} className={`perm-aba${aba === a ? ' ativa' : ''}`} onClick={() => setAba(a)}>{a}</button>
+        ))}
       </div>
 
-      <fieldset disabled={!podeEditar} style={{ border: 'none', padding: 0, margin: 0, minWidth: 0 }}>
-
-      <motion.div className="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: '20px' }}>
-        <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)', marginBottom: '16px' }}>Empresa</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <div className="field">
-            <label className="label">Logo</label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-              <div className="logo-preview">
+      <fieldset disabled={!podeEditar} className="cfg-lista">
+        {aba === 'Loja' && (<>
+          <Linha rotulo="Logo" ajuda="Quadrado, de preferência com fundo transparente">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div className="cfg-logo">
                 {form.logo_url
                   ? <img src={form.logo_url} alt="Logo da loja" />
                   : <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Logo padrão" className="logo-padrao" style={{ opacity: 0.35 }} />}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0, flex: 1 }}>
-                <p style={{ fontSize: '12px', color: 'var(--c-77)', lineHeight: 1.5 }}>
-                  {form.logo_url ? 'Aparece no topo do menu, ao lado do nome da loja.' : 'Sem logo próprio: o menu mostra o logo padrão.'}
-                  {' '}Use uma imagem quadrada, de preferência com fundo transparente.
-                </p>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => logoInputRef.current?.click()} disabled={processandoLogo} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                    {form.logo_url ? <ImageIcon size={13} /> : <Upload size={13} />}
-                    {processandoLogo ? 'Preparando...' : form.logo_url ? 'Trocar logo' : 'Enviar logo'}
-                  </button>
-                  {form.logo_url && (
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setForm(f => ({ ...f, logo_url: '' }))} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      <Trash2 size={13} /> Remover
-                    </button>
-                  )}
-                </div>
-              </div>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => logoInputRef.current?.click()} disabled={processandoLogo} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                {form.logo_url ? <ImageIcon size={12} /> : <Upload size={12} />}
+                {processandoLogo ? 'Preparando...' : form.logo_url ? 'Trocar' : 'Enviar'}
+              </button>
+              {form.logo_url && (
+                <button type="button" className="btn btn-icon" title="Remover logo" aria-label="Remover logo" onClick={() => set('logo_url', '')} style={{ width: '30px', height: '30px' }}>
+                  <Trash2 size={12} />
+                </button>
+              )}
               <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={escolherLogo} style={{ display: 'none' }} />
             </div>
-          </div>
-          <div className="field">
-            <label className="label">Cor da loja</label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <button type="button" className={`cor-amostra${!form.cor_destaque ? ' ativa' : ''}`} title="Padrão do tema" onClick={() => setForm(f => ({ ...f, cor_destaque: null }))} style={{ background: 'linear-gradient(135deg, #fff 50%, #111 50%)' }} />
+          </Linha>
+          <Linha rotulo="Cor da loja" ajuda="Botões principais e destaques">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              <button type="button" className={`cor-amostra${!form.cor_destaque ? ' ativa' : ''}`} title="Padrão do tema" onClick={() => set('cor_destaque', null)} style={{ background: 'linear-gradient(135deg, #fff 50%, #111 50%)' }} />
               {CORES_LOJA.map(c => (
-                <button key={c} type="button" className={`cor-amostra${form.cor_destaque === c ? ' ativa' : ''}`} title={c} onClick={() => setForm(f => ({ ...f, cor_destaque: c }))} style={{ background: c }} />
+                <button key={c} type="button" className={`cor-amostra${form.cor_destaque === c ? ' ativa' : ''}`} title={c} onClick={() => set('cor_destaque', c)} style={{ background: c }} />
               ))}
-              <input type="color" aria-label="Outra cor" value={form.cor_destaque || '#2563eb'} onChange={e => setForm(f => ({ ...f, cor_destaque: e.target.value }))} style={{ width: '36px', height: '30px', border: 'none', background: 'transparent', cursor: 'pointer' }} />
+              <input type="color" aria-label="Outra cor" value={form.cor_destaque || '#2563eb'} onChange={e => set('cor_destaque', e.target.value)} className="cfg-cor-livre" />
             </div>
-            <p style={{ fontSize: '12px', color: 'var(--c-66)', marginTop: '6px' }}>Usada nos botões principais e nos destaques do sistema.</p>
-          </div>
-          <div className="field">
-            <label className="label">Nome da loja</label>
-            <input className="input" value={form.nome_empresa ?? ''} placeholder="Aparece no topo do menu" onChange={e => setForm(f => ({ ...f, nome_empresa: e.target.value }))} />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <div className="field">
-              <label className="label">CNPJ</label>
-              <input className="input" value={form.cnpj ?? ''} onChange={e => setForm(f => ({ ...f, cnpj: e.target.value }))} />
-            </div>
-            <div className="field">
-              <label className="label">Telefone</label>
-              <input className="input" value={form.telefone ?? ''} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} />
-            </div>
-          </div>
-          <div className="field">
-            <label className="label">Endereço</label>
-            <input className="input" value={form.endereco ?? ''} onChange={e => setForm(f => ({ ...f, endereco: e.target.value }))} />
-          </div>
-        </div>
-      </motion.div>
+          </Linha>
+          <Linha rotulo="Nome da loja">
+            <input className="input cfg-input" style={{ width: '260px' }} value={form.nome_empresa ?? ''} onChange={e => set('nome_empresa', e.target.value)} />
+          </Linha>
+          <Linha rotulo="CNPJ">
+            <input className="input cfg-input" style={{ width: '200px' }} value={form.cnpj ?? ''} onChange={e => set('cnpj', e.target.value)} />
+          </Linha>
+          <Linha rotulo="Telefone">
+            <input className="input cfg-input" style={{ width: '200px' }} value={form.telefone ?? ''} onChange={e => set('telefone', e.target.value)} />
+          </Linha>
+          <Linha rotulo="Endereço">
+            <input className="input cfg-input" style={{ width: '320px' }} value={form.endereco ?? ''} onChange={e => set('endereco', e.target.value)} />
+          </Linha>
+        </>)}
 
-      <motion.div className="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} style={{ marginBottom: '20px' }}>
-        <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)', marginBottom: '16px' }}>Operação</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <div className="field">
-              <label className="label">Abertura</label>
-              <input className="input" type="time" value={form.horario_abertura ?? ''} onChange={e => setForm(f => ({ ...f, horario_abertura: e.target.value }))} />
+        {aba === 'Agenda' && (<>
+          <Linha rotulo="Horário de funcionamento">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <input className="input cfg-input" type="time" style={{ width: '110px' }} value={form.horario_abertura ?? ''} onChange={e => set('horario_abertura', e.target.value)} />
+              <span style={{ fontSize: '12px', color: 'var(--c-55)' }}>às</span>
+              <input className="input cfg-input" type="time" style={{ width: '110px' }} value={form.horario_fechamento ?? ''} onChange={e => set('horario_fechamento', e.target.value)} />
             </div>
-            <div className="field">
-              <label className="label">Fechamento</label>
-              <input className="input" type="time" value={form.horario_fechamento ?? ''} onChange={e => setForm(f => ({ ...f, horario_fechamento: e.target.value }))} />
-            </div>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <div className="field">
-              <label className="label">Duração padrão do serviço (min)</label>
-              <input className="input" type="number" min={5} value={form.duracao_padrao_min ?? ''} onChange={e => setForm(f => ({ ...f, duracao_padrao_min: Number(e.target.value) }))} />
-            </div>
-            <div className="field">
-              <label className="label">Tolerância de atraso (min)</label>
-              <input className="input" type="number" min={0} value={form.tolerancia_atraso_min ?? ''} onChange={e => setForm(f => ({ ...f, tolerancia_atraso_min: Number(e.target.value) }))} />
-            </div>
-          </div>
-          <div className="field">
-            <label className="label">Regras de cancelamento</label>
-            <input className="input" placeholder="Ex: cancelamento com até 2h de antecedência" value={form.regras_cancelamento ?? ''} onChange={e => setForm(f => ({ ...f, regras_cancelamento: e.target.value }))} />
-          </div>
-          <label className="check-rotulo" title="Sem precisar confirmar depois">
-            <input type="checkbox" checked={form.agendamento_confirmado ?? false} onChange={e => setForm(f => ({ ...f, agendamento_confirmado: e.target.checked }))} />
-            Agendamento novo já entra como confirmado
-          </label>
-          <div className="field">
-            <label className="label">Valor de abertura do caixa (R$)</label>
-            <input className="input" type="number" min={0} step={0.01} placeholder="0,00" value={form.caixa_valor_inicial ?? ''} onChange={e => setForm(f => ({ ...f, caixa_valor_inicial: e.target.value === '' ? 0 : Number(e.target.value) }))} style={{ maxWidth: '200px' }} />
-            <p style={{ fontSize: '12px', color: 'var(--c-66)', marginTop: '4px' }}>O troco que já vem preenchido ao abrir o caixa (dá para mudar na hora).</p>
-          </div>
-          <label className="check-rotulo" title="O caixa que ficar aberto fecha sozinho no horário de fechamento">
-            <input type="checkbox" checked={form.fechamento_automatico ?? true} onChange={e => setForm(f => ({ ...f, fechamento_automatico: e.target.checked }))} />
-            Fechar o caixa automaticamente no horário de fechamento
-          </label>
-          <p style={{ fontSize: '12px', color: 'var(--c-66)', lineHeight: 1.5, marginTop: '-6px' }}>
-            Se o caixa da loja ficar aberto, ele é fechado às {form.horario_fechamento?.slice(0, 5) || 'horário de fechamento'}, com o saldo esperado calculado e o valor contado em branco. Caixa aberto depois desse horário fecha no dia seguinte.
-          </p>
-        </div>
-      </motion.div>
+          </Linha>
+          <Linha rotulo="Duração padrão do serviço" ajuda="Em minutos">
+            <input className="input cfg-input" type="number" min={5} style={{ width: '90px' }} value={form.duracao_padrao_min ?? ''} onChange={e => set('duracao_padrao_min', Number(e.target.value))} />
+          </Linha>
+          <Linha rotulo="Tolerância de atraso" ajuda="Em minutos">
+            <input className="input cfg-input" type="number" min={0} style={{ width: '90px' }} value={form.tolerancia_atraso_min ?? ''} onChange={e => set('tolerancia_atraso_min', Number(e.target.value))} />
+          </Linha>
+          <Linha rotulo="Agendamento já entra confirmado" ajuda="Sem precisar confirmar depois">
+            <Chave checked={form.agendamento_confirmado ?? false} onChange={v => set('agendamento_confirmado', v)} />
+          </Linha>
+          <Linha rotulo="Regras de cancelamento">
+            <input className="input cfg-input" style={{ width: '320px' }} placeholder="Ex: até 2h antes" value={form.regras_cancelamento ?? ''} onChange={e => set('regras_cancelamento', e.target.value)} />
+          </Linha>
+        </>)}
 
-      <motion.div className="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} style={{ marginBottom: '20px' }}>
-        <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)', marginBottom: '16px' }}>Estoque</p>
-        <label className="check-rotulo" title="Mostra os campos de estoque mínimo e máximo e os alertas de estoque baixo">
-          <input type="checkbox" checked={form.controla_estoque_minimo ?? true} onChange={e => setForm(f => ({ ...f, controla_estoque_minimo: e.target.checked }))} />
-          Trabalhar com estoque mínimo e máximo
-        </label>
-        <div className="field" style={{ margin: '14px 0 4px' }}>
-          <label className="label">Vender produto sem estoque</label>
-          <select className="input" value={form.estoque_zerado ?? 'avisar'} onChange={e => setForm(f => ({ ...f, estoque_zerado: e.target.value as 'permitir' | 'avisar' | 'bloquear' }))} style={{ maxWidth: '360px' }}>
-            <option value="avisar">Avisar e deixar vender (estoque fica negativo)</option>
-            <option value="permitir">Permitir sem avisar</option>
-            <option value="bloquear">Bloquear a venda</option>
-          </select>
-        </div>
-        <p style={{ fontSize: '12px', color: 'var(--c-66)', lineHeight: 1.5, marginTop: '8px' }}>
-          Estoque mínimo e máximo — marcado: o cadastro do produto tem estoque mínimo e máximo, e o sistema avisa quando o estoque fica abaixo do mínimo (Produtos, Vendas e Relatórios). Desmarcado: esses campos e avisos somem; os valores já cadastrados ficam guardados.
-        </p>
-      </motion.div>
+        {aba === 'Caixa' && (<>
+          <Linha rotulo="Valor de abertura (troco)" ajuda="Já vem preenchido ao abrir o caixa">
+            <input className="input cfg-input" type="number" min={0} step={0.01} placeholder="0,00" style={{ width: '120px' }} value={form.caixa_valor_inicial ?? ''} onChange={e => set('caixa_valor_inicial', e.target.value === '' ? 0 : Number(e.target.value))} />
+          </Linha>
+          <Linha rotulo="Fechar sozinho no horário de fechamento" ajuda={`Fecha às ${form.horario_fechamento?.slice(0, 5) || '—'} com o valor contado em branco`}>
+            <Chave checked={form.fechamento_automatico ?? true} onChange={v => set('fechamento_automatico', v)} />
+          </Linha>
+        </>)}
 
-      <motion.div className="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.09 }} style={{ marginBottom: '20px' }}>
-        <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)', marginBottom: '16px' }}>Fiado</p>
-        <label className="check-rotulo">
-          <input type="checkbox" checked={form.permitir_fiado ?? true} onChange={e => setForm(f => ({ ...f, permitir_fiado: e.target.checked }))} />
-          Aceitar venda fiado (conta do cliente)
-        </label>
-        {(form.permitir_fiado ?? true) && (
-          <div className="field" style={{ marginTop: '12px' }}>
-            <label className="label">Prazo para pagar (dias)</label>
-            <input className="input" type="number" min={0} max={365} value={form.fiado_prazo_dias ?? 30} onChange={e => setForm(f => ({ ...f, fiado_prazo_dias: Number(e.target.value) }))} style={{ maxWidth: '140px' }} />
-          </div>
-        )}
-        <p style={{ fontSize: '12px', color: 'var(--c-66)', lineHeight: 1.5, marginTop: '8px' }}>
-          A venda fiado não entra no caixa: vira uma conta a receber no nome do cliente (Contas a Receber), com vencimento nesse prazo. Quando ele pagar, é só dar baixa lá.
-        </p>
-      </motion.div>
-
-      <motion.div className="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} style={{ marginBottom: '20px' }}>
-        <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)', marginBottom: '6px' }}>Maquininhas e taxas</p>
-        <p style={{ fontSize: '12px', color: 'var(--c-66)', lineHeight: 1.5 }}>
-          As maquininhas, as taxas, o parcelamento máximo e o repasse da taxa ao cliente ficam em{' '}
-          <Link to="/categorias?secao=maquininhas" style={{ color: 'var(--c-a3)' }}>Categorias &amp; Pagamentos → Maquininhas</Link>.
-        </p>
-      </motion.div>
-
+        {aba === 'Vendas e estoque' && (<>
+          <Linha rotulo="Vender produto sem estoque">
+            <select className="input cfg-input" style={{ width: '230px' }} value={form.estoque_zerado ?? 'avisar'} onChange={e => set('estoque_zerado', e.target.value as 'permitir' | 'avisar' | 'bloquear')}>
+              <option value="avisar">Avisar e deixar vender</option>
+              <option value="permitir">Permitir sem avisar</option>
+              <option value="bloquear">Bloquear</option>
+            </select>
+          </Linha>
+          <Linha rotulo="Estoque mínimo e máximo" ajuda="Campos no produto e avisos de estoque baixo">
+            <Chave checked={form.controla_estoque_minimo ?? true} onChange={v => set('controla_estoque_minimo', v)} />
+          </Linha>
+          <Linha rotulo="Aceitar fiado" ajuda="Vira conta a receber no nome do cliente">
+            <Chave checked={form.permitir_fiado ?? true} onChange={v => set('permitir_fiado', v)} />
+          </Linha>
+          {(form.permitir_fiado ?? true) && (
+            <Linha rotulo="Prazo do fiado" ajuda="Dias para o cliente pagar">
+              <input className="input cfg-input" type="number" min={0} max={365} style={{ width: '90px' }} value={form.fiado_prazo_dias ?? 30} onChange={e => set('fiado_prazo_dias', Number(e.target.value))} />
+            </Linha>
+          )}
+          <Linha rotulo="Maquininhas, taxas e parcelas">
+            <Link to="/categorias?secao=maquininhas" className="btn btn-secondary btn-sm" style={{ color: 'var(--text)', textDecoration: 'none' }}>Abrir</Link>
+          </Linha>
+        </>)}
       </fieldset>
-
-      {error && <p style={{ fontSize: '12px', color: 'var(--c-66)', marginBottom: '12px' }}>{error}</p>}
-      {podeEditar && (
-        <button className="btn btn-primary" onClick={handleSave} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Save size={14} /> {saving ? 'Salvando...' : saved ? 'Salvo!' : 'Salvar'}
-        </button>
-      )}
     </div>
+  )
+}
+
+const ABAS_CONFIG = ['Loja', 'Agenda', 'Caixa', 'Vendas e estoque'] as const
+
+/** Uma configuração: nome (e uma linha de ajuda) à esquerda, controle à direita. */
+function Linha({ rotulo, ajuda, children }: { rotulo: string; ajuda?: string; children: ReactNode }) {
+  return (
+    <div className="cfg-linha">
+      <div style={{ minWidth: 0 }}>
+        <p className="cfg-rotulo">{rotulo}</p>
+        {ajuda && <p className="cfg-ajuda">{ajuda}</p>}
+      </div>
+      <div className="cfg-controle">{children}</div>
+    </div>
+  )
+}
+
+/** Liga/desliga. */
+function Chave({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="cfg-chave">
+      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} />
+      <span />
+    </label>
   )
 }

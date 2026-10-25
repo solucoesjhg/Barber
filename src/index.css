@@ -1347,3 +1347,28 @@ button.status-pill:disabled { cursor: default; }
 .sininho-item.urgente .sininho-ponto { background: #ef4444; }
 .sininho-item-titulo { display: block; font-size: 13px; font-weight: 500; }
 .sininho-item-detalhe { display: block; font-size: 11px; color: var(--c-66); margin-top: 2px; overflow-wrap: anywhere; }
+
+/* Configurações compactas */
+.cfg-lista { border: 1px solid var(--border); border-radius: var(--radius-lg, 10px); padding: 0; margin: 0; min-width: 0; background: var(--surface); overflow: hidden; }
+.cfg-linha { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 16px; border-bottom: 1px solid var(--c-1f); min-height: 52px; }
+.cfg-linha:last-child { border-bottom: none; }
+.cfg-rotulo { font-size: 13px; color: var(--text); font-weight: 500; }
+.cfg-ajuda { font-size: 11px; color: var(--c-66); margin-top: 1px; }
+.cfg-controle { display: flex; align-items: center; justify-content: flex-end; flex-shrink: 0; max-width: 60%; }
+.cfg-input { padding: 6px 10px !important; font-size: 13px !important; min-height: 0 !important; height: 32px; max-width: 100%; }
+.cfg-logo { width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden; background: rgba(var(--ink), 0.04); }
+.cfg-logo img { width: 100%; height: 100%; object-fit: contain; }
+.cfg-cor-livre { width: 26px; height: 26px; border: none; background: transparent; cursor: pointer; padding: 0; }
+.cfg-linha .cor-amostra { width: 22px; height: 22px; }
+.cfg-chave { position: relative; display: inline-flex; width: 38px; height: 22px; cursor: pointer; }
+.cfg-chave input { position: absolute; opacity: 0; width: 0; height: 0; }
+.cfg-chave span { position: absolute; inset: 0; border-radius: 99px; background: var(--c-2a); transition: background .15s; }
+.cfg-chave span::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+.cfg-chave input:checked + span { background: var(--cor-loja, #22c55e); }
+.cfg-chave input:checked + span::after { transform: translateX(16px); }
+.cfg-chave input:focus-visible + span { outline: 2px solid var(--text); outline-offset: 2px; }
+fieldset:disabled .cfg-chave { cursor: default; opacity: .6; }
+@media (max-width: 640px) {
+  .cfg-linha { flex-direction: column; align-items: stretch; gap: 8px; }
+  .cfg-controle { max-width: none; justify-content: flex-start; }
+}
