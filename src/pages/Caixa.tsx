@@ -343,8 +343,8 @@ export default function Caixa() {
                 )}
                 {modal === 'sangria' && (
                   <div className="field">
-                    <label className="label">Pagou alguma conta? (plano de contas)</label>
-                    <SeletorConta tipo="saida" valor={contaPlano} onChange={setContaPlano} vazio="Não, só retirada do dinheiro" />
+                    <label className="label">Pagou alguma conta? Se for só retirada, deixe em branco</label>
+                    <SeletorConta tipo="saida" valor={contaPlano} onChange={setContaPlano} vazio="Opcional: digite a conta (ex.: Energia)" />
                   </div>
                 )}
                 {error && <p style={{ fontSize: '12px', color: 'var(--c-66)' }}>{error}</p>}

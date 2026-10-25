@@ -94,7 +94,7 @@ export default function LancamentoDetalheModal({ movimento, onClose, onDelete, p
       {classificavel && (
         <SecaoDetalhe titulo="Plano de contas">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', maxWidth: '360px' }}>
-            <SeletorConta tipo={movimento.tipo === 'entrada' ? 'entrada' : 'saida'} valor={contaPlano} onChange={classificar} vazio="Sem classificação" />
+            <SeletorConta tipo={movimento.tipo === 'entrada' ? 'entrada' : 'saida'} valor={contaPlano} onChange={classificar} />
             {classificando && <span className="subtexto">Salvando...</span>}
           </div>
           <p className="subtexto" style={{ marginTop: '6px' }}>{movimento.tipo === 'entrada' ? 'Classificada, a entrada conta em Outras receitas na DRE.' : 'Classificada, a saída entra nas despesas da DRE nessa conta.'}</p>

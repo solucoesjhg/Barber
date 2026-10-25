@@ -489,7 +489,7 @@ export default function Financeiro() {
                 <input className="input" placeholder="Descrição do lançamento" value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))} />
               </Campo>
               <Campo rotulo={form.tipo === 'saida' ? 'Conta (plano de contas) *' : 'Conta (plano de contas)'}>
-                <SeletorConta tipo={form.tipo === 'entrada' ? 'entrada' : 'saida'} valor={form.categoriaId} onChange={id => setForm(f => ({ ...f, categoriaId: id }))} vazio={form.tipo === 'saida' ? 'Selecionar...' : 'Sem classificação'} />
+                <SeletorConta tipo={form.tipo === 'entrada' ? 'entrada' : 'saida'} valor={form.categoriaId} onChange={id => setForm(f => ({ ...f, categoriaId: id }))} />
               </Campo>
               <Campo rotulo="Conta">
                 <select className="input" value={form.contaId} onChange={e => setForm(f => ({ ...f, contaId: e.target.value }))}>
