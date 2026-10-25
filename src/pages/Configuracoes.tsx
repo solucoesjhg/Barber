@@ -97,7 +97,6 @@ export default function Configuracoes() {
       controla_estoque_minimo: form.controla_estoque_minimo ?? true,
       agendamento_confirmado: form.agendamento_confirmado ?? false,
       estoque_zerado: form.estoque_zerado ?? 'avisar',
-      caixa_valor_inicial: Math.max(0, Number(form.caixa_valor_inicial) || 0),
       cor_destaque: form.cor_destaque || null,
       permitir_fiado: form.permitir_fiado ?? true,
       fiado_prazo_dias: Math.min(365, Math.max(0, Math.round(Number(form.fiado_prazo_dias ?? 30)))),
@@ -226,9 +225,6 @@ export default function Configuracoes() {
         </>)}
 
         {aba === 'Caixa' && (<>
-          <Linha rotulo="Valor de abertura (troco)" ajuda="Já vem preenchido ao abrir o caixa">
-            <input className="input cfg-input" type="number" min={0} step={0.01} placeholder="0,00" style={{ width: '120px' }} value={form.caixa_valor_inicial ?? ''} onChange={e => set('caixa_valor_inicial', e.target.value === '' ? 0 : Number(e.target.value))} />
-          </Linha>
           <Linha rotulo="Fechar sozinho no horário de fechamento" ajuda={`Fecha às ${form.horario_fechamento?.slice(0, 5) || '—'} com o valor contado em branco`}>
             <Chave checked={form.fechamento_automatico ?? true} onChange={v => set('fechamento_automatico', v)} />
           </Linha>

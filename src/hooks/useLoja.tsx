@@ -11,8 +11,6 @@ interface Loja {
   controlaEstoqueMinimo: boolean
   /** Venda de produto sem estoque: permitir, avisar ou bloquear. */
   estoqueZerado: 'permitir' | 'avisar' | 'bloquear'
-  /** Valor que já vem na abertura do caixa. */
-  caixaValorInicial: number
   /** Cor da loja (#rrggbb) ou null (padrão do tema). */
   corDestaque: string | null
   permitirFiado: boolean
@@ -30,7 +28,7 @@ interface LojaCtx extends Loja {
 const Ctx = createContext<LojaCtx | null>(null)
 const LOJA_VAZIA: Loja = {
   nome: null, logoUrl: null, controlaEstoqueMinimo: true, estoqueZerado: 'avisar',
-  caixaValorInicial: 0, corDestaque: null, permitirFiado: true, fiadoPrazoDias: 30, mensagemWhatsapp: null, usarWhatsapp: true,
+  corDestaque: null, permitirFiado: true, fiadoPrazoDias: 30, mensagemWhatsapp: null, usarWhatsapp: true,
 }
 const chaveCache = (empresaId: string) => `barberos-loja-${empresaId}`
 
@@ -61,7 +59,6 @@ export function LojaProvider({ children }: { children: ReactNode }) {
           logoUrl: data?.logo_url || null,
           controlaEstoqueMinimo: data?.controla_estoque_minimo ?? true,
           estoqueZerado: data?.estoque_zerado ?? 'avisar',
-          caixaValorInicial: Number(data?.caixa_valor_inicial ?? 0),
           corDestaque: data?.cor_destaque || null,
           permitirFiado: data?.permitir_fiado ?? true,
           fiadoPrazoDias: Number(data?.fiado_prazo_dias ?? 30),

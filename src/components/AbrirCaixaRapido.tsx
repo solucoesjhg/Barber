@@ -1,25 +1,33 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { Unlock } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { useLoja } from '../hooks/useLoja'
+import { sugestaoAberturaCaixa, rotuloFechamento } from '../lib/aberturaCaixa'
 
 /** O erro do banco é de caixa fechado ("Nenhum caixa aberto..."). */
 export const ehErroSemCaixa = (msg: string) => /nenhum caixa aberto/i.test(msg)
 
 /**
  * Atalho para quando a venda esbarra no caixa fechado: abre o caixa ali
- * mesmo (com o valor inicial da gaveta) e segue com a venda, sem sair
+ * mesmo (já sugerindo o dinheiro que ficou na gaveta no último fechamento) e segue com a venda, sem sair
  * da tela.
  */
 export default function AbrirCaixaRapido({ onAberto }: {
   /** Chamado com o caixa já aberto: a tela conclui a venda. */
   onAberto: () => void
 }) {
-  const { caixaValorInicial } = useLoja()
-  const [valor, setValor] = useState(caixaValorInicial > 0 ? String(caixaValorInicial) : '')
+  const [valor, setValor] = useState('')
+  const [dica, setDica] = useState('')
   const [abrindo, setAbrindo] = useState(false)
   const [erro, setErro] = useState('')
   const idValor = useId()
+
+  useEffect(() => {
+    sugestaoAberturaCaixa().then(s => {
+      if (!s) return
+      setValor(v => v === '' ? String(s.valor) : v)
+      setDica(`Ficou na gaveta ${rotuloFechamento(s.fechadoEm)}`)
+    })
+  }, [])
 
   async function abrir() {
     if (abrindo) return
@@ -42,6 +50,7 @@ export default function AbrirCaixaRapido({ onAberto }: {
             onChange={e => setValor(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); abrir() } }}
           />
+          {dica && <span className="subtexto" style={{ display: 'block', marginTop: '4px' }}>{dica}</span>}
         </div>
         <button type="button" className="btn btn-primary btn-sm" onClick={abrir} disabled={abrindo} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '40px' }}>
           <Unlock size={13} /> {abrindo ? 'Abrindo...' : 'Abrir caixa e concluir a venda'}

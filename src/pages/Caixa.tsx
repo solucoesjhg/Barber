@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Lock, Unlock, ArrowUpRight, ArrowDownRight, X, ArrowDownToLine, ArrowUpFromLine, Wallet, TrendingUp, TrendingDown, Scale } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { useLoja } from '../hooks/useLoja'
+import { sugestaoAberturaCaixa, rotuloFechamento } from '../lib/aberturaCaixa'
 import { carregarNomesUsuarios } from '../lib/usuarios'
 import { formatCurrency, formatDateTime, formatTime } from '../lib/utils'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
@@ -30,7 +30,7 @@ export default function Caixa() {
   const { user } = useAuth()
   const { podeEditar: podeEditarTela } = usePermissoes()
   const podeEditar = podeEditarTela('caixa')
-  const { caixaValorInicial } = useLoja()
+  const [dicaAbertura, setDicaAbertura] = useState('')
   const [sessao, setSessao] = useState<SessaoCaixa | null>(null)
   const [movimentos, setMovimentos] = useState<MovimentoCaixa[]>([])
   const [loading, setLoading] = useState(true)
@@ -113,8 +113,15 @@ export default function Caixa() {
 
   function abrirModal(tipo: ModalTipo) {
     setError(''); setDescricaoInput(''); setContaPlano(''); setModal(tipo)
-    // Abertura: já vem com o troco padrão da loja (Configurações).
-    setValorInput(tipo === 'abrir' && caixaValorInicial > 0 ? String(caixaValorInicial) : '')
+    setValorInput(''); setDicaAbertura('')
+    // Abertura: sugere o dinheiro que ficou na gaveta no último fechamento.
+    if (tipo === 'abrir') {
+      sugestaoAberturaCaixa().then(s => {
+        if (!s) return
+        setValorInput(v => v === '' ? String(s.valor) : v)
+        setDicaAbertura(`Ficou na gaveta ${rotuloFechamento(s.fechadoEm)}: ${formatCurrency(s.valor)}`)
+      })
+    }
   }
 
   async function confirmarAbrirCaixa() {
@@ -334,6 +341,7 @@ export default function Caixa() {
                     {modal === 'abrir' ? 'Valor inicial (R$)' : modal === 'fechar' ? 'Dinheiro contado na gaveta (R$)' : 'Valor (R$)'}
                   </label>
                   <input className="input" type="number" min={0} step={0.01} placeholder="0,00" value={valorInput} onChange={e => setValorInput(e.target.value)} />
+                  {modal === 'abrir' && dicaAbertura && <span className="subtexto" style={{ display: 'block', marginTop: '4px' }}>{dicaAbertura}</span>}
                 </div>
                 {(modal === 'sangria' || modal === 'suprimento' || modal === 'fechar') && (
                   <div className="field">
