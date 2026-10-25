@@ -15,6 +15,7 @@ import Produtos from './pages/Produtos'
 import Fornecedores from './pages/Fornecedores'
 import ContasPagar from './pages/ContasPagar'
 import ContasReceber from './pages/ContasReceber'
+import Recebiveis from './pages/Recebiveis'
 import Comissoes from './pages/Comissoes'
 import DRE from './pages/DRE'
 import Relatorios from './pages/Relatorios'
@@ -84,6 +85,7 @@ export default function App() {
           <Route path="/categorias"     element={<RotaPermitida tela="categorias"><Categorias /></RotaPermitida>} />
           <Route path="/contas-pagar"   element={<RotaPermitida tela="contas_pagar"><ContasPagar /></RotaPermitida>} />
           <Route path="/contas-receber" element={<RotaPermitida tela="contas_receber"><ContasReceber /></RotaPermitida>} />
+          <Route path="/recebiveis"     element={<RotaPermitida tela="financeiro"><Recebiveis /></RotaPermitida>} />
           <Route path="/comissoes"      element={<RotaPermitida tela="comissoes"><Comissoes /></RotaPermitida>} />
           <Route path="/dre"            element={<RotaPermitida tela="dre"><DRE /></RotaPermitida>} />
           <Route path="/relatorios"     element={<RotaPermitida tela="relatorios"><Relatorios /></RotaPermitida>} />

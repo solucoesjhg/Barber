@@ -10,7 +10,7 @@ const PARCELAS = Array.from({ length: 12 }, (_, i) => i + 1)
 type TaxasForm = Record<string, string>
 
 /** Maquininha na tela: id ausente = nova (ainda não salva). */
-interface MaqForm { chave: string; id?: string; nome: string; ativo: boolean; taxas: TaxasForm; aberta: boolean }
+interface MaqForm { chave: string; id?: string; nome: string; ativo: boolean; taxas: TaxasForm; aberta: boolean; diasDebito: string; diasCredito: string }
 
 const LINHAS_TAXA = [
   { forma_pagamento: 'pix', parcelas: 1, chave: 'pix' },
@@ -32,11 +32,19 @@ export default function MaquininhasEditor({ podeEditar }: { podeEditar: boolean 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
+  // Prazo de depósito (recebíveis do cartão): só depois da migração.
+  const [temDias, setTemDias] = useState(false)
 
   useEffect(() => {
-    Promise.all([carregarMaquininhas(true), carregarTaxas()]).then(([lista, t]) => {
+    Promise.all([
+      carregarMaquininhas(true), carregarTaxas(),
+      supabase.from('maquininhas').select('id, dias_debito, dias_credito'),
+    ]).then(([lista, t, { data: dias, error: erroDias }]) => {
+      setTemDias(!erroDias)
+      const prazo = new Map(((dias ?? []) as { id: string; dias_debito: number; dias_credito: number }[]).map(d => [d.id, d]))
       setMaquininhas(lista.map(m => ({
         chave: m.id, id: m.id, nome: m.nome, ativo: m.ativo, aberta: false,
+        diasDebito: String(prazo.get(m.id)?.dias_debito ?? 1), diasCredito: String(prazo.get(m.id)?.dias_credito ?? 30),
         taxas: { pix: pctTexto(m.pix), debito: pctTexto(m.debito), ...Object.fromEntries(PARCELAS.map(n => [`c${n}`, pctTexto(m.credito[n] ?? 0)])) },
       })))
       setRemovidas([])
@@ -50,7 +58,7 @@ export default function MaquininhasEditor({ podeEditar }: { podeEditar: boolean 
 
   function novaMaquininha() {
     const chave = `nova-${Date.now()}`
-    setMaquininhas(ms => [...ms, { chave, nome: '', ativo: true, aberta: true, taxas: {} }])
+    setMaquininhas(ms => [...ms, { chave, nome: '', ativo: true, aberta: true, taxas: {}, diasDebito: '1', diasCredito: '30' }])
   }
 
   function removerMaquininha(m: MaqForm) {
@@ -80,6 +88,9 @@ export default function MaquininhasEditor({ podeEditar }: { podeEditar: boolean 
     const pct = (m: MaqForm, chave: string) => Number(String(m.taxas[chave] ?? '').replace(',', '.')) || 0
     if (maquininhas.some(m => LINHAS_TAXA.some(l => pct(m, l.chave) < 0 || pct(m, l.chave) >= 100))) return 'As taxas precisam ficar entre 0% e 99,99%.'
 
+    const dias = (t: string, padrao: number) => Math.min(60, Math.max(0, Math.round(Number(t)))) || (t.trim() === '0' ? 0 : padrao)
+    const prazos = (m: MaqForm) => (temDias ? { dias_debito: dias(m.diasDebito, 1), dias_credito: dias(m.diasCredito, 30) } : {})
+
     if (removidas.length > 0) {
       const { error: e } = await supabase.from('maquininhas').delete().in('id', removidas)
       if (e) return e.message
@@ -89,10 +100,10 @@ export default function MaquininhasEditor({ podeEditar }: { podeEditar: boolean 
     for (const m of maquininhas) {
       let id = m.id
       if (id) {
-        const { error: e } = await supabase.from('maquininhas').update({ nome: m.nome.trim(), ativo: m.ativo }).eq('id', id)
+        const { error: e } = await supabase.from('maquininhas').update({ nome: m.nome.trim(), ativo: m.ativo, ...prazos(m) }).eq('id', id)
         if (e) return e.message
       } else {
-        const { data, error: e } = await supabase.from('maquininhas').insert({ nome: m.nome.trim(), ativo: m.ativo }).select('id').single()
+        const { data, error: e } = await supabase.from('maquininhas').insert({ nome: m.nome.trim(), ativo: m.ativo, ...prazos(m) }).select('id').single()
         if (e || !data) return e?.message ?? 'Não foi possível cadastrar a maquininha.'
         id = (data as { id: string }).id
       }
@@ -177,6 +188,19 @@ export default function MaquininhasEditor({ podeEditar }: { podeEditar: boolean 
                     {campoTaxa(m, 'pix', 'Pix')}
                     {campoTaxa(m, 'debito', 'Cartão Débito')}
                   </div>
+                  {temDias && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div className="field">
+                        <label className="label">Débito cai em (dias)</label>
+                        <input className="input" type="number" min={0} max={60} value={m.diasDebito} onChange={e => mudarMaq(m.chave, { diasDebito: e.target.value })} />
+                      </div>
+                      <div className="field">
+                        <label className="label">Crédito: 1ª parcela cai em (dias)</label>
+                        <input className="input" type="number" min={0} max={60} value={m.diasCredito} onChange={e => mudarMaq(m.chave, { diasCredito: e.target.value })} />
+                        <p className="campo-ajuda">As outras parcelas, mês a mês. Vai para os Recebíveis do cartão.</p>
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <p className="label" style={{ marginBottom: '8px' }}>Cartão Crédito, por parcelas</p>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(92px, 1fr))', gap: '10px' }}>

@@ -7,6 +7,7 @@ import {
   Scissors, Package, Truck, BarChart2, ArrowDownCircle, ArrowUpCircle,
   Percent, FileBarChart, FileText, ClipboardList, Settings, UserCog, LogOut, Sun, Moon, Building2, Tags,
   ChevronDown, ChevronRight, FolderOpen, ArrowLeftRight, Receipt,
+  CreditCard,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { usePerfil } from '../../hooks/usePerfil'
@@ -52,6 +53,7 @@ const NAV_GRUPOS: { label: string; icon: typeof LayoutDashboard; items: NavItemD
       { to: '/financeiro',     icon: BarChart2,       label: 'Financeiro',       tela: 'financeiro'     },
       { to: '/contas-pagar',   icon: ArrowUpCircle,   label: 'Contas a Pagar',   tela: 'contas_pagar'   },
       { to: '/contas-receber', icon: ArrowDownCircle, label: 'Contas a Receber', tela: 'contas_receber' },
+      { to: '/recebiveis',     icon: CreditCard,      label: 'Recebíveis do cartão', tela: 'financeiro' },
       { to: '/comissoes',      icon: Percent,         label: 'Comissões',        tela: 'comissoes'      },
     ],
   },
@@ -126,6 +128,7 @@ const DESCRICAO_ITEM: Record<string, string> = {
   '/financeiro': 'Contas Caixa/Banco e lançamentos',
   '/contas-pagar': 'Despesas, parcelas e pagamentos',
   '/contas-receber': 'Valores a receber e baixas',
+  '/recebiveis': 'O que as maquininhas vão depositar',
   '/comissoes': 'Comissões geradas nas vendas',
   '/dre': 'Resultado do período',
   '/relatorios': 'Vendas, caixa, estoque e agenda',
