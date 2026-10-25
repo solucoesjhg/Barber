@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Package, Scissors, Trash2, Pencil, X, ShoppingCart, CalendarDays, Percent } from 'lucide-react'
+import { Package, Scissors, Trash2, Pencil, X, ShoppingCart, CalendarDays, Percent, Printer } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency, formatDateTime } from '../lib/utils'
 import { carregarNomesUsuarios } from '../lib/usuarios'
 import { usePermissoes } from '../hooks/usePermissoes'
 import { formatarPercentual, rotuloPagamento, rotuloPagamentos } from '../lib/taxas'
 import ModalDetalhe, { Info, InfoGrade, SecaoDetalhe } from './ui/ModalDetalhe'
+import { imprimirVenda } from '../lib/imprimirVenda'
 import type { Comanda, ItemComanda, PagamentoComanda } from '../types'
 
 export const PAGAMENTO_LABEL: Record<string, string> = {
@@ -178,8 +179,15 @@ export default function VendaDetalheModal({ comandaId, onClose, onDelete, destac
         </>
       )}
       onClose={onClose}
-      acoes={!loading && (podeAbrirEdicao || onDelete) ? (
+      acoes={!loading && comanda ? (
         <>
+          <button className="btn btn-secondary" title="Abre a impressão; para PDF, escolha “Salvar como PDF”"
+            onClick={() => imprimirVenda({
+              comanda, itens, pagamentos,
+              vendedor: comanda.usuario_id ? nomes[comanda.usuario_id] : null,
+            })}>
+            <Printer size={13} /> Imprimir / PDF
+          </button>
           {podeAbrirEdicao && comanda && (
             <button
               className="btn btn-primary"
