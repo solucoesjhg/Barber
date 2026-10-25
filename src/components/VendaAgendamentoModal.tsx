@@ -59,7 +59,7 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
     if (precoNaVenda && !(valor > 0)) { setErro('Informe o valor do serviço.'); return }
     const erroPag = validarPagamentos(linhas, valor, taxas)
     if (erroPag) { setErro(erroPag); return }
-    if (temFiado && !clienteId) { setErro('Fiado precisa de cliente cadastrado: escolha o cliente.'); return }
+    if (temFiado && !clienteId) { setErro('Venda parcelada precisa de cliente cadastrado: escolha o cliente.'); return }
     setSalvando(true); setErro('')
     const { data, error } = await supabase.rpc('finalizar_venda', {
       p_cliente_nome: clienteNome || null,
@@ -133,7 +133,7 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
         <PagamentosEditor linhas={linhas} onChange={setLinhas} total={valor} taxas={taxas} permitirFiado={permitirFiado} />
         {temFiado && !ag.cliente_id && (
           <div className="field" style={{ marginTop: '12px' }}>
-            <label className="label">Cliente do fiado * (cadastrado)</label>
+            <label className="label">Cliente do parcelado * (cadastrado)</label>
             <ClienteBusca nome={clienteNome} clienteId={clienteId} onChange={(n, id) => { setClienteNome(n); setClienteId(id); setErro('') }} placeholder="Digite para buscar o cliente" exigirCadastro />
           </div>
         )}

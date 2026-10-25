@@ -71,7 +71,7 @@ export function pagamentosPayload(linhas: LinhaPagamento[], total: number) {
  * sua maquininha, parcelas e repasse de taxa.
  */
 export default function PagamentosEditor({ linhas, onChange, total, taxas, permitirFiado = false }: {
-  /** Mostra a forma "Fiado" (conta do cliente). */
+  /** Mostra a forma "Parcelado" (conta a receber do cliente). */
   permitirFiado?: boolean
   linhas: LinhaPagamento[]
   /** O setState das linhas: as linhas mudam por efeito (maquininha única
@@ -81,7 +81,7 @@ export default function PagamentosEditor({ linhas, onChange, total, taxas, permi
   taxas: TaxasLoja
 }) {
   const valores = valoresDasLinhas(linhas, total)
-  const formas = permitirFiado ? [...FORMAS, { id: 'fiado' as PagamentoMetodo, label: 'Fiado' }] : FORMAS
+  const formas = permitirFiado ? [...FORMAS, { id: 'fiado' as PagamentoMetodo, label: 'Parcelado' }] : FORMAS
   const dividido = linhas.length > 1
   const restante = valores[valores.length - 1]
 
@@ -154,7 +154,7 @@ export default function PagamentosEditor({ linhas, onChange, total, taxas, permi
             {l.forma === 'fiado' ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div className="field" style={{ marginBottom: 0 }}>
-                  <label className="label">Parcelas do fiado</label>
+                  <label className="label">Parcelas</label>
                   <select className="input" value={l.parcelas} onChange={e => mudar(l.id, { parcelas: Number(e.target.value) })}>
                     {Array.from({ length: 12 }, (_, k) => k + 1).map(n => (
                       <option key={n} value={n}>{n === 1 ? '1x (de uma vez)' : `${n}x de ${formatCurrency(arredondar(valores[i] / n))}`}</option>

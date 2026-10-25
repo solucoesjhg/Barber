@@ -9,7 +9,7 @@ import ModalDetalhe, { Info, InfoGrade, SecaoDetalhe } from './ui/ModalDetalhe'
 import type { Comanda, ItemComanda, PagamentoComanda } from '../types'
 
 export const PAGAMENTO_LABEL: Record<string, string> = {
-  pix: 'Pix', credito: 'Cartão Crédito', debito: 'Cartão Débito', dinheiro: 'Dinheiro', fiado: 'Fiado',
+  pix: 'Pix', credito: 'Cartão Crédito', debito: 'Cartão Débito', dinheiro: 'Dinheiro', fiado: 'Parcelado',
 }
 const STATUS_LABEL: Record<string, string> = { fechada: 'Fechada', cancelada: 'Cancelada', aberta: 'Aberta' }
 

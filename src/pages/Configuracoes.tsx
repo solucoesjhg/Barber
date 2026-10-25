@@ -245,11 +245,11 @@ export default function Configuracoes() {
           <Linha rotulo="Estoque mínimo e máximo" ajuda="Campos no produto e avisos de estoque baixo">
             <Chave checked={form.controla_estoque_minimo ?? true} onChange={v => set('controla_estoque_minimo', v)} />
           </Linha>
-          <Linha rotulo="Aceitar fiado" ajuda="Vira conta a receber no nome do cliente">
+          <Linha rotulo="Aceitar venda parcelada" ajuda="Vira conta a receber no nome do cliente">
             <Chave checked={form.permitir_fiado ?? true} onChange={v => set('permitir_fiado', v)} />
           </Linha>
           {(form.permitir_fiado ?? true) && (
-            <Linha rotulo="Prazo do fiado" ajuda="Dias para o cliente pagar">
+            <Linha rotulo="Prazo do parcelado" ajuda="Dias até a 1ª parcela (as demais vencem mês a mês)">
               <input className="input cfg-input" type="number" min={0} max={365} style={{ width: '90px' }} value={form.fiado_prazo_dias ?? 30} onChange={e => set('fiado_prazo_dias', Number(e.target.value))} />
             </Linha>
           )}

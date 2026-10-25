@@ -431,7 +431,7 @@ export default function Vendas() {
     if (saving) return
     const erroPag = validarPagamentos(linhasPag, total, taxas)
     if (erroPag) { setError(erroPag); return }
-    if (temFiado && !clienteDaVenda) { setError('Fiado precisa de cliente: escolha o cliente da venda.'); return }
+    if (temFiado && !clienteDaVenda) { setError('Venda parcelada precisa de cliente: escolha o cliente da venda.'); return }
     setSaving(true); setError('')
 
     if (edicao) {
@@ -1050,7 +1050,7 @@ export default function Vendas() {
               <PagamentosEditor linhas={linhasPag} onChange={setLinhasPag} total={total} taxas={taxas} permitirFiado={permitirFiado && !editando} />
               {temFiado && !clienteDaVenda && (
                 <div className="field" style={{ marginTop: '12px' }}>
-                  <label className="label">Cliente do fiado * (cadastrado)</label>
+                  <label className="label">Cliente do parcelado * (cadastrado)</label>
                   <ClienteBusca nome={clienteNome} clienteId={clienteDaVenda} onChange={(n, id) => { setClienteNome(n); setClienteId(id); setError('') }} placeholder="Digite para buscar o cliente" exigirCadastro />
                 </div>
               )}
