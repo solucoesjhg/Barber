@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { UserCheck, X } from 'lucide-react'
+import { UserCheck, UserPlus, X } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
 export interface ClienteResumo { id: string; nome: string; telefone?: string | null }
@@ -9,14 +9,36 @@ let cache: ClienteResumo[] | null = null
 /**
  * Nome do cliente da venda com sugestões dos clientes cadastrados (nome
  * ou telefone). Escolher um liga a venda a ele; digitar outro nome
- * desfaz a ligação (cliente avulso).
+ * desfaz a ligação (cliente avulso). Quem não está cadastrado pode ser
+ * cadastrado ali mesmo (nome e telefone).
  */
-export default function ClienteBusca({ nome, clienteId, onChange, placeholder = 'Nome do cliente (opcional)' }: {
+export default function ClienteBusca({ nome, clienteId, onChange, placeholder = 'Nome do cliente (opcional)', exigirCadastro = false }: {
   nome: string
   clienteId: string | null
   onChange: (nome: string, clienteId: string | null) => void
   placeholder?: string
+  /** Fiado: avisa que precisa ser um cliente cadastrado. */
+  exigirCadastro?: boolean
 }) {
+  const [cadastrando, setCadastrando] = useState(false)
+  const [telefone, setTelefone] = useState('')
+  const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState('')
+
+  async function cadastrar() {
+    const n = nome.trim()
+    if (n.length < 2) { setErro('Digite o nome do cliente.'); return }
+    if (telefone.replace(/\D/g, '').length < 8) { setErro('Informe o telefone (com DDD).'); return }
+    setSalvando(true); setErro('')
+    const { data, error } = await supabase.from('clientes').insert({ nome: n, telefone: telefone.trim() }).select('id, nome, telefone').single()
+    setSalvando(false)
+    if (error || !data) { setErro(error?.message ?? 'Não foi possível cadastrar.'); return }
+    const novo = data as ClienteResumo
+    cache = [...(cache ?? clientes), novo].sort((a, b) => a.nome.localeCompare(b.nome))
+    setClientes(cache)
+    setCadastrando(false); setTelefone('')
+    onChange(novo.nome, novo.id)
+  }
   const [clientes, setClientes] = useState<ClienteResumo[]>(cache ?? [])
   const [aberto, setAberto] = useState(false)
   const [marcado, setMarcado] = useState(0)
@@ -35,6 +57,8 @@ export default function ClienteBusca({ nome, clienteId, onChange, placeholder = 
     return () => document.removeEventListener('mousedown', fora)
   }, [aberto])
 
+  const termoLivre = nome.trim().length >= 2 && !clienteId
+  const nomeExato = clientes.some(c => c.nome.trim().toLowerCase() === nome.trim().toLowerCase())
   const sugestoes = useMemo(() => {
     const termo = nome.trim().toLowerCase()
     if (!termo || clienteId) return []
@@ -73,7 +97,22 @@ export default function ClienteBusca({ nome, clienteId, onChange, placeholder = 
           <button type="button" aria-label="Desligar do cliente cadastrado" onClick={() => onChange(nome, null)}><X size={11} /></button>
         </span>
       )}
-      {aberto && sugestoes.length > 0 && (
+      {exigirCadastro && !clienteId && !cadastrando && (
+        <p className="subtexto" style={{ marginTop: '4px', color: '#f59e0b' }}>Precisa ser um cliente cadastrado: escolha na lista ou cadastre.</p>
+      )}
+      {cadastrando && !clienteId && (
+        <div className="cliente-busca-cadastro">
+          <p style={{ fontSize: '12px', color: 'var(--c-a3)' }}>Cadastrar <strong style={{ color: 'var(--text)' }}>{nome.trim() || 'cliente'}</strong></p>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <input className="input" style={{ fontSize: '13px', flex: 1 }} placeholder="Telefone com DDD" inputMode="tel" value={telefone} onChange={e => setTelefone(e.target.value)} autoFocus
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); cadastrar() } }} />
+            <button type="button" className="btn btn-primary btn-sm" onClick={cadastrar} disabled={salvando}>{salvando ? '...' : 'Salvar'}</button>
+            <button type="button" className="btn btn-icon" aria-label="Cancelar cadastro" onClick={() => { setCadastrando(false); setErro('') }} style={{ width: '32px', height: '32px' }}><X size={12} /></button>
+          </div>
+          {erro && <p style={{ fontSize: '11px', color: '#ef4444' }}>{erro}</p>}
+        </div>
+      )}
+      {aberto && !cadastrando && (sugestoes.length > 0 || (termoLivre && !nomeExato)) && (
         <div className="cliente-busca-lista" role="listbox">
           {sugestoes.map((c, i) => (
             <button
@@ -85,6 +124,11 @@ export default function ClienteBusca({ nome, clienteId, onChange, placeholder = 
               {c.telefone && <span className="subtexto">{c.telefone}</span>}
             </button>
           ))}
+          {termoLivre && !nomeExato && (
+            <button type="button" className="cliente-busca-novo" onMouseDown={e => { e.preventDefault(); setCadastrando(true); setAberto(false); setErro('') }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><UserPlus size={13} /> Cadastrar “{nome.trim()}”</span>
+            </button>
+          )}
         </div>
       )}
     </div>

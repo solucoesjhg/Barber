@@ -1386,3 +1386,5 @@ fieldset:disabled .cfg-chave { cursor: default; opacity: .6; }
   background: none; border: none; text-align: left; font-family: inherit; font-size: 13px; color: var(--text); cursor: pointer; min-width: 0;
 }
 .cliente-busca-lista button.marcado, .cliente-busca-lista button:hover { background: rgba(var(--ink), 0.07); }
+.cliente-busca-novo { color: var(--cor-loja, #22c55e) !important; border-top: 1px solid var(--c-1f) !important; border-radius: 0 0 6px 6px !important; }
+.cliente-busca-cadastro { margin-top: 6px; padding: 10px; border: 1px dashed var(--border-strong); border-radius: 8px; display: flex; flex-direction: column; gap: 6px; }

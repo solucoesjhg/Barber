@@ -1051,7 +1051,7 @@ export default function Vendas() {
               {temFiado && !clienteDaVenda && (
                 <div className="field" style={{ marginTop: '12px' }}>
                   <label className="label">Cliente do fiado * (cadastrado)</label>
-                  <ClienteBusca nome={clienteNome} clienteId={clienteDaVenda} onChange={(n, id) => { setClienteNome(n); setClienteId(id); setError('') }} placeholder="Digite para buscar o cliente" />
+                  <ClienteBusca nome={clienteNome} clienteId={clienteDaVenda} onChange={(n, id) => { setClienteNome(n); setClienteId(id); setError('') }} placeholder="Digite para buscar o cliente" exigirCadastro />
                 </div>
               )}
               <div style={{ padding: '14px 16px', margin: '16px 0', background: 'rgba(var(--ink),0.04)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>

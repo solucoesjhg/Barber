@@ -134,7 +134,7 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
         {temFiado && !ag.cliente_id && (
           <div className="field" style={{ marginTop: '12px' }}>
             <label className="label">Cliente do fiado * (cadastrado)</label>
-            <ClienteBusca nome={clienteNome} clienteId={clienteId} onChange={(n, id) => { setClienteNome(n); setClienteId(id); setErro('') }} placeholder="Digite para buscar o cliente" />
+            <ClienteBusca nome={clienteNome} clienteId={clienteId} onChange={(n, id) => { setClienteNome(n); setClienteId(id); setErro('') }} placeholder="Digite para buscar o cliente" exigirCadastro />
           </div>
         )}
       </div>
