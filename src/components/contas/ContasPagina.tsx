@@ -149,7 +149,7 @@ export default function ContasPagina({ tipo }: { tipo: TipoConta }) {
 
   const contaAberta = contaAbertaId ? contas.find(c => c.id === contaAbertaId) ?? null : null
 
-  const venc = useVencimentos(form.data_vencimento, Math.min(36, Math.max(1, Math.floor(Number(form.total_parcelas) || 1))))
+  const venc = useVencimentos(form.data_vencimento, Math.min(36, Math.max(1, Math.floor(Number(form.total_parcelas) || 1))), Number(form.valor) || 0)
 
   async function handleSave() {
     if (!form.descricao.trim() || !form.valor) { setError('Descrição e valor são obrigatórios.'); return }
@@ -395,7 +395,7 @@ export default function ContasPagina({ tipo }: { tipo: TipoConta }) {
             <ModalFormulario
               icone={<Icone size={18} />}
               titulo={cfg.novoTitulo}
-              descricao="Com mais de uma parcela, o valor é dividido em partes iguais. As datas começam mês a mês e você pode mudar a de cada parcela."
+              descricao="Com mais de uma parcela, o valor é dividido em partes iguais, mês a mês. Você pode mudar a data e o valor de cada parcela."
               onClose={() => setShowModal(false)}
               onSalvar={handleSave}
               salvando={saving}
@@ -428,7 +428,7 @@ export default function ContasPagina({ tipo }: { tipo: TipoConta }) {
                 <Campo rotulo="1º Vencimento">
                   <input className="input" type="date" value={form.data_vencimento} onChange={e => setForm(f => ({ ...f, data_vencimento: e.target.value }))} />
                 </Campo>
-                <Campo rotulo="Parcelas" ajuda={parcelas > 1 && valor > 0 ? `${parcelas}x de ${formatCurrency(valor / parcelas)}` : undefined}>
+                <Campo rotulo="Parcelas" ajuda={parcelas > 1 && valor > 0 && !venc.alterado ? `${parcelas}x de ${formatCurrency(valor / parcelas)}` : undefined}>
                   <input className="input" type="number" min={1} max={36} value={form.total_parcelas} onChange={e => setForm(f => ({ ...f, total_parcelas: e.target.value }))} />
                 </Campo>
                 <Campo rotulo="Observação" span={2}>
@@ -436,7 +436,7 @@ export default function ContasPagina({ tipo }: { tipo: TipoConta }) {
                 </Campo>
                 {parcelas > 1 && (
                   <div className="field span-total">
-                    <VencimentosParcelas datas={venc.datas} valorTotal={valor} onMudar={venc.mudar} erro={venc.erro} />
+                    <VencimentosParcelas venc={venc} />
                   </div>
                 )}
               </FormGrade>

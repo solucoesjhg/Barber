@@ -1,6 +1,7 @@
 import { Check, Plus, RotateCcw, X } from 'lucide-react'
 import { formatCurrency } from '../../lib/utils'
 import { dataLocalISO } from '../../lib/periodo'
+import { ratearParcelas } from '../../lib/parcelas'
 import { arredondar, calcularCobranca, maquininhaObrigatoria, percentualTaxa, type TaxasLoja } from '../../lib/taxas'
 import PagamentoTaxa from '../PagamentoTaxa'
 import type { PagamentoMetodo } from '../../types'
@@ -45,14 +46,8 @@ export function cronogramaParcelado(l: LinhaPagamento, valor: number, prazoDias:
   const hoje = new Date(); hoje.setDate(hoje.getDate() + prazoDias)
   const primeira = dataLocalISO(hoje)
   const fixos = Array.from({ length: n }, (_, i) => (n > 1 && (l.valoresParc?.[i] ?? '') !== '' ? arredondar(num(l.valoresParc?.[i])) : null))
-  const autos = fixos.map((v, i) => (v === null ? i : -1)).filter(i => i >= 0)
-  const resto = arredondar(valor - fixos.reduce<number>((t, v) => t + (v ?? 0), 0))
-  const cada = autos.length ? Math.floor((resto / autos.length) * 100) / 100 : 0
-  return fixos.map((v, i) => ({
-    data: l.datasParc?.[i] || somarMeses(primeira, i),
-    valor: v !== null ? v : i === autos[autos.length - 1] ? arredondar(resto - cada * (autos.length - 1)) : arredondar(cada),
-    editado: v !== null,
-  }))
+  const valores = ratearParcelas(valor, n, fixos)
+  return fixos.map((v, i) => ({ data: l.datasParc?.[i] || somarMeses(primeira, i), valor: valores[i], editado: v !== null }))
 }
 
 const FORMAS: { id: PagamentoMetodo; label: string }[] = [

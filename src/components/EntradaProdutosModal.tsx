@@ -70,7 +70,6 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
     return d.toISOString().split('T')[0]
   })
   const [parcelas, setParcelas] = useState('1')
-  const venc = useVencimentos(dataVencimento, Math.min(24, Math.max(1, Math.floor(Number(parcelas) || 1))))
 
   useEffect(() => {
     supabase.from('contas_financeiras').select('*').eq('ativo', true).order('nome')
@@ -103,6 +102,7 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
 
   const totalPago = itensCalculados.reduce((s, i) => s + (Number(i.valorPago) || 0) * i.qtdTotal, 0)
   const totalExtra = (Number(frete) || 0) + (Number(despesas) || 0) - (Number(desconto) || 0)
+  const venc = useVencimentos(dataVencimento, Math.min(24, Math.max(1, Math.floor(Number(parcelas) || 1))), totalPago + totalExtra)
 
   function addItem() {
     setItens(prev => [...prev, novoItem()])
@@ -412,7 +412,7 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
                       <input className="input" type="number" min={1} max={24} value={parcelas} onChange={e => setParcelas(e.target.value)} />
                     </div>
                   </div>
-                  <VencimentosParcelas datas={venc.datas} valorTotal={totalPago + totalExtra} onMudar={venc.mudar} erro={venc.erro} />
+                  <VencimentosParcelas venc={venc} />
                 </div>
               )}
             </div>

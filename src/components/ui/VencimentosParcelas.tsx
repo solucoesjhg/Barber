@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { formatCurrency } from '../../lib/utils'
+import { RotateCcw } from 'lucide-react'
+import { erroRateio, ratearParcelas } from '../../lib/parcelas'
 
 /** Soma meses como o banco (31/01 + 1 mês = 28/02; + 2 meses = 31/03). */
 function somarMeses(iso: string, meses: number): string {
@@ -15,58 +16,83 @@ export function vencimentosMensais(primeira: string, parcelas: number): string[]
 }
 
 /**
- * Datas das parcelas: começam mês a mês a partir do 1º vencimento e
- * cada uma pode ser trocada. Mudar o 1º vencimento ou a quantidade
- * recalcula todas. payload: as datas para p_vencimentos, só quando
- * alguma foi mudada (sem mudança, o banco calcula igual, mês a mês).
+ * Datas e valores das parcelas: começam mês a mês a partir do 1º
+ * vencimento, com valores iguais; cada data e cada valor pode ser
+ * trocado. Mudar o valor de uma recalcula as outras. Mudar o 1º
+ * vencimento ou a quantidade recalcula as datas. payload: p_vencimentos
+ * e p_valores, só quando algo foi mudado (sem mudança, o banco calcula
+ * igual).
  */
-export function useVencimentos(primeira: string, parcelas: number) {
+export function useVencimentos(primeira: string, parcelas: number, valorTotal = 0) {
   const padrao = useMemo(() => vencimentosMensais(primeira, parcelas), [primeira, parcelas])
   const [datas, setDatas] = useState<string[]>(padrao)
-  useEffect(() => { setDatas(padrao) }, [padrao])
-  const editado = datas.some((d, i) => d !== padrao[i])
+  const [digitados, setDigitados] = useState<string[]>([])
+  useEffect(() => { setDatas(padrao); setDigitados(d => d.slice(0, parcelas)) }, [padrao, parcelas])
+
+  const fixos = Array.from({ length: parcelas }, (_, i) => {
+    const t = digitados[i] ?? ''
+    return parcelas > 1 && t !== '' ? Number(t.replace(',', '.')) || 0 : null
+  })
+  const valores = ratearParcelas(valorTotal, parcelas, fixos)
+  const datasEditadas = datas.some((d, i) => d !== padrao[i])
+  const valoresEditados = fixos.some(v => v !== null)
+
   const erro = datas.some(d => !d)
     ? 'Informe a data de vencimento de todas as parcelas.'
     : datas.findIndex((d, i) => i > 0 && d < datas[i - 1]) > 0
       ? 'As parcelas precisam vencer em ordem (cada uma na mesma data ou depois da anterior).'
-      : ''
+      : valorTotal > 0 && valoresEditados ? erroRateio(valorTotal, valores) : ''
+
   return {
     datas,
+    valores,
+    editados: fixos.map(v => v !== null),
+    digitados,
     mudar: (i: number, valor: string) => setDatas(prev => prev.map((d, j) => (j === i ? valor : d))),
+    mudarValor: (i: number, valor: string) => setDigitados(prev => {
+      const lista = [...prev]
+      while (lista.length <= i) lista.push('')
+      lista[i] = valor
+      return lista
+    }),
+    recalcular: () => { setDigitados([]); setDatas(padrao) },
+    alterado: datasEditadas || valoresEditados,
     erro,
-    payload: parcelas > 1 && editado ? { p_vencimentos: datas } : {},
+    payload: parcelas > 1 && (datasEditadas || valoresEditados)
+      ? { p_vencimentos: datas, ...(valoresEditados ? { p_valores: valores } : {}) }
+      : {},
   }
 }
 
-/** Lista "1ª · R$ 333,33 · [data]" com o mesmo rateio do banco (a última leva o arredondamento). */
-export default function VencimentosParcelas({ datas, valorTotal, onMudar, erro }: {
-  datas: string[]
-  valorTotal: number
-  onMudar: (i: number, valor: string) => void
-  erro?: string
-}) {
-  const n = datas.length
+/** Uma linha por parcela: número, data e valor (os dois editáveis). */
+export default function VencimentosParcelas({ venc }: { venc: ReturnType<typeof useVencimentos> }) {
+  const n = venc.datas.length
   if (n < 2) return null
-  const parcela = Math.round((valorTotal / n) * 100) / 100
-  const ultima = Math.round((valorTotal - parcela * (n - 1)) * 100) / 100
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-      <p className="label" style={{ marginBottom: '2px' }}>Vencimento de cada parcela</p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '240px', overflowY: 'auto', paddingRight: '2px' }}>
-        {datas.map((d, i) => (
-          <div key={i} style={{ display: 'grid', gridTemplateColumns: '44px 1fr minmax(130px, 160px)', gap: '10px', alignItems: 'center' }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--c-a3)' }}>{i + 1}/{n}</span>
-            <span className="valor-num" style={{ fontSize: '12px', color: 'var(--c-77)' }}>{valorTotal > 0 ? formatCurrency(i === n - 1 ? ultima : parcela) : '—'}</span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+        <p className="label" style={{ marginBottom: 0 }}>Parcelas: data e valor</p>
+        {venc.alterado && (
+          <button type="button" className="btn btn-ghost btn-sm" onClick={venc.recalcular} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <RotateCcw size={11} /> Recalcular
+          </button>
+        )}
+      </div>
+      <div className="parcelas-lista">
+        {venc.datas.map((d, i) => (
+          <div key={i} className="parcela-linha" style={{ gridTemplateColumns: '40px minmax(0, 1fr) 120px' }}>
+            <span className="subtexto">{i + 1}/{n}</span>
+            <input className="input" type="date" value={d} aria-label={`Vencimento da parcela ${i + 1}`} onChange={e => venc.mudar(i, e.target.value)} />
             <input
-              className="input" type="date" value={d}
-              aria-label={`Vencimento da parcela ${i + 1}`}
-              onChange={e => onMudar(i, e.target.value)}
-              style={{ padding: '6px 10px', fontSize: '12px' }}
+              className={`input${venc.editados[i] ? ' parcela-editada' : ''}`} type="number" min={0} step={0.01} inputMode="decimal"
+              aria-label={`Valor da parcela ${i + 1}`} placeholder={venc.valores[i].toFixed(2)}
+              value={venc.digitados[i] ?? ''} onChange={e => venc.mudarValor(i, e.target.value)}
             />
           </div>
         ))}
       </div>
-      {erro && <p className="aviso-erro" style={{ marginTop: '4px' }}>{erro}</p>}
+      <p className="subtexto">Mude o valor de uma parcela e as outras se ajustam.</p>
+      {venc.erro && <p className="aviso-erro" style={{ marginTop: '4px' }}>{venc.erro}</p>}
     </div>
   )
 }
