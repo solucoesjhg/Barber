@@ -1016,12 +1016,12 @@ export default function Vendas() {
               <button
                 className="btn btn-secondary" onClick={salvarComanda} disabled={cart.length === 0 || saving}
                 title="Guarda a comanda aberta (sem pagamento) para continuar e fechar depois"
-                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flexShrink: 0 }}
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flexShrink: 0, paddingLeft: '12px', paddingRight: '12px' }}
               >
                 <Save size={13} /> {comandaAbertaId ? 'Salvar' : 'Deixar aberta'}
               </button>
             )}
-            <button className="btn btn-primary btn-full" onClick={abrirPagamento} disabled={cart.length === 0}>
+            <button className="btn btn-primary" onClick={abrirPagamento} disabled={cart.length === 0} style={{ flex: 1, minWidth: 0, paddingLeft: '10px', paddingRight: '10px', whiteSpace: 'nowrap' }}>
               {editando ? 'Salvar Edição' : comandaAbertaId ? 'Fechar comanda' : 'Finalizar Venda'}
             </button>
           </div>
