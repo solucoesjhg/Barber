@@ -96,6 +96,7 @@ export function rotuloPagamento(forma?: string | null, parcelas?: number | null,
   if (!forma) return '—'
   const base = forma === 'credito'
     ? `Cartão Crédito ${Math.max(1, Number(parcelas ?? 1))}x`
+    : forma === 'fiado' && Number(parcelas ?? 1) > 1 ? `Fiado ${parcelas}x`
     : ({ pix: 'Pix', debito: 'Cartão Débito', dinheiro: 'Dinheiro', fiado: 'Fiado' } as Record<string, string>)[forma] ?? forma
   return maquininha ? `${base} · ${maquininha}` : base
 }

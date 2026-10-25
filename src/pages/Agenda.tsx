@@ -932,9 +932,21 @@ export default function Agenda() {
   function abrirNovo() {
     setError('')
     const vinculado = meuProfissional && profissionais.some(p => p.id === meuProfissional) ? meuProfissional : ''
+    // Data: o dia aberto na lista (se não for passado) ou hoje. Hora: hoje,
+    // o próximo horário cheio de 15 em 15 min a partir de agora.
+    const hojeKey = toKey(new Date())
+    const diaTela = viewMode === 'lista' ? toKey(selectedDate) : hojeKey
+    const data = diaTela > hojeKey ? diaTela : hojeKey
+    let hora = '09:00'
+    if (data === hojeKey) {
+      const agora = new Date()
+      const min = Math.ceil((agora.getHours() * 60 + agora.getMinutes() + 1) / 15) * 15
+      hora = min >= 24 * 60 ? '23:45' : `${pad(Math.floor(min / 60))}:${pad(min % 60)}`
+    }
     setForm(f => {
       const prof = (filtroAtivo.length === 1 ? filtroAtivo[0] : '') || f.profissional_id || vinculado
-      return prof === f.profissional_id ? f : { ...f, profissional_id: prof, servico_id: '' }
+      const base = { ...f, data, hora }
+      return prof === f.profissional_id ? base : { ...base, profissional_id: prof, servico_id: '' }
     })
     setShowModal(true)
   }

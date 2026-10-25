@@ -9,6 +9,7 @@ import { intervaloMes, rotuloIntervalo, type Intervalo } from '../lib/periodo'
 import { carregarNomesUsuarios } from '../lib/usuarios'
 import ScannerCamera from '../components/ScannerCamera'
 import VendaDetalheModal, { type VendaParaEditar } from '../components/VendaDetalheModal'
+import ClienteBusca from '../components/vendas/ClienteBusca'
 import PagamentosEditor, { novaLinhaPagamento, pagamentosPayload, totalCobrado, validarPagamentos, type LinhaPagamento } from '../components/vendas/PagamentosEditor'
 import AbrirCaixaRapido, { ehErroSemCaixa } from '../components/AbrirCaixaRapido'
 import { arredondar, carregarTaxas, rotuloPagamentos, TAXAS_VAZIAS, type TaxasLoja } from '../lib/taxas'
@@ -50,7 +51,7 @@ interface OrigemAgenda { id: string; descricao: string; clienteId: string | null
 
 
 /** Quantos atalhos de produto/serviço a tela de venda mostra sem busca. */
-const TOP_CATALOGO = 10
+const TOP_CATALOGO = 5
 
 export default function Vendas() {
   const { podeEditar, verVendasOutros, podeDarDesconto, descontoMaximo } = usePermissoes()
@@ -135,8 +136,8 @@ export default function Vendas() {
   // Comanda aberta que está sendo continuada (fecha ela mesma na venda).
   const [comandaAbertaId, setComandaAbertaId] = useState<string | null>(null)
   // Fiado: a venda fica na conta de um cliente cadastrado.
-  const [clientesFiado, setClientesFiado] = useState<{ id: string; nome: string }[] | null>(null)
-  const [clienteFiadoId, setClienteFiadoId] = useState('')
+  // Cliente cadastrado ligado à venda (escolhido na busca ou vindo da agenda).
+  const [clienteId, setClienteId] = useState<string | null>(null)
   const [abertas, setAbertas] = useState<ComandaAberta[]>([])
   const [taxas, setTaxas] = useState<TaxasLoja>(TAXAS_VAZIAS)
   const [maisVendidos, setMaisVendidos] = useState<Record<string, number>>({})
@@ -167,7 +168,7 @@ export default function Vendas() {
     supabase.from('profissionais').select('*').eq('ativo', true).order('nome')
       .then(({ data }) => { if (data) setProfissionais(data as Profissional[]) })
     carregarTaxas().then(setTaxas)
-    supabase.rpc('mais_vendidos', { p_limite: TOP_CATALOGO }).then(({ data }) => {
+    supabase.rpc('mais_vendidos', { p_limite: 50 }).then(({ data }) => {
       setMaisVendidos(Object.fromEntries(((data ?? []) as { tipo: string; referencia_id: string; quantidade: number }[])
         .map(m => [`${m.tipo}:${m.referencia_id}`, Number(m.quantidade)])))
     })
@@ -191,6 +192,7 @@ export default function Vendas() {
         const quando = new Date(ag.data_hora).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
         setOrigemAgenda({ id: ag.id, descricao: `${ag.servico?.nome ?? 'Atendimento'} · ${quando}`, clienteId: ag.cliente_id ?? null })
         setClienteNome(ag.cliente?.nome ?? '')
+        setClienteId(ag.cliente_id ?? null)
         setProfissionalId(ag.profissional_id ?? '')
         setCart(ag.servico ? [{
           id: uid(), tipo: 'servico', referencia_id: ag.servico.id, nome: ag.servico.nome, quantidade: 1,
@@ -218,16 +220,21 @@ export default function Vendas() {
     [produtos, search]
   )
 
-  // Sem busca: só os 10 mais vendidos (completando com os outros, em
-  // ordem alfabética, se a loja ainda vendeu pouco). Com busca: todos.
+  // Serviços e produtos em seções separadas. Sem busca: os 5 mais
+  // vendidos de cada (completando em ordem alfabética se a loja ainda
+  // vendeu pouco). Com busca: todos os que batem.
   const buscando = search.trim().length > 0
-  const itensCatalogo = useMemo<ItemCatalogo[]>(() => {
-    const s: ItemCatalogo[] = servicosFiltrados.map(dado => ({ tipo: 'servico', dado }))
-    const p: ItemCatalogo[] = produtosFiltrados.map(dado => ({ tipo: 'produto', dado }))
-    const todos = [...s, ...p].sort((a, b) => a.dado.nome.localeCompare(b.dado.nome))
-    if (buscando) return todos
-    const vendidos = (i: ItemCatalogo) => maisVendidos[`${i.tipo}:${i.dado.id}`] ?? 0
-    return [...todos].sort((a, b) => vendidos(b) - vendidos(a)).slice(0, TOP_CATALOGO)
+  const [catServicos, catProdutos] = useMemo<[ItemCatalogo[], ItemCatalogo[]]>(() => {
+    const ordenar = (lista: ItemCatalogo[]) => {
+      const alfa = [...lista].sort((a, b) => a.dado.nome.localeCompare(b.dado.nome))
+      if (buscando) return alfa
+      const vendidos = (i: ItemCatalogo) => maisVendidos[`${i.tipo}:${i.dado.id}`] ?? 0
+      return alfa.sort((a, b) => vendidos(b) - vendidos(a)).slice(0, TOP_CATALOGO)
+    }
+    return [
+      ordenar(servicosFiltrados.map(dado => ({ tipo: 'servico' as const, dado }))),
+      ordenar(produtosFiltrados.map(dado => ({ tipo: 'produto' as const, dado }))),
+    ]
   }, [servicosFiltrados, produtosFiltrados, buscando, maisVendidos])
 
   function buscarPorCodigo(codigo: string): Produto | undefined {
@@ -349,7 +356,7 @@ export default function Vendas() {
     setCart([])
     setClienteNome('')
     setLinhasPag([novaLinhaPagamento()])
-    setClienteFiadoId('')
+    setClienteId(null)
     setDescontoTexto('')
     setDescontoPct(false)
     setComandaAbertaId(null)
@@ -375,6 +382,7 @@ export default function Vendas() {
       quantidade: i.quantidade, preco_unitario: Number(i.preco_unitario), profissional_id: i.profissional_id ?? undefined,
     })))
     setClienteNome(venda.comanda.cliente_nome && venda.comanda.cliente_nome !== 'Balcão' ? venda.comanda.cliente_nome : '')
+    setClienteId(venda.comanda.cliente_id ?? null)
     const pags = venda.pagamentos && venda.pagamentos.length > 0
       ? venda.pagamentos
       : [{ forma: venda.comanda.forma_pagamento ?? 'pix', valor: Number(venda.comanda.total), parcelas: Number(venda.comanda.parcelas ?? 1), maquininha_id: venda.comanda.maquininha_id, acrescimo: Number(venda.comanda.acrescimo ?? 0) }]
@@ -406,7 +414,8 @@ export default function Vendas() {
   // sem a migração de pagamento dividido); mais de uma, em p_pagamentos.
   const pagamentoPayload = () => {
     const [p] = pagamentosPayload(linhasPag, total)
-    if (linhasPag.length > 1) return { p_forma_pagamento: p.forma, p_pagamentos: pagamentosPayload(linhasPag, total) }
+    // Fiado (pode ser parcelado) também vai em p_pagamentos.
+    if (linhasPag.length > 1 || p.forma === 'fiado') return { p_forma_pagamento: p.forma, p_pagamentos: pagamentosPayload(linhasPag, total) }
     return {
       p_forma_pagamento: p.forma,
       ...(p.forma === 'credito' && p.parcelas > 1 ? { p_parcelas: p.parcelas } : {}),
@@ -416,11 +425,7 @@ export default function Vendas() {
   }
   const cobrado = totalCobrado(linhasPag, total, taxas)
   const temFiado = linhasPag.some(l => l.forma === 'fiado')
-  const clienteDaVenda = origemAgenda?.clienteId ?? (clienteFiadoId || null)
-  useEffect(() => {
-    if (!temFiado || clientesFiado) return
-    supabase.from('clientes').select('id, nome').order('nome').then(({ data }) => setClientesFiado((data ?? []) as { id: string; nome: string }[]))
-  }, [temFiado, clientesFiado])
+  const clienteDaVenda = clienteId ?? origemAgenda?.clienteId ?? null
 
   async function finalizarVenda() {
     if (saving) return
@@ -487,7 +492,7 @@ export default function Vendas() {
     const { error: err } = await supabase.rpc('salvar_comanda', {
       p_comanda_id: comandaAbertaId,
       p_cliente_nome: clienteNome || null,
-      p_cliente_id: origemAgenda?.clienteId ?? null,
+      p_cliente_id: clienteDaVenda,
       p_itens: itensPayload(),
       p_agendamento_id: origemAgenda?.id ?? null,
     })
@@ -503,6 +508,7 @@ export default function Vendas() {
     limparVenda()
     setComandaAbertaId(c.id)
     setClienteNome(c.cliente_nome && c.cliente_nome !== 'Balcão' ? c.cliente_nome : '')
+    setClienteId(c.cliente_id ?? null)
     setCart((c.itens_abertos ?? []).map(i => {
       const serv = i.tipo === 'servico' ? servicos.find(sv => sv.id === i.referencia_id) : undefined
       return {
@@ -792,19 +798,24 @@ export default function Vendas() {
           <p style={{ fontSize: '12px', color: 'var(--c-66)', marginTop: '-8px', marginBottom: '12px', flexShrink: 0 }}>{scanAviso}</p>
         )}
 
-        {/* Content area — produtos e serviços juntos, sem separação */}
+        {/* Serviços e produtos em seções separadas */}
         <div className="pdv-catalog-content" style={{ flex: 1, overflowY: 'auto', paddingBottom: '16px' }}>
           {!buscando && (
             <p style={{ fontSize: '11px', color: 'var(--c-55)', marginBottom: '8px' }}>
-              Os {TOP_CATALOGO} mais vendidos · use a busca (ou o leitor de código) para os demais
+              Os {TOP_CATALOGO} mais vendidos de cada · use a busca (ou o leitor de código) para os demais
             </p>
           )}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(138px, 1fr))', gap: '8px' }}>
-            {itensCatalogo.length === 0 ? (
-              <div style={{ gridColumn: '1/-1', padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>
-                Nenhum produto ou serviço encontrado.
-              </div>
-            ) : itensCatalogo.map(item => {
+          {catServicos.length === 0 && catProdutos.length === 0 ? (
+            <div style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>
+              Nenhum produto ou serviço encontrado.
+            </div>
+          ) : ([['Serviços', catServicos], ['Produtos', catProdutos]] as [string, ItemCatalogo[]][]).filter(([, lista]) => lista.length > 0).map(([titulo, lista]) => (
+            <div key={titulo} style={{ marginBottom: '14px' }}>
+              <p className="label" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                {titulo === 'Serviços' ? <Scissors size={11} /> : <Package size={11} />} {titulo}
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(138px, 1fr))', gap: '8px' }}>
+                {lista.map(item => {
               const baixo = controlaEstoqueMinimo && item.tipo === 'produto' && item.dado.estoque_atual <= item.dado.estoque_minimo
               return (
                 <motion.button
@@ -834,8 +845,10 @@ export default function Vendas() {
                   </p>
                 </motion.button>
               )
-            })}
-          </div>
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -872,13 +885,7 @@ export default function Vendas() {
               <span className="texto-cortado">Agenda: {origemAgenda.descricao}</span>
             </p>
           )}
-          <input
-            className="input"
-            style={{ marginTop: '12px', fontSize: '13px' }}
-            placeholder="Nome do cliente (opcional)"
-            value={clienteNome}
-            onChange={e => setClienteNome(e.target.value)}
-          />
+          <ClienteBusca nome={clienteNome} clienteId={clienteDaVenda} onChange={(n, id) => { setClienteNome(n); setClienteId(id) }} />
           {profissionais.length > 0 && (
             <select
               className="input"
@@ -1041,22 +1048,10 @@ export default function Vendas() {
                 <button className="btn btn-icon" onClick={() => setShowPayModal(false)}><X size={14} /></button>
               </div>
               <PagamentosEditor linhas={linhasPag} onChange={setLinhasPag} total={total} taxas={taxas} permitirFiado={permitirFiado && !editando} />
-              {temFiado && !origemAgenda?.clienteId && (
+              {temFiado && !clienteDaVenda && (
                 <div className="field" style={{ marginTop: '12px' }}>
-                  <label className="label">Cliente do fiado *</label>
-                  <select
-                    className="input" value={clienteFiadoId}
-                    onChange={e => {
-                      setClienteFiadoId(e.target.value)
-                      const c = clientesFiado?.find(x => x.id === e.target.value)
-                      if (c && !clienteNome) setClienteNome(c.nome)
-                      setError('')
-                    }}
-                    style={!clienteFiadoId ? { borderStyle: 'dashed', borderColor: 'var(--c-a3)' } : undefined}
-                  >
-                    <option value="">{clientesFiado ? 'Escolha o cliente' : 'Carregando...'}</option>
-                    {(clientesFiado ?? []).map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                  </select>
+                  <label className="label">Cliente do fiado * (cadastrado)</label>
+                  <ClienteBusca nome={clienteNome} clienteId={clienteDaVenda} onChange={(n, id) => { setClienteNome(n); setClienteId(id); setError('') }} placeholder="Digite para buscar o cliente" />
                 </div>
               )}
               <div style={{ padding: '14px 16px', margin: '16px 0', background: 'rgba(var(--ink),0.04)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>

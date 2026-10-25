@@ -1,16 +1,15 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Check, Plus, ShoppingCart } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Plus, ShoppingCart } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
 import ModalFormulario, { Campo } from './ui/ModalFormulario'
 import { Info, InfoGrade } from './ui/ModalDetalhe'
-import { PAGAMENTO_LABEL } from './VendaDetalheModal'
-import PagamentoTaxa from './PagamentoTaxa'
+import PagamentosEditor, { novaLinhaPagamento, pagamentosPayload, totalCobrado, validarPagamentos, type LinhaPagamento } from './vendas/PagamentosEditor'
+import ClienteBusca from './vendas/ClienteBusca'
+import { useLoja } from '../hooks/useLoja'
 import AbrirCaixaRapido, { ehErroSemCaixa } from './AbrirCaixaRapido'
-import { calcularCobranca, carregarTaxas, maquininhaObrigatoria, percentualTaxa, TAXAS_VAZIAS, type TaxasLoja } from '../lib/taxas'
-import type { Agendamento, PagamentoMetodo } from '../types'
-
-const FORMAS: PagamentoMetodo[] = ['pix', 'credito', 'debito', 'dinheiro']
+import { carregarTaxas, TAXAS_VAZIAS, type TaxasLoja } from '../lib/taxas'
+import type { Agendamento } from '../types'
 
 /**
  * "Gerar venda" do atendimento: registra a venda ali mesmo, com o serviço,
@@ -27,13 +26,14 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
   onVendido: (comandaId: string, total: number, vinculada: boolean) => void
   onAdicionarItens: () => void
 }) {
-  const [pagamento, setPagamento] = useState<PagamentoMetodo>('pix')
-  const [parcelas, setParcelas] = useState(1)
-  const [maquininhaId, setMaquininhaId] = useState('')
-  const [repassar, setRepassar] = useState(false)
+  // Mesmo editor de pagamento da tela de Vendas: dividir em formas e fiado
+  // (parcelado) na conta do cliente.
+  const { permitirFiado } = useLoja()
+  const [linhas, setLinhas] = useState<LinhaPagamento[]>(() => [novaLinhaPagamento()])
+  const [clienteNome, setClienteNome] = useState(ag.cliente?.nome ?? '')
+  const [clienteId, setClienteId] = useState<string | null>(ag.cliente_id ?? null)
   const [taxas, setTaxas] = useState<TaxasLoja>(TAXAS_VAZIAS)
   useEffect(() => { carregarTaxas().then(setTaxas) }, [])
-  const escolherMaquininha = useCallback((id: string) => { setMaquininhaId(id); setErro('') }, [])
   const [semComissao, setSemComissao] = useState(false)
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
@@ -46,7 +46,8 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
     return inicial != null ? String(Number(inicial)) : ''
   })
   const valor = Math.max(0, Number(valorTexto.replace(',', '.')) || 0)
-  const cobranca = calcularCobranca(valor, percentualTaxa(taxas, maquininhaId, pagamento, parcelas), repassar)
+  const cobrado = totalCobrado(linhas, valor, taxas)
+  const temFiado = linhas.some(l => l.forma === 'fiado')
   const quando = new Date(ag.data_hora).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
   const semCaixa = ehErroSemCaixa(erro)
 
@@ -56,19 +57,19 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
       return
     }
     if (precoNaVenda && !(valor > 0)) { setErro('Informe o valor do serviço.'); return }
-    if (maquininhaObrigatoria(pagamento, taxas) && !maquininhaId) { setErro('Escolha a maquininha do cartão.'); return }
+    const erroPag = validarPagamentos(linhas, valor, taxas)
+    if (erroPag) { setErro(erroPag); return }
+    if (temFiado && !clienteId) { setErro('Fiado precisa de cliente cadastrado: escolha o cliente.'); return }
     setSalvando(true); setErro('')
     const { data, error } = await supabase.rpc('finalizar_venda', {
-      p_cliente_nome: ag.cliente?.nome ?? null,
-      p_cliente_id: ag.cliente_id ?? null,
-      p_forma_pagamento: pagamento,
+      p_cliente_nome: clienteNome || null,
+      p_cliente_id: clienteId,
+      p_forma_pagamento: linhas[0].forma,
       p_itens: [{
         tipo: 'servico', referencia_id: ag.servico_id, nome: ag.servico.nome,
         quantidade: 1, preco_unitario: valor, profissional_id: ag.profissional_id,
       }],
-      ...(pagamento === 'credito' && parcelas > 1 ? { p_parcelas: parcelas } : {}),
-      ...(pagamento !== 'dinheiro' && maquininhaId ? { p_maquininha_id: maquininhaId } : {}),
-      ...(repassar && cobranca.acrescimo > 0 ? { p_repassar_taxa: true } : {}),
+      p_pagamentos: pagamentosPayload(linhas, valor),
     })
     if (error || !data) {
       setSalvando(false)
@@ -125,23 +126,17 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
 
       <div className="detalhe-total">
         <span>Total a cobrar</span>
-        <strong>{formatCurrency(cobranca.cobrado)}</strong>
+        <strong>{formatCurrency(cobrado)}</strong>
       </div>
 
-      {/* Esquerda: forma de pagamento. Direita: maquininha, parcelas e taxa. */}
-      <div className="pagamento-colunas" style={{ marginTop: '20px' }}>
-      <div>
-      <p className="label" style={{ marginBottom: '8px' }}>Forma de pagamento</p>
-      <div className="opcoes-grade duas">
-        {FORMAS.map(f => (
-          <button key={f} type="button" className={`opcao${pagamento === f ? ' marcada' : ''}`} onClick={() => setPagamento(f)} aria-pressed={pagamento === f}>
-            <span className="opcao-caixa">{pagamento === f && <Check size={10} strokeWidth={3} />}</span>
-            <span style={{ fontSize: '13px', color: 'var(--c-fff)' }}>{PAGAMENTO_LABEL[f]}</span>
-          </button>
-        ))}
-      </div>
-      </div>
-      <PagamentoTaxa forma={pagamento} parcelas={parcelas} onParcelas={setParcelas} maquininhaId={maquininhaId} onMaquininha={escolherMaquininha} repassar={repassar} onRepassar={setRepassar} total={valor} taxas={taxas} />
+      <div style={{ marginTop: '20px' }}>
+        <PagamentosEditor linhas={linhas} onChange={setLinhas} total={valor} taxas={taxas} permitirFiado={permitirFiado} />
+        {temFiado && !ag.cliente_id && (
+          <div className="field" style={{ marginTop: '12px' }}>
+            <label className="label">Cliente do fiado * (cadastrado)</label>
+            <ClienteBusca nome={clienteNome} clienteId={clienteId} onChange={(n, id) => { setClienteNome(n); setClienteId(id); setErro('') }} placeholder="Digite para buscar o cliente" />
+          </div>
+        )}
       </div>
 
       {semCaixa && (

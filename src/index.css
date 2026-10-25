@@ -1372,3 +1372,17 @@ fieldset:disabled .cfg-chave { cursor: default; opacity: .6; }
   .cfg-linha { flex-direction: column; align-items: stretch; gap: 8px; }
   .cfg-controle { max-width: none; justify-content: flex-start; }
 }
+
+/* Busca de cliente cadastrado (venda) */
+.cliente-busca { position: relative; margin-top: 12px; }
+.cliente-busca-ligado { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; gap: 2px; color: #22c55e; }
+.cliente-busca-ligado button { display: inline-flex; background: none; border: none; color: var(--c-66); cursor: pointer; padding: 2px; }
+.cliente-busca-lista {
+  position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 30; max-height: 260px; overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--border-strong); border-radius: 8px; padding: 4px; box-shadow: 0 10px 30px rgba(0,0,0,.3);
+}
+.cliente-busca-lista button {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%; padding: 7px 10px; border-radius: 6px;
+  background: none; border: none; text-align: left; font-family: inherit; font-size: 13px; color: var(--text); cursor: pointer; min-width: 0;
+}
+.cliente-busca-lista button.marcado, .cliente-busca-lista button:hover { background: rgba(var(--ink), 0.07); }

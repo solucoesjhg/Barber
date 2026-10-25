@@ -59,7 +59,7 @@ export function pagamentosPayload(linhas: LinhaPagamento[], total: number) {
   return linhas.map((l, i) => ({
     forma: l.forma,
     valor: valores[i],
-    parcelas: l.forma === 'credito' ? l.parcelas : 1,
+    parcelas: l.forma === 'credito' || l.forma === 'fiado' ? l.parcelas : 1,
     maquininha_id: l.forma !== 'dinheiro' && l.maquininhaId ? l.maquininhaId : null,
     repassar: l.repassar,
   }))
@@ -152,7 +152,19 @@ export default function PagamentosEditor({ linhas, onChange, total, taxas, permi
               ))}
             </div>
             {l.forma === 'fiado' ? (
-              <p className="pagamento-restante">Fica na conta do cliente: vira uma conta a receber no nome dele.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div className="field" style={{ marginBottom: 0 }}>
+                  <label className="label">Parcelas do fiado</label>
+                  <select className="input" value={l.parcelas} onChange={e => mudar(l.id, { parcelas: Number(e.target.value) })}>
+                    {Array.from({ length: 12 }, (_, k) => k + 1).map(n => (
+                      <option key={n} value={n}>{n === 1 ? '1x (de uma vez)' : `${n}x de ${formatCurrency(arredondar(valores[i] / n))}`}</option>
+                    ))}
+                  </select>
+                </div>
+                <p className="pagamento-restante">
+                  Fica na conta do cliente{l.parcelas > 1 ? `: ${l.parcelas} contas a receber, uma por mês` : ': vira uma conta a receber no nome dele'}.
+                </p>
+              </div>
             ) : <PagamentoTaxa
               forma={l.forma} parcelas={l.parcelas} onParcelas={n => mudar(l.id, { parcelas: n })}
               maquininhaId={l.maquininhaId} onMaquininha={id => mudar(l.id, { maquininhaId: id })}
