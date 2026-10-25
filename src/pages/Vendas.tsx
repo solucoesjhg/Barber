@@ -53,8 +53,8 @@ interface OrigemAgenda { id: string; descricao: string; clienteId: string | null
 const TOP_CATALOGO = 10
 
 export default function Vendas() {
-  const { podeEditar, verVendasOutros, podeDarDesconto } = usePermissoes()
-  const { controlaEstoqueMinimo } = useLoja()
+  const { podeEditar, verVendasOutros, podeDarDesconto, descontoMaximo } = usePermissoes()
+  const { controlaEstoqueMinimo, estoqueZerado, permitirFiado } = useLoja()
   const { profissionalId: meuProfissional } = usePerfil()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -134,6 +134,9 @@ export default function Vendas() {
   const [descontoPct, setDescontoPct] = useState(false)
   // Comanda aberta que está sendo continuada (fecha ela mesma na venda).
   const [comandaAbertaId, setComandaAbertaId] = useState<string | null>(null)
+  // Fiado: a venda fica na conta de um cliente cadastrado.
+  const [clientesFiado, setClientesFiado] = useState<{ id: string; nome: string }[] | null>(null)
+  const [clienteFiadoId, setClienteFiadoId] = useState('')
   const [abertas, setAbertas] = useState<ComandaAberta[]>([])
   const [taxas, setTaxas] = useState<TaxasLoja>(TAXAS_VAZIAS)
   const [maisVendidos, setMaisVendidos] = useState<Record<string, number>>({})
@@ -262,7 +265,25 @@ export default function Vendas() {
     })
   }
 
+  // Produto sem estoque: avisa (ou bloqueia, conforme Configurações).
+  const [avisoEstoque, setAvisoEstoque] = useState('')
+  function checarEstoque(p: Produto | undefined, qtdNova: number): boolean {
+    if (!p || estoqueZerado === 'permitir' || editando) return true
+    const disponivel = Number(p.estoque_atual ?? 0)
+    if (qtdNova <= disponivel) return true
+    const msg = disponivel <= 0 ? `"${p.nome}" está sem estoque.` : `"${p.nome}" só tem ${disponivel} em estoque.`
+    if (estoqueZerado === 'bloquear') {
+      setAvisoEstoque(`${msg} A loja não vende sem estoque.`)
+    } else {
+      setAvisoEstoque(`${msg} A venda segue e o estoque fica negativo.`)
+    }
+    setTimeout(() => setAvisoEstoque(''), 5000)
+    return estoqueZerado !== 'bloquear'
+  }
+
   function addProduto(p: Produto) {
+    const atual = cart.find(i => i.tipo === 'produto' && i.referencia_id === p.id)?.quantidade ?? 0
+    if (!checarEstoque(p, atual + 1)) return
     setCart(prev => {
       const ex = prev.find(i => i.tipo === 'produto' && i.referencia_id === p.id)
       if (ex) return prev.map(i => i.id === ex.id ? { ...i, quantidade: i.quantidade + 1 } : i)
@@ -271,6 +292,8 @@ export default function Vendas() {
   }
 
   function changeQty(id: string, delta: number) {
+    const item = cart.find(i => i.id === id)
+    if (item && item.tipo === 'produto' && delta > 0 && !checarEstoque(produtos.find(p => p.id === item.referencia_id), item.quantidade + delta)) return
     setCart(prev => prev
       .map(i => i.id === id ? { ...i, quantidade: Math.max(0, i.quantidade + delta) } : i)
       .filter(i => i.quantidade > 0))
@@ -302,7 +325,14 @@ export default function Vendas() {
 
   const servicosSemValor = cart.filter(i => i.tipo === 'servico' && i.preco_na_venda && !(i.preco_unitario > 0))
 
+  const descontoPctAtual = subtotal > 0 ? (desconto / subtotal) * 100 : 0
+  const passouLimiteDesconto = descontoMaximo != null && descontoPctAtual > descontoMaximo + 0.001
+
   function abrirPagamento() {
+    if (passouLimiteDesconto) {
+      setError(`Seu desconto máximo é ${descontoMaximo}% (este está em ${descontoPctAtual.toFixed(1).replace('.', ',')}%).`)
+      return
+    }
     if (servicosSemProfissional.length > 0) {
       setError(`Escolha o profissional de: ${servicosSemProfissional.map(i => i.nome).join(', ')}.`)
       return
@@ -319,6 +349,7 @@ export default function Vendas() {
     setCart([])
     setClienteNome('')
     setLinhasPag([novaLinhaPagamento()])
+    setClienteFiadoId('')
     setDescontoTexto('')
     setDescontoPct(false)
     setComandaAbertaId(null)
@@ -384,11 +415,18 @@ export default function Vendas() {
     }
   }
   const cobrado = totalCobrado(linhasPag, total, taxas)
+  const temFiado = linhasPag.some(l => l.forma === 'fiado')
+  const clienteDaVenda = origemAgenda?.clienteId ?? (clienteFiadoId || null)
+  useEffect(() => {
+    if (!temFiado || clientesFiado) return
+    supabase.from('clientes').select('id, nome').order('nome').then(({ data }) => setClientesFiado((data ?? []) as { id: string; nome: string }[]))
+  }, [temFiado, clientesFiado])
 
   async function finalizarVenda() {
     if (saving) return
     const erroPag = validarPagamentos(linhasPag, total, taxas)
     if (erroPag) { setError(erroPag); return }
+    if (temFiado && !clienteDaVenda) { setError('Fiado precisa de cliente: escolha o cliente da venda.'); return }
     setSaving(true); setError('')
 
     if (edicao) {
@@ -413,7 +451,7 @@ export default function Vendas() {
 
     const { data: comandaId, error: err } = await supabase.rpc('finalizar_venda', {
       p_cliente_nome: clienteNome || null,
-      p_cliente_id: origemAgenda?.clienteId ?? null,
+      p_cliente_id: clienteDaVenda,
       p_itens: itensPayload(),
       ...pagamentoPayload(),
       ...(desconto > 0 ? { p_desconto: desconto } : {}),
@@ -747,6 +785,9 @@ export default function Vendas() {
           </button>
         </div>
 
+        {avisoEstoque && (
+          <p className="aviso-info" style={{ marginTop: '-8px', marginBottom: '12px', flexShrink: 0, ...(estoqueZerado === 'bloquear' ? { borderColor: '#ef4444', color: '#ef4444' } : {}) }}>{avisoEstoque}</p>
+        )}
         {scanAviso && (
           <p style={{ fontSize: '12px', color: 'var(--c-66)', marginTop: '-8px', marginBottom: '12px', flexShrink: 0 }}>{scanAviso}</p>
         )}
@@ -939,7 +980,7 @@ export default function Vendas() {
           )}
           {podeDarDesconto && cart.length > 0 && (
             <div className="pdv-desconto">
-              <span>Desconto</span>
+              <span>Desconto{descontoMaximo != null && <span style={{ color: passouLimiteDesconto ? '#ef4444' : 'var(--c-55)' }}> (até {descontoMaximo}%)</span>}</span>
               <input
                 type="number" min={0} step={descontoPct ? 1 : 0.01} inputMode="decimal" placeholder="0"
                 aria-label="Desconto" value={descontoTexto} onChange={e => setDescontoTexto(e.target.value)}
@@ -999,7 +1040,25 @@ export default function Vendas() {
                 <h2 style={{ fontSize: '18px', color: 'var(--c-fff)' }}>Forma de Pagamento</h2>
                 <button className="btn btn-icon" onClick={() => setShowPayModal(false)}><X size={14} /></button>
               </div>
-              <PagamentosEditor linhas={linhasPag} onChange={setLinhasPag} total={total} taxas={taxas} />
+              <PagamentosEditor linhas={linhasPag} onChange={setLinhasPag} total={total} taxas={taxas} permitirFiado={permitirFiado && !editando} />
+              {temFiado && !origemAgenda?.clienteId && (
+                <div className="field" style={{ marginTop: '12px' }}>
+                  <label className="label">Cliente do fiado *</label>
+                  <select
+                    className="input" value={clienteFiadoId}
+                    onChange={e => {
+                      setClienteFiadoId(e.target.value)
+                      const c = clientesFiado?.find(x => x.id === e.target.value)
+                      if (c && !clienteNome) setClienteNome(c.nome)
+                      setError('')
+                    }}
+                    style={!clienteFiadoId ? { borderStyle: 'dashed', borderColor: 'var(--c-a3)' } : undefined}
+                  >
+                    <option value="">{clientesFiado ? 'Escolha o cliente' : 'Carregando...'}</option>
+                    {(clientesFiado ?? []).map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                  </select>
+                </div>
+              )}
               <div style={{ padding: '14px 16px', margin: '16px 0', background: 'rgba(var(--ink),0.04)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {desconto > 0 && (
                   <>

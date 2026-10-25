@@ -3,7 +3,7 @@
    ============================================================ */
 
 export type AgendamentoStatus = 'pendente' | 'confirmado' | 'em_atendimento' | 'concluido' | 'cancelado' | 'nao_compareceu'
-export type PagamentoMetodo = 'pix' | 'credito' | 'debito' | 'dinheiro'
+export type PagamentoMetodo = 'pix' | 'credito' | 'debito' | 'dinheiro' | 'fiado'
 export type ProdutoCategoria = 'bebidas' | 'pomadas' | 'petiscos' | 'outros'
 export type MovimentoTipo = 'entrada' | 'saida'
 export type ComandaStatus = 'aberta' | 'fechada' | 'cancelada'
@@ -382,6 +382,16 @@ export interface Configuracoes {
   comissao_desconta_taxa?: boolean
   parcelas_maximas?: number
   controla_estoque_minimo?: boolean
+  /** Agendamento já nasce confirmado. */
+  agendamento_confirmado?: boolean
+  /** Venda de produto sem estoque: permitir, avisar ou bloquear. */
+  estoque_zerado?: 'permitir' | 'avisar' | 'bloquear'
+  /** Valor que já vem na abertura do caixa (troco). */
+  caixa_valor_inicial?: number
+  /** Cor da loja (#rrggbb) nos botões principais; vazio = padrão. */
+  cor_destaque?: string | null
+  permitir_fiado?: boolean
+  fiado_prazo_dias?: number
   updated_at: string
 }
 
@@ -440,6 +450,8 @@ export interface PermissoesUsuario {
   ver_agendamentos_outros?: boolean
   /** Ausente = banco sem a migração (sem desconto). */
   dar_desconto?: boolean
+  /** % máximo de desconto (null = sem limite). */
+  desconto_maximo?: number | null
   ver_custo_produtos: boolean
   especiais_personalizados: boolean
   /** Cards que aparecem no Dashboard (ids de CARDS_DASHBOARD). */

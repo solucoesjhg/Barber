@@ -9,6 +9,7 @@ import { useLoja } from '../hooks/useLoja'
 import type { Configuracoes as ConfigRow } from '../types'
 
 const TAMANHO_MAX_ARQUIVO = 5 * 1024 * 1024
+const CORES_LOJA = ['#2563eb', '#0ea5e9', '#10b981', '#16a34a', '#f59e0b', '#ea580c', '#dc2626', '#db2777', '#7c3aed', '#a16207']
 
 /**
  * Reduz a imagem do logo (máx. 256px no lado maior) e devolve em data
@@ -93,6 +94,12 @@ export default function Configuracoes() {
       regras_cancelamento: form.regras_cancelamento || null,
       fechamento_automatico: form.fechamento_automatico ?? true,
       controla_estoque_minimo: form.controla_estoque_minimo ?? true,
+      agendamento_confirmado: form.agendamento_confirmado ?? false,
+      estoque_zerado: form.estoque_zerado ?? 'avisar',
+      caixa_valor_inicial: Math.max(0, Number(form.caixa_valor_inicial) || 0),
+      cor_destaque: form.cor_destaque || null,
+      permitir_fiado: form.permitir_fiado ?? true,
+      fiado_prazo_dias: Math.min(365, Math.max(0, Math.round(Number(form.fiado_prazo_dias ?? 30)))),
       updated_at: new Date().toISOString(),
     }).eq('empresa_id', empresaId)
     setSaving(false)
@@ -158,6 +165,17 @@ export default function Configuracoes() {
             </div>
           </div>
           <div className="field">
+            <label className="label">Cor da loja</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <button type="button" className={`cor-amostra${!form.cor_destaque ? ' ativa' : ''}`} title="Padrão do tema" onClick={() => setForm(f => ({ ...f, cor_destaque: null }))} style={{ background: 'linear-gradient(135deg, #fff 50%, #111 50%)' }} />
+              {CORES_LOJA.map(c => (
+                <button key={c} type="button" className={`cor-amostra${form.cor_destaque === c ? ' ativa' : ''}`} title={c} onClick={() => setForm(f => ({ ...f, cor_destaque: c }))} style={{ background: c }} />
+              ))}
+              <input type="color" aria-label="Outra cor" value={form.cor_destaque || '#2563eb'} onChange={e => setForm(f => ({ ...f, cor_destaque: e.target.value }))} style={{ width: '36px', height: '30px', border: 'none', background: 'transparent', cursor: 'pointer' }} />
+            </div>
+            <p style={{ fontSize: '12px', color: 'var(--c-66)', marginTop: '6px' }}>Usada nos botões principais e nos destaques do sistema.</p>
+          </div>
+          <div className="field">
             <label className="label">Nome da loja</label>
             <input className="input" value={form.nome_empresa ?? ''} placeholder="Aparece no topo do menu" onChange={e => setForm(f => ({ ...f, nome_empresa: e.target.value }))} />
           </div>
@@ -205,6 +223,15 @@ export default function Configuracoes() {
             <label className="label">Regras de cancelamento</label>
             <input className="input" placeholder="Ex: cancelamento com até 2h de antecedência" value={form.regras_cancelamento ?? ''} onChange={e => setForm(f => ({ ...f, regras_cancelamento: e.target.value }))} />
           </div>
+          <label className="check-rotulo" title="Sem precisar confirmar depois">
+            <input type="checkbox" checked={form.agendamento_confirmado ?? false} onChange={e => setForm(f => ({ ...f, agendamento_confirmado: e.target.checked }))} />
+            Agendamento novo já entra como confirmado
+          </label>
+          <div className="field">
+            <label className="label">Valor de abertura do caixa (R$)</label>
+            <input className="input" type="number" min={0} step={0.01} placeholder="0,00" value={form.caixa_valor_inicial ?? ''} onChange={e => setForm(f => ({ ...f, caixa_valor_inicial: e.target.value === '' ? 0 : Number(e.target.value) }))} style={{ maxWidth: '200px' }} />
+            <p style={{ fontSize: '12px', color: 'var(--c-66)', marginTop: '4px' }}>O troco que já vem preenchido ao abrir o caixa (dá para mudar na hora).</p>
+          </div>
           <label className="check-rotulo" title="O caixa que ficar aberto fecha sozinho no horário de fechamento">
             <input type="checkbox" checked={form.fechamento_automatico ?? true} onChange={e => setForm(f => ({ ...f, fechamento_automatico: e.target.checked }))} />
             Fechar o caixa automaticamente no horário de fechamento
@@ -221,8 +248,33 @@ export default function Configuracoes() {
           <input type="checkbox" checked={form.controla_estoque_minimo ?? true} onChange={e => setForm(f => ({ ...f, controla_estoque_minimo: e.target.checked }))} />
           Trabalhar com estoque mínimo e máximo
         </label>
+        <div className="field" style={{ margin: '14px 0 4px' }}>
+          <label className="label">Vender produto sem estoque</label>
+          <select className="input" value={form.estoque_zerado ?? 'avisar'} onChange={e => setForm(f => ({ ...f, estoque_zerado: e.target.value as 'permitir' | 'avisar' | 'bloquear' }))} style={{ maxWidth: '360px' }}>
+            <option value="avisar">Avisar e deixar vender (estoque fica negativo)</option>
+            <option value="permitir">Permitir sem avisar</option>
+            <option value="bloquear">Bloquear a venda</option>
+          </select>
+        </div>
         <p style={{ fontSize: '12px', color: 'var(--c-66)', lineHeight: 1.5, marginTop: '8px' }}>
-          Marcado: o cadastro do produto tem estoque mínimo e máximo, e o sistema avisa quando o estoque fica abaixo do mínimo (Produtos, Vendas e Relatórios). Desmarcado: esses campos e avisos somem; os valores já cadastrados ficam guardados.
+          Estoque mínimo e máximo — marcado: o cadastro do produto tem estoque mínimo e máximo, e o sistema avisa quando o estoque fica abaixo do mínimo (Produtos, Vendas e Relatórios). Desmarcado: esses campos e avisos somem; os valores já cadastrados ficam guardados.
+        </p>
+      </motion.div>
+
+      <motion.div className="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.09 }} style={{ marginBottom: '20px' }}>
+        <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-fff)', marginBottom: '16px' }}>Fiado</p>
+        <label className="check-rotulo">
+          <input type="checkbox" checked={form.permitir_fiado ?? true} onChange={e => setForm(f => ({ ...f, permitir_fiado: e.target.checked }))} />
+          Aceitar venda fiado (conta do cliente)
+        </label>
+        {(form.permitir_fiado ?? true) && (
+          <div className="field" style={{ marginTop: '12px' }}>
+            <label className="label">Prazo para pagar (dias)</label>
+            <input className="input" type="number" min={0} max={365} value={form.fiado_prazo_dias ?? 30} onChange={e => setForm(f => ({ ...f, fiado_prazo_dias: Number(e.target.value) }))} style={{ maxWidth: '140px' }} />
+          </div>
+        )}
+        <p style={{ fontSize: '12px', color: 'var(--c-66)', lineHeight: 1.5, marginTop: '8px' }}>
+          A venda fiado não entra no caixa: vira uma conta a receber no nome do cliente (Contas a Receber), com vencimento nesse prazo. Quando ele pagar, é só dar baixa lá.
         </p>
       </motion.div>
 

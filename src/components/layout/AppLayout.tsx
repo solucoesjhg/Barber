@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate, useOutlet } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronRight, Bell, Search, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { ChevronRight, Search, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import Sidebar from './Sidebar'
 import { usePerfil } from '../../hooks/usePerfil'
 import { useLoja } from '../../hooks/useLoja'
 import { supabase } from '../../lib/supabase'
+import Sininho from './Sininho'
 
 const SIDEBAR_KEY = 'barberos-sidebar-hidden'
 
@@ -184,27 +185,8 @@ export default function AppLayout() {
               />
             </div>
 
-            {/* Notifications */}
-            <button style={{
-              width: '34px', height: '34px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'var(--c-1a)',
-              border: '1px solid var(--c-25)',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              color: 'var(--c-55)',
-              position: 'relative',
-              transition: 'all 0.15s ease',
-            }}>
-              <Bell size={13} />
-              <span style={{
-                position: 'absolute',
-                top: '8px', right: '8px',
-                width: '5px', height: '5px',
-                background: 'var(--c-fff)',
-                borderRadius: '50%',
-              }} />
-            </button>
+            {/* Alertas */}
+            <Sininho ativo={!!empresaId && papel !== 'super_admin'} />
           </div>
         </div>
 

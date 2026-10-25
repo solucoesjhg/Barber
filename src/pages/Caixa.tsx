@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Lock, Unlock, ArrowUpRight, ArrowDownRight, X, ArrowDownToLine, ArrowUpFromLine, Wallet, TrendingUp, TrendingDown, Scale } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useLoja } from '../hooks/useLoja'
 import { carregarNomesUsuarios } from '../lib/usuarios'
 import { formatCurrency, formatDateTime, formatTime } from '../lib/utils'
 import { useModalKeyboard } from '../hooks/useModalKeyboard'
@@ -28,6 +29,7 @@ export default function Caixa() {
   const { user } = useAuth()
   const { podeEditar: podeEditarTela } = usePermissoes()
   const podeEditar = podeEditarTela('caixa')
+  const { caixaValorInicial } = useLoja()
   const [sessao, setSessao] = useState<SessaoCaixa | null>(null)
   const [movimentos, setMovimentos] = useState<MovimentoCaixa[]>([])
   const [loading, setLoading] = useState(true)
@@ -108,7 +110,9 @@ export default function Caixa() {
   ]
 
   function abrirModal(tipo: ModalTipo) {
-    setError(''); setValorInput(''); setDescricaoInput(''); setModal(tipo)
+    setError(''); setDescricaoInput(''); setModal(tipo)
+    // Abertura: já vem com o troco padrão da loja (Configurações).
+    setValorInput(tipo === 'abrir' && caixaValorInicial > 0 ? String(caixaValorInicial) : '')
   }
 
   async function confirmarAbrirCaixa() {

@@ -7,6 +7,8 @@ export type RascunhoPermissoes = {
   ver_vendas_outros: boolean
   ver_agendamentos_outros: boolean
   dar_desconto: boolean
+  /** % máximo de desconto; null = sem limite. */
+  desconto_maximo: number | null
   ver_custo_produtos: boolean
   dashboard_cards: CardDashboardId[]
   relatorios: RelatorioId[]
@@ -20,6 +22,7 @@ export function rascunhoDe(p: PermissoesUsuario): RascunhoPermissoes {
     ver_vendas_outros: p.ver_vendas_outros,
     ver_agendamentos_outros: p.ver_agendamentos_outros ?? true,
     dar_desconto: p.dar_desconto ?? false,
+    desconto_maximo: p.desconto_maximo ?? null,
     ver_custo_produtos: p.ver_custo_produtos,
     dashboard_cards: [...(p.dashboard_cards ?? [])],
     // Banco sem a migração de relatórios: todos liberados.
@@ -43,6 +46,7 @@ export function rascunhosIguais(a: RascunhoPermissoes, b: RascunhoPermissoes) {
   return a.ver_vendas_outros === b.ver_vendas_outros
     && a.ver_agendamentos_outros === b.ver_agendamentos_outros
     && a.dar_desconto === b.dar_desconto
+    && a.desconto_maximo === b.desconto_maximo
     && a.ver_custo_produtos === b.ver_custo_produtos
     && !cardsAlterados(a, b)
     && !relatoriosAlterados(a, b)
@@ -303,6 +307,22 @@ export default function PermissoesEditor({ permissoes, rascunho, onChange, edita
             </span>
           </label>
         ))}
+        {aba === 'Especiais' && rascunho.dar_desconto && !permissoes.acesso_total && (
+          <label className="perm-linha perm-linha-1col">
+            <span style={{ minWidth: 0 }}>
+              <span className="perm-nome" style={{ display: 'flex' }}>Desconto máximo (%)</span>
+              <span className="perm-ajuda" style={{ display: 'block' }}>Até quanto este usuário pode dar de desconto numa venda. Vazio = sem limite.</span>
+            </span>
+            <span className="perm-celula">
+              <input
+                type="number" min={0} max={100} step={1} className="input" placeholder="sem limite" disabled={!editavel}
+                value={rascunho.desconto_maximo ?? ''} aria-label="Desconto máximo em porcentagem"
+                onChange={e => onChange({ ...rascunho, desconto_maximo: e.target.value === '' ? null : Math.min(100, Math.max(0, Number(e.target.value))) })}
+                style={{ width: '110px', textAlign: 'right' }}
+              />
+            </span>
+          </label>
+        )}
       </div>
     </div>
   )

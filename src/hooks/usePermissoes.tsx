@@ -20,6 +20,8 @@ interface PermissoesCtx {
   verVendasOutros: boolean
   verAgendamentosOutros: boolean
   podeDarDesconto: boolean
+  /** % máximo de desconto do usuário (null = sem limite). */
+  descontoMaximo: number | null
   verCustoProdutos: boolean
   recarregar: () => void
 }
@@ -61,6 +63,7 @@ export function PermissoesProvider({ children }: { children: ReactNode }) {
       verVendasOutros: !!permissoes?.ver_vendas_outros,
       verAgendamentosOutros: permissoes?.ver_agendamentos_outros ?? true,
       podeDarDesconto: !!permissoes?.dar_desconto,
+      descontoMaximo: permissoes?.desconto_maximo ?? null,
       verCustoProdutos: !!permissoes?.ver_custo_produtos,
     }}>
       {children}

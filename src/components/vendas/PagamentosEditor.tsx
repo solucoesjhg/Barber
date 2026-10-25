@@ -70,7 +70,9 @@ export function pagamentosPayload(linhas: LinhaPagamento[], total: number) {
  * em outra forma" acrescenta outra já com o que falta. Cada forma tem a
  * sua maquininha, parcelas e repasse de taxa.
  */
-export default function PagamentosEditor({ linhas, onChange, total, taxas }: {
+export default function PagamentosEditor({ linhas, onChange, total, taxas, permitirFiado = false }: {
+  /** Mostra a forma "Fiado" (conta do cliente). */
+  permitirFiado?: boolean
   linhas: LinhaPagamento[]
   /** O setState das linhas: as linhas mudam por efeito (maquininha única
    *  escolhida sozinha, repasse sugerido), então só atualização funcional. */
@@ -79,6 +81,7 @@ export default function PagamentosEditor({ linhas, onChange, total, taxas }: {
   taxas: TaxasLoja
 }) {
   const valores = valoresDasLinhas(linhas, total)
+  const formas = permitirFiado ? [...FORMAS, { id: 'fiado' as PagamentoMetodo, label: 'Fiado' }] : FORMAS
   const dividido = linhas.length > 1
   const restante = valores[valores.length - 1]
 
@@ -122,7 +125,7 @@ export default function PagamentosEditor({ linhas, onChange, total, taxas }: {
           <div className="pagamento-linha-corpo">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                {FORMAS.map(f => (
+                {formas.map(f => (
                   <button
                     key={f.id} type="button" aria-pressed={l.forma === f.id}
                     className={`opcao${l.forma === f.id ? ' marcada' : ''}`}
@@ -148,12 +151,14 @@ export default function PagamentosEditor({ linhas, onChange, total, taxas }: {
                 </p>
               ))}
             </div>
-            <PagamentoTaxa
+            {l.forma === 'fiado' ? (
+              <p className="pagamento-restante">Fica na conta do cliente: vira uma conta a receber no nome dele.</p>
+            ) : <PagamentoTaxa
               forma={l.forma} parcelas={l.parcelas} onParcelas={n => mudar(l.id, { parcelas: n })}
               maquininhaId={l.maquininhaId} onMaquininha={id => mudar(l.id, { maquininhaId: id })}
               repassar={l.repassar} onRepassar={v => mudar(l.id, { repassar: v })}
               total={valores[i]} taxas={taxas}
-            />
+            />}
           </div>
         </div>
       ))}

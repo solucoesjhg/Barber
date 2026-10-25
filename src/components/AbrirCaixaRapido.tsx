@@ -1,6 +1,7 @@
 import { useId, useState } from 'react'
 import { Unlock } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { useLoja } from '../hooks/useLoja'
 
 /** O erro do banco é de caixa fechado ("Nenhum caixa aberto..."). */
 export const ehErroSemCaixa = (msg: string) => /nenhum caixa aberto/i.test(msg)
@@ -14,7 +15,8 @@ export default function AbrirCaixaRapido({ onAberto }: {
   /** Chamado com o caixa já aberto: a tela conclui a venda. */
   onAberto: () => void
 }) {
-  const [valor, setValor] = useState('')
+  const { caixaValorInicial } = useLoja()
+  const [valor, setValor] = useState(caixaValorInicial > 0 ? String(caixaValorInicial) : '')
   const [abrindo, setAbrindo] = useState(false)
   const [erro, setErro] = useState('')
   const idValor = useId()

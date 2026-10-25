@@ -110,6 +110,7 @@ export default function UsuarioCard({ usuario, aberto, onToggle, papeis, profiss
           p_ver_vendas_outros: rascunho.ver_vendas_outros,
           p_ver_agendamentos_outros: rascunho.ver_agendamentos_outros,
           p_dar_desconto: rascunho.dar_desconto,
+          p_desconto_maximo: rascunho.desconto_maximo,
           p_ver_custo_produtos: rascunho.ver_custo_produtos,
           p_dashboard_cards: cardsAlterados(rascunho, original) ? rascunho.dashboard_cards : null,
         }

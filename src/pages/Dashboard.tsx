@@ -5,6 +5,8 @@ import { Calendar, Users, DollarSign, TrendingUp, TrendingDown, Wallet, Plus, Cl
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
 import { usePermissoes } from '../hooks/usePermissoes'
+import { usePerfil } from '../hooks/usePerfil'
+import PainelProfissional from '../components/dashboard/PainelProfissional'
 import type { Agendamento, CardDashboardId, TelaId } from '../types'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -32,6 +34,7 @@ function handleGlowMove(e: MouseEvent<HTMLDivElement>) {
 export default function Dashboard() {
   const navigate = useNavigate()
   const { podeVer, podeEditar, podeVerCard } = usePermissoes()
+  const { profissionalId } = usePerfil()
   const [agenda, setAgenda] = useState<Agendamento[]>([])
   const [loading, setLoading] = useState(true)
   const [financeiro, setFinanceiro] = useState({ faturamentoMes: 0, despesasMes: 0, aReceber: 0, aPagar: 0, saldoCaixa: 0, caixaAberto: false })
@@ -165,6 +168,8 @@ export default function Dashboard() {
           </button>
         )}
       </motion.div>
+
+      {profissionalId && <PainelProfissional profissionalId={profissionalId} />}
 
       {/* Stat cards */}
       {stats.length > 0 && <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${stats.length}, minmax(0, 1fr))`, gap: '16px', marginBottom: '28px' }}>
