@@ -46,9 +46,10 @@ export default function CampoBusca({ opcoes, valor, onChange, placeholder = 'Dig
   const [pos, setPos] = useState<{ left: number; top: number; width: number } | null>(null)
 
   const escolhida = opcoes.find(o => o.id === valor)
+  // Só sugere depois de começar a digitar (a lista toda fica no "⋯").
   const sugestoes = useMemo(() => {
     const t = semAcento(texto.trim())
-    return opcoes.filter(o => bate(o, t)).slice(0, 8)
+    return t ? opcoes.filter(o => bate(o, t)).slice(0, 8) : []
   }, [texto, opcoes])
 
   useEffect(() => {
@@ -99,8 +100,7 @@ export default function CampoBusca({ opcoes, valor, onChange, placeholder = 'Dig
             ref={inputRef} className={classe} style={{ flex: 1, minWidth: 0, minHeight: altura }}
             placeholder={carregando ? 'Carregando...' : placeholder} disabled={disabled || carregando}
             value={texto}
-            onChange={e => { setTexto(e.target.value); setAberto(true); setMarcado(0) }}
-            onFocus={() => setAberto(true)}
+            onChange={e => { setTexto(e.target.value); setAberto(e.target.value.trim() !== ''); setMarcado(0) }}
             onKeyDown={e => {
               if (!aberto || sugestoes.length === 0) return
               if (e.key === 'ArrowDown') { e.preventDefault(); setMarcado(m => Math.min(m + 1, sugestoes.length - 1)) }
@@ -119,7 +119,7 @@ export default function CampoBusca({ opcoes, valor, onChange, placeholder = 'Dig
           </button>
         )}
       </div>
-      {aberto && !escolhida && pos && (sugestoes.length > 0 || texto.trim()) && createPortal(
+      {aberto && !escolhida && pos && texto.trim() !== '' && createPortal(
         <div ref={listaRef} className="cliente-busca-lista campo-busca-lista" role="listbox" style={{ left: pos.left, top: pos.top, width: pos.width }}>
           {sugestoes.length === 0 && <p className="subtexto" style={{ padding: '8px 10px' }}>Nada encontrado com “{texto.trim()}”.</p>}
           {sugestoes.map((o, i) => (

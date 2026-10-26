@@ -86,8 +86,7 @@ export default function ClienteBusca({ nome, clienteId, onChange, placeholder = 
         style={{ fontSize: '13px', paddingRight: clienteId ? '34px' : undefined }}
         placeholder={placeholder}
         value={nome}
-        onChange={e => { onChange(e.target.value, null); setAberto(true); setMarcado(0) }}
-        onFocus={() => setAberto(true)}
+        onChange={e => { onChange(e.target.value, null); setAberto(e.target.value.trim() !== ''); setMarcado(0) }}
         onKeyDown={e => {
           if (!aberto || sugestoes.length === 0) return
           if (e.key === 'ArrowDown') { e.preventDefault(); setMarcado(m => Math.min(m + 1, sugestoes.length - 1)) }

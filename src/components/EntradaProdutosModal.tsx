@@ -280,8 +280,7 @@ export default function EntradaProdutosModal({ produtos, onClose, onSuccess }: {
                             className="input"
                             placeholder="Nome do produto (novo ou existente)"
                             value={item.nome}
-                            onChange={e => updateItem(item.id, { nome: e.target.value })}
-                            onFocus={() => setBuscaAberta(item.id)}
+                            onChange={e => { updateItem(item.id, { nome: e.target.value }); setBuscaAberta(item.id) }}
                             onBlur={() => setTimeout(() => setBuscaAberta(prev => prev === item.id ? null : prev), 150)}
                             autoComplete="off"
                             style={{ paddingRight: '42px' }}
