@@ -31,7 +31,7 @@ export default function NovoUsuarioModal({ papeis, profissionais, empresaId, onC
     if (saving) return
     if (!form.nome.trim()) { setError('Informe o nome.'); return }
     if (!form.email.trim()) { setError('Informe o e-mail.'); return }
-    if (form.senha.length < 6) { setError('A senha precisa ter pelo menos 6 caracteres.'); return }
+    if (form.senha.length < 8) { setError('A senha precisa ter pelo menos 8 caracteres.'); return }
     setSaving(true); setError('')
     const { data, error: err } = await supabase.rpc('criar_usuario_loja', {
       p_email: form.email.trim(),
@@ -69,7 +69,7 @@ export default function NovoUsuarioModal({ papeis, profissionais, empresaId, onC
           <div className="input-com-botao">
             <input
               className="input" type={mostrarSenha ? 'text' : 'password'} autoComplete="new-password"
-              placeholder="Mínimo de 6 caracteres" value={form.senha} onChange={e => setForm(f => ({ ...f, senha: e.target.value }))}
+              placeholder="Mínimo de 8 caracteres" value={form.senha} onChange={e => setForm(f => ({ ...f, senha: e.target.value }))}
             />
             <button type="button" className="btn btn-icon" onClick={() => setMostrarSenha(m => !m)} title={mostrarSenha ? 'Esconder senha' : 'Mostrar senha'}>
               {mostrarSenha ? <EyeOff size={14} /> : <Eye size={14} />}

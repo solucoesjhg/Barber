@@ -83,7 +83,7 @@ export default function UsuarioCard({ usuario, aberto, onToggle, papeis, profiss
 
   async function salvar() {
     if (saving) return
-    if (novaSenha && novaSenha.length < 6) { setError('A nova senha precisa ter pelo menos 6 caracteres.'); return }
+    if (novaSenha && novaSenha.length < 8) { setError('A nova senha precisa ter pelo menos 8 caracteres.'); return }
     setSaving(true); setError(''); setAviso('')
     try {
       if (dadosAlterados) {

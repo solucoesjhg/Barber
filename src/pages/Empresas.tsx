@@ -88,7 +88,7 @@ export default function Empresas() {
     if (!form.nome.trim()) { setError('Nome é obrigatório.'); return }
     const comAdmin = form.admin_email.trim() !== ''
     if (comAdmin && !form.admin_nome.trim()) { setError('Informe o nome do administrador.'); return }
-    if (comAdmin && form.admin_senha.length < 6) { setError('A senha do administrador precisa ter pelo menos 6 caracteres.'); return }
+    if (comAdmin && form.admin_senha.length < 8) { setError('A senha do administrador precisa ter pelo menos 8 caracteres.'); return }
     const valor = Number(String(form.valor_mensalidade || '0').replace(',', '.'))
     const dia = Number(form.dia_vencimento)
     if (!(valor >= 0)) { setError('Valor da mensalidade inválido.'); return }
@@ -303,7 +303,7 @@ export default function Empresas() {
                 <input className="input" type="email" autoComplete="off" placeholder="dono@loja.com" value={form.admin_email} onChange={set('admin_email')} />
               </Campo>
               <Campo rotulo="Senha inicial">
-                <input className="input" type="password" autoComplete="new-password" placeholder="Mín. 6 caracteres" value={form.admin_senha} onChange={set('admin_senha')} />
+                <input className="input" type="password" autoComplete="new-password" placeholder="Mín. 8 caracteres" value={form.admin_senha} onChange={set('admin_senha')} />
               </Campo>
             </FormGrade>
           </ModalFormulario>

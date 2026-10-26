@@ -67,7 +67,7 @@ export default function HoleriteModal({ fechamentoId, podeEstornar, onClose, onE
 table{width:100%;border-collapse:collapse;margin-top:8px}th,td{text-align:left;padding:5px 6px;border-bottom:1px solid #ddd}th{font-size:10px;text-transform:uppercase;color:#666}
 .n{text-align:right;white-space:nowrap}.tot td{font-weight:700;border-bottom:none}h2{font-size:12px;margin:18px 0 0;text-transform:uppercase;color:#444}
 .topo{display:flex;align-items:center;gap:14px;margin-bottom:18px}.topo img{width:48px;height:48px;object-fit:contain}.topo b{font-size:14px}.assin{margin-top:60px;display:flex;gap:40px}.assin div{flex:1;border-top:1px solid #333;padding-top:4px;text-align:center}</style></head><body>
-${nomeLoja || logoUrl ? `<div class="topo">${logoUrl ? `<img src="${logoUrl}" alt="">` : ''}<b>${escapar(nomeLoja ?? '')}</b></div>` : ''}
+${nomeLoja || logoUrl ? `<div class="topo">${logoUrl ? `<img src="${escapar(logoUrl)}" alt="">` : ''}<b>${escapar(nomeLoja ?? '')}</b></div>` : ''}
 <h1>Fechamento de comissão — ${escapar(nome)}</h1>
 <p>Período de ${formatDate(f.inicio)} a ${formatDate(f.fim)} · fechado em ${formatDateTime(f.created_at)}</p>
 <h2>Comissões (${comissoes.length})</h2>

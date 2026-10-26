@@ -164,6 +164,9 @@ export default function Produtos() {
     const arquivo = e.target.files?.[0]
     e.target.value = ''
     if (!arquivo) return
+    // Planilha de produtos é pequena; arquivo grande é recusado antes de abrir
+    // (a biblioteca de planilhas tem falhas conhecidas com arquivos maliciosos).
+    if (arquivo.size > 2 * 1024 * 1024) { setError('A planilha é muito grande (máximo 2 MB).'); return }
     setImportando(true); setResultadoImportacao(null); setError('')
     try {
       const { validas, erros } = await lerPlanilhaProdutos(arquivo)
