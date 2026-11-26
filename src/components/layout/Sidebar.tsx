@@ -26,7 +26,9 @@ const NAV_SUPER_ADMIN = [
 // tela: permissão de "ver" que libera o item; gestao: só administrador/gerente.
 type NavItemDef = { to: string; icon: typeof LayoutDashboard; label: string; tela?: TelaId; gestao?: boolean }
 
+// Agenda no topo: é a tela que a equipe mais usa (atalho, sem abrir o grupo).
 const NAV_TOPO: NavItemDef[] = [
+  { to: '/agenda',       icon: Calendar,        label: 'Agenda',    tela: 'agenda'    },
   { to: '/dashboard',    icon: LayoutDashboard, label: 'Dashboard', tela: 'dashboard' },
 ]
 
@@ -47,7 +49,6 @@ const NAV_GRUPOS: { label: string; icon: typeof LayoutDashboard; items: NavItemD
     label: 'Movimentos',
     icon: ArrowLeftRight,
     items: [
-      { to: '/agenda',         icon: Calendar,        label: 'Agenda',           tela: 'agenda'         },
       { to: '/vendas',         icon: ShoppingCart,    label: 'Vendas',           tela: 'pdv'            },
       { to: '/caixa',          icon: Wallet,          label: 'Caixa',            tela: 'caixa'          },
       { to: '/financeiro',     icon: BarChart2,       label: 'Financeiro',       tela: 'financeiro'     },

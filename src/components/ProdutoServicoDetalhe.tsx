@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLoja } from '../hooks/useLoja'
-import { Package, Scissors, Pencil, Tag, Image as ImageIcon, AlertTriangle } from 'lucide-react'
+import { Package, Scissors, Pencil, Tag, Image as ImageIcon, AlertTriangle, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency, formatDateTime } from '../lib/utils'
 import ModalDetalhe, { Info, InfoGrade, SecaoDetalhe } from './ui/ModalDetalhe'
@@ -16,7 +16,7 @@ const MOVIMENTO_LABEL: Record<string, string> = {
 }
 
 /** Card de um produto: foto, preços, estoque, comissão e as últimas movimentações. */
-export function ProdutoDetalheModal({ produto: p, verCusto, podeEditar, onClose, onEditar, onFotos, onEtiqueta }: {
+export function ProdutoDetalheModal({ produto: p, verCusto, podeEditar, onClose, onEditar, onFotos, onEtiqueta, onExcluir }: {
   produto: Produto
   verCusto: boolean
   podeEditar: boolean
@@ -24,6 +24,8 @@ export function ProdutoDetalheModal({ produto: p, verCusto, podeEditar, onClose,
   onEditar: () => void
   onFotos: () => void
   onEtiqueta: () => void
+  /** Só com a permissão de excluir produtos. */
+  onExcluir?: () => void
 }) {
   const [movimentos, setMovimentos] = useState<MovimentacaoEstoque[] | null>(null)
 
@@ -49,6 +51,7 @@ export function ProdutoDetalheModal({ produto: p, verCusto, podeEditar, onClose,
       onClose={onClose}
       acoes={
         <>
+          {onExcluir && <button className="btn btn-ghost" onClick={onExcluir} title="Só sem venda e sem movimento de estoque"><Trash2 size={13} /> Excluir</button>}
           <button className="btn btn-secondary" onClick={onFotos}><ImageIcon size={13} /> Fotos</button>
           {podeEditar && <button className="btn btn-secondary" onClick={onEtiqueta}><Tag size={13} /> Etiqueta</button>}
           {podeEditar && <button className="btn btn-primary" onClick={onEditar}><Pencil size={13} /> Editar</button>}

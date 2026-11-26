@@ -285,6 +285,7 @@ export default function Caixa() {
                     ? <ArrowUpRight size={13} style={{ color: 'var(--c-fff)', flexShrink: 0 }} />
                     : <ArrowDownRight size={13} style={{ color: 'var(--c-55)', flexShrink: 0 }} />}
                   <span className="texto-cortado" style={{ fontSize: '13px', color: m.tipo === 'entrada' ? 'var(--c-fff)' : 'var(--c-a3)' }}>{m.descricao}</span>
+                  {m.usuario_id && nomes[m.usuario_id] && <span className="subtexto" title="Quem lançou" style={{ marginTop: 0, flexShrink: 0 }}>· {nomes[m.usuario_id]}</span>}
                 </div>
                 <span style={{ fontSize: '12px', color: 'var(--c-55)' }}>{CATEGORIA_LABEL[m.categoria] ?? m.categoria}</span>
                 <span style={{ fontSize: '12px', color: 'var(--c-44)' }}>{formatTime(m.created_at)}</span>

@@ -17,11 +17,24 @@ export function SemPermissao({ titulo = 'Sem acesso a esta tela' }: { titulo?: s
   )
 }
 
-/** Primeira tela que o usuário pode ver, na ordem do menu. */
+/**
+ * Tela que abre ao entrar no sistema: a escolhida no cadastro do usuário
+ * (padrão: Agenda). Sem permissão nela, a primeira liberada, na ordem do menu.
+ */
 export function useRotaInicial(): string | null {
   const { permissoes, podeVer } = usePermissoes()
   if (permissoes?.papel === 'super_admin') return '/empresas'
+  const escolhida = TELAS.find(t => t.id === (permissoes?.tela_inicial ?? 'agenda'))
+  if (escolhida && podeVer(escolhida.id)) return escolhida.rota
   return TELAS.find(t => podeVer(t.id))?.rota ?? null
+}
+
+/** Rota "/inicio": manda para a tela inicial do usuário. */
+export function IrParaInicio() {
+  const { loading } = usePermissoes()
+  const rota = useRotaInicial()
+  if (loading) return <div style={{ padding: '56px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>Carregando...</div>
+  return rota ? <Navigate to={rota} replace /> : <SemPermissao titulo="Nenhuma tela liberada" />
 }
 
 /**
@@ -57,8 +70,8 @@ export default function RotaPermitida({ tela, gestao, superAdmin, children }: {
     (!!tela && podeVer(tela))
 
   if (permitido) return <>{children}</>
-  // Dashboard é o destino padrão após o login: quem não pode vê-lo vai
-  // pra primeira tela liberada, em vez de cair numa tela de bloqueio.
+  // Link antigo para o Dashboard: quem não pode vê-lo vai para a tela
+  // inicial, em vez de cair numa tela de bloqueio.
   if (tela === 'dashboard' && rotaInicial && rotaInicial !== '/dashboard') return <Navigate to={rotaInicial} replace />
   return <SemPermissao />
 }

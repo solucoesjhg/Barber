@@ -21,6 +21,7 @@ import Checkbox from '../components/ui/Checkbox'
 import StatCard from '../components/ui/StatCard'
 import BarraSelecao, { ItemSelecao } from '../components/ui/BarraSelecao'
 import type { MovimentoCaixa, ContaFinanceira } from '../types'
+import { carregarNomesUsuarios } from '../lib/usuarios'
 
 const CATEGORIA_LABEL: Record<string, string> = {
   venda: 'Venda', sangria: 'Sangria', suprimento: 'Suprimento', capital_inicial: 'Saldo inicial',
@@ -53,6 +54,9 @@ export default function Financeiro() {
   const { podeEditar: podeEditarTela } = usePermissoes()
   const podeEditar = podeEditarTela('financeiro')
   const [movimentos, setMovimentos] = useState<MovimentoCaixa[]>([])
+  // Quem lançou cada movimento (sangria, suprimento, venda...).
+  const [nomes, setNomes] = useState<Record<string, string>>({})
+  useEffect(() => { carregarNomesUsuarios().then(setNomes) }, [])
   const [chartData, setChartData] = useState<{ dia: string; entrada: number; saida: number }[]>([])
   const [aPagar, setAPagar] = useState({ aberto: 0, vencido: 0 })
   const [aReceber, setAReceber] = useState({ aberto: 0, vencido: 0 })
@@ -445,6 +449,7 @@ export default function Financeiro() {
               <span className="texto-cortado" style={{ fontSize: '13px', color: m.tipo === 'entrada' ? 'var(--c-fff)' : 'var(--c-a3)', fontWeight: m.tipo === 'entrada' ? 500 : 400 }}>
                 {m.descricao}
               </span>
+              {m.usuario_id && nomes[m.usuario_id] && <span className="subtexto" title="Quem lançou" style={{ marginTop: 0, flexShrink: 0 }}>· {nomes[m.usuario_id]}</span>}
             </div>
             <span className="texto-cortado" style={{ fontSize: '12px', color: 'var(--c-55)' }}>{m.conta?.nome ?? CATEGORIA_LABEL[m.categoria] ?? m.categoria}</span>
             <span style={{ fontSize: '12px', color: 'var(--c-44)' }}>{formatDate(m.data)}</span>

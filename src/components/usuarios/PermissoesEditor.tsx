@@ -10,6 +10,7 @@ export type RascunhoPermissoes = {
   /** % máximo de desconto; null = sem limite. */
   desconto_maximo: number | null
   ver_custo_produtos: boolean
+  excluir_produtos: boolean
   dashboard_cards: CardDashboardId[]
   relatorios: RelatorioId[]
 }
@@ -24,6 +25,7 @@ export function rascunhoDe(p: PermissoesUsuario): RascunhoPermissoes {
     dar_desconto: p.dar_desconto ?? false,
     desconto_maximo: p.desconto_maximo ?? null,
     ver_custo_produtos: p.ver_custo_produtos,
+    excluir_produtos: p.excluir_produtos ?? p.gerenciar_equipe,
     dashboard_cards: [...(p.dashboard_cards ?? [])],
     // Banco sem a migração de relatórios: todos liberados.
     relatorios: [...(p.relatorios ?? RELATORIOS.map(r => r.id))],
@@ -48,12 +50,13 @@ export function rascunhosIguais(a: RascunhoPermissoes, b: RascunhoPermissoes) {
     && a.dar_desconto === b.dar_desconto
     && a.desconto_maximo === b.desconto_maximo
     && a.ver_custo_produtos === b.ver_custo_produtos
+    && a.excluir_produtos === b.excluir_produtos
     && !cardsAlterados(a, b)
     && !relatoriosAlterados(a, b)
     && TELAS.every(t => a.telas[t.id].ver === b.telas[t.id].ver && a.telas[t.id].editar === b.telas[t.id].editar)
 }
 
-const ESPECIAIS: { campo: 'ver_vendas_outros' | 'ver_agendamentos_outros' | 'dar_desconto' | 'ver_custo_produtos'; label: string; descricao: string }[] = [
+const ESPECIAIS: { campo: 'ver_vendas_outros' | 'ver_agendamentos_outros' | 'dar_desconto' | 'ver_custo_produtos' | 'excluir_produtos'; label: string; descricao: string }[] = [
   {
     campo: 'ver_vendas_outros',
     label: 'Ver vendas de outros usuários',
@@ -73,6 +76,11 @@ const ESPECIAIS: { campo: 'ver_vendas_outros' | 'ver_agendamentos_outros' | 'dar
     campo: 'ver_custo_produtos',
     label: 'Ver custo dos produtos',
     descricao: 'Vê o preço de custo e a margem. Necessário também para dar entrada de mercadoria.',
+  },
+  {
+    campo: 'excluir_produtos',
+    label: 'Excluir produtos',
+    descricao: 'Pode apagar um produto de vez (precisa também de editar em Produtos). Só produto sem venda nem movimento de estoque; com histórico, o caminho é deixar inativo.',
   },
 ]
 

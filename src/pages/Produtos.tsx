@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, type ChangeEvent } from 'react'
 import { useLoja } from '../hooks/useLoja'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, X, AlertTriangle, Package, Scissors, Check, Tag, Pencil, Download, Upload, ClipboardList } from 'lucide-react'
+import { Plus, X, AlertTriangle, Package, Scissors, Check, Tag, Pencil, Download, Upload, ClipboardList, Trash2 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
@@ -14,7 +14,7 @@ import BarraSelecao, { ItemSelecao } from '../components/ui/BarraSelecao'
 import ModalFormulario, { Campo, FormGrade, SecaoForm } from '../components/ui/ModalFormulario'
 import { usePermissoes } from '../hooks/usePermissoes'
 import { useSelecao } from '../hooks/useSelecao'
-import { COLUNAS_PRODUTO } from '../lib/produtos'
+import { COLUNAS_PRODUTO, caminhoFotoProduto } from '../lib/produtos'
 import type { Produto, ProdutoCategoria, Servico, Profissional } from '../types'
 
 type Secao = 'produtos' | 'servicos'
@@ -99,7 +99,7 @@ async function lerPlanilhaProdutos(arquivo: File): Promise<{ validas: LinhaImpor
 }
 
 export default function Produtos() {
-  const { podeEditar: podeEditarTela, verCustoProdutos: verCusto } = usePermissoes()
+  const { podeEditar: podeEditarTela, verCustoProdutos: verCusto, podeExcluirProdutos } = usePermissoes()
   // Loja sem estoque mínimo/máximo (Configurações): sem campos e sem alertas.
   const { controlaEstoqueMinimo } = useLoja()
   const podeEditar = podeEditarTela('produtos')
@@ -142,8 +142,8 @@ export default function Produtos() {
   // Colunas enxutas: SKU, margem e comissão vão numa 2ª linha embaixo do
   // nome.
   const colunasTabela = verCusto
-    ? '22px minmax(220px, 1fr) 92px 96px 96px 104px 70px 72px'
-    : '22px minmax(220px, 1fr) 92px 96px 104px 70px 72px'
+    ? `22px minmax(220px, 1fr) 92px 96px 96px 104px 70px ${podeExcluirProdutos ? 106 : 72}px`
+    : `22px minmax(220px, 1fr) 92px 96px 104px 70px ${podeExcluirProdutos ? 106 : 72}px`
   const larguraMinima = verCusto ? '780px' : '680px'
   const produtoAberto = produtoAbertoId ? produtos.find(p => p.id === produtoAbertoId) ?? null : null
   const servicoAberto = servicoAbertoId ? servicos.find(s => s.id === servicoAbertoId) ?? null : null
@@ -264,6 +264,20 @@ export default function Produtos() {
     setShowProdModal(false)
     setEditProdId(null)
     setError('')
+  }
+
+  // Excluir de vez: o banco só deixa quando o produto não tem venda nem
+  // movimento de estoque; senão devolve o motivo (aí o caminho é inativar).
+  async function excluirProd(p: Produto) {
+    if (!window.confirm(`Excluir "${p.nome}" de vez? Essa ação não pode ser desfeita.`)) return
+    setError('')
+    const { data, error: err } = await supabase.rpc('excluir_produto', { p_produto_id: p.id })
+    if (err) { window.alert(err.message); return }
+    const caminhos = ((data ?? []) as string[]).map(caminhoFotoProduto).filter((c): c is string => !!c)
+    if (caminhos.length) await supabase.storage.from('produtos').remove(caminhos)
+    setProdutos(prev => prev.filter(x => x.id !== p.id))
+    selecao.alternar(p.id, false)
+    setProdutoAbertoId(null)
   }
 
   async function toggleAtivoProd(id: string, ativo: boolean) {
@@ -581,6 +595,11 @@ export default function Produtos() {
                           <Tag size={12} />
                         </button>
                       )}
+                      {podeExcluirProdutos && (
+                        <button className="btn btn-icon" title="Excluir produto (só sem venda e sem movimento de estoque)" aria-label={`Excluir ${p.nome}`} onClick={e => { e.stopPropagation(); excluirProd(p) }} style={{ width: '30px', height: '30px' }}>
+                          <Trash2 size={12} />
+                        </button>
+                      )}
                     </div>
                   </motion.div>
                 )
@@ -676,6 +695,11 @@ export default function Produtos() {
                         {podeEditar && (
                           <button className="btn btn-icon" title="Gerar/imprimir etiqueta" onClick={e => { e.stopPropagation(); setProdutosEtiqueta([p]) }}>
                             <Tag size={12} />
+                          </button>
+                        )}
+                        {podeExcluirProdutos && (
+                          <button className="btn btn-icon" title="Excluir produto (só sem venda e sem movimento de estoque)" aria-label={`Excluir ${p.nome}`} onClick={e => { e.stopPropagation(); excluirProd(p) }}>
+                            <Trash2 size={12} />
                           </button>
                         )}
                       </div>
@@ -1006,6 +1030,7 @@ export default function Produtos() {
             onEditar={() => { setProdutoAbertoId(null); abrirEdicaoProd(produtoAberto) }}
             onFotos={() => { setProdutoAbertoId(null); setProdutoFotosAlvo(produtoAberto) }}
             onEtiqueta={() => { setProdutoAbertoId(null); setProdutosEtiqueta([produtoAberto]) }}
+            onExcluir={podeExcluirProdutos ? () => excluirProd(produtoAberto) : undefined}
           />
         )}
       </AnimatePresence>

@@ -23,6 +23,8 @@ interface PermissoesCtx {
   /** % máximo de desconto do usuário (null = sem limite). */
   descontoMaximo: number | null
   verCustoProdutos: boolean
+  /** Excluir produto sem movimentação (permissão especial). */
+  podeExcluirProdutos: boolean
   recarregar: () => void
 }
 
@@ -65,6 +67,8 @@ export function PermissoesProvider({ children }: { children: ReactNode }) {
       podeDarDesconto: !!permissoes?.dar_desconto,
       descontoMaximo: permissoes?.desconto_maximo ?? null,
       verCustoProdutos: !!permissoes?.ver_custo_produtos,
+      // Banco sem a migração: só administrador e gerente (gerenciam a equipe).
+      podeExcluirProdutos: !!permissoes?.telas?.produtos?.editar && (permissoes?.excluir_produtos ?? !!permissoes?.gerenciar_equipe),
     }}>
       {children}
     </Ctx.Provider>

@@ -158,6 +158,8 @@ export interface MovimentoCaixa {
   /** Conta analítica do plano de contas (lançamento avulso). */
   categoria_id?: string | null
   conta?: { nome: string } | null
+  /** Quem lançou (ausente nos lançamentos antigos). */
+  usuario_id?: string | null
   created_at: string
 }
 
@@ -462,6 +464,10 @@ export interface PermissoesUsuario {
   /** % máximo de desconto (null = sem limite). */
   desconto_maximo?: number | null
   ver_custo_produtos: boolean
+  /** Ausente = banco sem a migração (só administrador e gerente). */
+  excluir_produtos?: boolean
+  /** Tela que abre ao entrar (id de TELAS). Ausente = Agenda. */
+  tela_inicial?: TelaId
   especiais_personalizados: boolean
   /** Cards que aparecem no Dashboard (ids de CARDS_DASHBOARD). */
   dashboard_cards: CardDashboardId[]

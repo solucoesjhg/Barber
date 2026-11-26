@@ -86,7 +86,7 @@ export default function EmpresaDetalhe() {
     setEntrando(true)
     const { error: err } = await supabase.rpc('entrar_suporte', { p_empresa_id: empresa.id })
     if (err) { setEntrando(false); window.alert(err.message); return }
-    window.location.href = '/dashboard'
+    window.location.href = '/inicio'
   }
 
   function copiarCodigo() {

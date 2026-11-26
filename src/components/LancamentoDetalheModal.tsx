@@ -5,6 +5,7 @@ import { formatCurrency, formatDate, formatDateTime } from '../lib/utils'
 import ModalDetalhe, { Info, InfoGrade, SecaoDetalhe } from './ui/ModalDetalhe'
 import SeletorConta from './financeiro/SeletorConta'
 import type { MovimentoCaixa } from '../types'
+import { carregarNomesUsuarios } from '../lib/usuarios'
 
 const CATEGORIA_LABEL: Record<string, string> = {
   venda: 'Venda', sangria: 'Sangria', suprimento: 'Suprimento', capital_inicial: 'Saldo inicial',
@@ -47,6 +48,13 @@ export default function LancamentoDetalheModal({ movimento, onClose, onDelete, p
 
   const [excluindo, setExcluindo] = useState(false)
   const [conta, setConta] = useState<string | null>(null)
+  const [quem, setQuem] = useState<string | null>(null)
+
+  useEffect(() => {
+    const id = movimento.usuario_id
+    if (!id) return
+    carregarNomesUsuarios().then(n => setQuem(n[id] ?? null))
+  }, [movimento.usuario_id])
 
   useEffect(() => {
     if (!movimento.conta_financeira_id) return
@@ -88,6 +96,7 @@ export default function LancamentoDetalheModal({ movimento, onClose, onDelete, p
         <Info rotulo="Data">{formatDate(movimento.data)}</Info>
         <Info rotulo="Conta">{conta}</Info>
         <Info rotulo="Origem">{movimento.sessao_caixa_id ? 'Caixa' : 'Financeiro'}</Info>
+        {quem && <Info rotulo="Lançado por">{quem}</Info>}
         {!classificavel && movimento.conta && <Info rotulo="Plano de contas">{movimento.conta.nome}</Info>}
       </InfoGrade>
 

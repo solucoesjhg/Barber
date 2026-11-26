@@ -24,7 +24,7 @@ import Configuracoes from './pages/Configuracoes'
 import Usuarios from './pages/Usuarios'
 import Financeiro from './pages/Financeiro'
 import Categorias from './pages/Categorias'
-import RotaPermitida from './components/RotaPermitida'
+import RotaPermitida, { IrParaInicio } from './components/RotaPermitida'
 import { PermissoesProvider } from './hooks/usePermissoes'
 import { LojaProvider } from './hooks/useLoja'
 
@@ -67,11 +67,12 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         {/* Usuários são cadastrados pelo gerente/administrador em Usuários; sem cadastro público. */}
         <Route path="/cadastro" element={<Navigate to="/login" replace />} />
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<Navigate to="/inicio" replace />} />
         <Route element={<PrivateRoute><PermissoesProvider><LojaProvider><AppLayout /></LojaProvider></PermissoesProvider></PrivateRoute>}>
           <Route path="/empresas"       element={<RotaPermitida superAdmin><Empresas /></RotaPermitida>} />
           <Route path="/empresas/:id"   element={<RotaPermitida superAdmin><EmpresaDetalhe /></RotaPermitida>} />
           <Route path="/cobrancas"      element={<RotaPermitida superAdmin><Cobrancas /></RotaPermitida>} />
+          <Route path="/inicio"         element={<IrParaInicio />} />
           <Route path="/dashboard"      element={<RotaPermitida tela="dashboard"><Dashboard /></RotaPermitida>} />
           <Route path="/agenda"         element={<RotaPermitida tela="agenda"><Agenda /></RotaPermitida>} />
           <Route path="/vendas"         element={<RotaPermitida tela="pdv"><Vendas /></RotaPermitida>} />
@@ -93,7 +94,7 @@ export default function App() {
           <Route path="/configuracoes"  element={<RotaPermitida tela="configuracoes"><Configuracoes /></RotaPermitida>} />
           <Route path="/usuarios"       element={<RotaPermitida gestao><Usuarios /></RotaPermitida>} />
           <Route path="/permissoes"     element={<IrParaUsuarios />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/inicio" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>

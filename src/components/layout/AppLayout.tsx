@@ -143,7 +143,7 @@ export default function AppLayout() {
               {sidebarHidden ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
             </button>
             <span
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/inicio')}
               className="texto-cortado"
               style={{ fontSize: '12px', color: 'var(--c-55)', cursor: 'pointer', maxWidth: '180px' }}
             >

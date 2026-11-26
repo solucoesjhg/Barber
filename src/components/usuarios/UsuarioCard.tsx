@@ -3,9 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, Eye, EyeOff, KeyRound, RotateCcw, Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { initials } from '../../lib/utils'
-import { PAPEL_LABEL, nomeExibicao } from '../../lib/permissoes'
+import { PAPEL_LABEL, TELAS, nomeExibicao } from '../../lib/permissoes'
+import { useAuth } from '../../hooks/useAuth'
 import PermissoesEditor, { cardsAlterados, rascunhoDe, rascunhosIguais, relatoriosAlterados, type RascunhoPermissoes } from './PermissoesEditor'
-import type { PapelUsuario, PermissoesUsuario, Profissional, UsuarioListado } from '../../types'
+import type { PapelUsuario, PermissoesUsuario, Profissional, TelaId, UsuarioListado } from '../../types'
 import CampoBusca from '../ui/CampoBusca'
 
 type Dados = { nome: string; papel: PapelUsuario; profissional_id: string; ativo: boolean }
@@ -48,6 +49,8 @@ export default function UsuarioCard({ usuario, aberto, onToggle, papeis, profiss
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [aviso, setAviso] = useState('')
+  const { user } = useAuth()
+  const [telaInicial, setTelaInicial] = useState<TelaId>('agenda')
 
   // Recarrega o formulário quando o usuário muda (após salvar ou recarregar a lista).
   useEffect(() => { setDados(dadosDe(usuario)) }, [usuario])
@@ -60,7 +63,7 @@ export default function UsuarioCard({ usuario, aberto, onToggle, papeis, profiss
       setCarregandoPerm(false)
       if (err) { setError(err.message); return }
       const p = data as PermissoesUsuario
-      setPermissoes(p); setRascunho(rascunhoDe(p))
+      setPermissoes(p); setRascunho(rascunhoDe(p)); setTelaInicial(p.tela_inicial ?? 'agenda')
     })
     return () => { cancelado = true }
   }
@@ -75,7 +78,12 @@ export default function UsuarioCard({ usuario, aberto, onToggle, papeis, profiss
   const dadosAlterados = JSON.stringify(dados) !== JSON.stringify(original)
   const permAlteradas = !!(permissoes && rascunho && !rascunhosIguais(rascunho, rascunhoDe(permissoes)))
   const papelMudou = dados.papel !== usuario.papel
-  const alterado = dadosAlterados || permAlteradas || novaSenha !== ''
+  const telaInicialAlterada = !!permissoes && telaInicial !== (permissoes.tela_inicial ?? 'agenda')
+  const alterado = dadosAlterados || permAlteradas || telaInicialAlterada || novaSenha !== ''
+  // Tela inicial: quem configura as permissões do usuário, ou ele mesmo.
+  const telaInicialEditavel = podeEditar && !!permissoes && (!!permissoes.pode_configurar || usuario.usuario_id === user?.id)
+  // Só as telas que o usuário pode ver (com o rascunho atual das permissões).
+  const opcoesTelaInicial = TELAS.filter(t => permissoes?.acesso_total || rascunho?.telas[t.id]?.ver)
   // Admin tem acesso total; trocar o papel apaga as personalizações,
   // então a tabela só fica editável com o papel atual.
   const permEditavel = podeEditar && !!permissoes?.pode_configurar && !permissoes.acesso_total && !papelMudou
@@ -97,6 +105,10 @@ export default function UsuarioCard({ usuario, aberto, onToggle, papeis, profiss
         })
         if (err) throw err
       }
+      if (telaInicialAlterada) {
+        const { error: err } = await supabase.rpc('definir_tela_inicial', { p_usuario_id: usuario.usuario_id, p_tela: telaInicial })
+        if (err) throw err
+      }
       if (novaSenha) {
         const { error: err } = await supabase.rpc('redefinir_senha_usuario', { p_usuario_id: usuario.usuario_id, p_senha: novaSenha })
         if (err) throw err
@@ -113,6 +125,7 @@ export default function UsuarioCard({ usuario, aberto, onToggle, papeis, profiss
           p_dar_desconto: rascunho.dar_desconto,
           p_desconto_maximo: rascunho.desconto_maximo,
           p_ver_custo_produtos: rascunho.ver_custo_produtos,
+          p_excluir_produtos: rascunho.excluir_produtos,
           p_dashboard_cards: cardsAlterados(rascunho, original) ? rascunho.dashboard_cards : null,
         }
         // Só manda os relatórios quando mudaram (o banco sem a migração de
@@ -135,7 +148,7 @@ export default function UsuarioCard({ usuario, aberto, onToggle, papeis, profiss
 
   function descartar() {
     setDados(original); setNovaSenha(''); setError(''); setAviso('')
-    if (permissoes) setRascunho(rascunhoDe(permissoes))
+    if (permissoes) { setRascunho(rascunhoDe(permissoes)); setTelaInicial(permissoes.tela_inicial ?? 'agenda') }
   }
 
   async function restaurarPadrao() {
@@ -221,6 +234,21 @@ export default function UsuarioCard({ usuario, aberto, onToggle, papeis, profiss
                         opcoes={profissionais.map(p => ({ id: p.id, nome: p.nome }))}
                         valor={dados.profissional_id} onChange={id => setDados(d => ({ ...d, profissional_id: id }))}
                       />
+                    </div>
+                  )}
+                  {permissoes && (
+                    <div className="field">
+                      <label className="label">Tela inicial</label>
+                      <select
+                        className="input" value={telaInicial} disabled={!telaInicialEditavel}
+                        title="Tela que abre quando o usuário entra no sistema"
+                        onChange={e => setTelaInicial(e.target.value as TelaId)}
+                      >
+                        {!opcoesTelaInicial.some(t => t.id === telaInicial) && (
+                          <option value={telaInicial}>{TELAS.find(t => t.id === telaInicial)?.label ?? telaInicial} (sem acesso: abre a primeira liberada)</option>
+                        )}
+                        {opcoesTelaInicial.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+                      </select>
                     </div>
                   )}
                   <div className="field">

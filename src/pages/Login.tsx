@@ -23,7 +23,7 @@ export default function Login() {
     if (error) {
       setErro(error.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : error.message)
     } else {
-      navigate('/dashboard')
+      navigate('/inicio')
     }
     setLoading(false)
   }
