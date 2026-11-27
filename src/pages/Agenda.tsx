@@ -876,7 +876,7 @@ function MensalView({
    MAIN COMPONENT
 ══════════════════════════════════════════════════════════ */
 export default function Agenda() {
-  const { podeEditar: podeEditarTela, verVendasOutros, verAgendamentosOutros } = usePermissoes()
+  const { podeEditar: podeEditarTela, verVendasOutros, verAgendamentosOutros, loading: carregandoPermissoes } = usePermissoes()
   const { profissionalId: meuProfissional } = usePerfil()
   const { usarWhatsapp } = useLoja()
   const podeEditar = podeEditarTela('agenda')
@@ -889,10 +889,20 @@ export default function Agenda() {
   // "Gerar venda": modal de venda do atendimento e o aviso depois de vender.
   const [vendaAgId, setVendaAgId] = useState<string | null>(null)
   const [vendaFeita, setVendaFeita] = useState<{ comandaId: string; total: number; vinculada: boolean } | null>(null)
+  // Visão ao abrir: quem vê a agenda de todos abre sempre em "Profissionais";
+  // quem só vê a própria abre na última visão que usou (padrão: Lista).
   const [viewMode, setViewMode]     = useState<ViewMode>(() => {
+    if (!carregandoPermissoes && verAgendamentosOutros) return 'profissionais'
     const v = lerStorage(VISAO_KEY)
     return v === 'semanal' || v === 'mensal' || v === 'profissionais' ? v : 'lista'
   })
+  const [visaoInicialAplicada, setVisaoInicialAplicada] = useState(!carregandoPermissoes)
+  useEffect(() => {
+    // As permissões podem chegar depois da tela: aplica a visão inicial uma vez.
+    if (carregandoPermissoes || visaoInicialAplicada) return
+    setVisaoInicialAplicada(true)
+    if (verAgendamentosOutros) setViewMode('profissionais')
+  }, [carregandoPermissoes, verAgendamentosOutros, visaoInicialAplicada])
   const [ocultarFinalizados, setOcultarFinalizados] = useState(() => lerStorage(OCULTAR_KEY) === '1')
   useEffect(() => { gravarStorage(VISAO_KEY, viewMode) }, [viewMode])
   const [selectedDate, setSelectedDate] = useState(new Date())
