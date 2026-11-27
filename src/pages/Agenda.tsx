@@ -1197,18 +1197,14 @@ export default function Agenda() {
           </button>
 
           {podeEditar && usarWhatsapp && (
-            <button className="btn btn-secondary" onClick={() => setLembretesAberto(true)} title="Mandar lembrete no WhatsApp para os clientes de amanhã" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <MessageCircle size={14} /> Lembretes de amanhã
+            <button className="btn btn-secondary agenda-topo-btn" onClick={() => setLembretesAberto(true)} title="Mandar lembrete no WhatsApp para os clientes de amanhã">
+              <MessageCircle size={13} /> Lembretes de amanhã
             </button>
           )}
 
           {podeEditar && (
-            <button
-              className="btn btn-primary"
-              onClick={abrirNovo}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-            >
-              <Plus size={14} strokeWidth={2.5} /> Agendar
+            <button className="btn btn-secondary agenda-topo-btn agenda-topo-agendar" onClick={abrirNovo}>
+              <Plus size={13} strokeWidth={2.5} /> Agendar
             </button>
           )}
         </div>
