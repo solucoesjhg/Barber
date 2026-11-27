@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ChevronLeft, ChevronRight, Plus, Clock,
-  Check, Trash2, List, CalendarDays, CalendarRange, CalendarPlus, ShoppingCart, Play, MessageCircle, Eye, EyeOff,
+  Check, Trash2, List, CalendarDays, CalendarRange, CalendarPlus, ShoppingCart, Play, MessageCircle, Eye, EyeOff, Users,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { formatCurrency } from '../lib/utils'
+import { formatCurrency, initials } from '../lib/utils'
 import { dataLocalISO } from '../lib/periodo'
 import { usePermissoes } from '../hooks/usePermissoes'
 import { useLoja } from '../hooks/useLoja'
@@ -23,7 +23,7 @@ import LembretesModal from '../components/agenda/LembretesModal'
 import type { Agendamento, AgendamentoStatus, Cliente, Profissional, Servico } from '../types'
 
 /* ── Types ──────────────────────────────────────────────── */
-type ViewMode = 'lista' | 'semanal' | 'mensal'
+type ViewMode = 'lista' | 'semanal' | 'mensal' | 'profissionais'
 
 /* ── Constants ──────────────────────────────────────────── */
 const STATUS_CFG = STATUS_AGENDA
@@ -323,58 +323,59 @@ function ListaView({
 }
 
 /* ══════════════════════════════════════════════════════════
-   SEMANAL VIEW — time grid
+   GRADE DE HORÁRIOS — usada pela semana (uma coluna por dia) e
+   pela visão por profissional (uma coluna por profissional no dia)
 ══════════════════════════════════════════════════════════ */
 const PASSO_ARRASTO = 15 // minutos
+const PASSO_NOVO = 30 // minutos: clicar no vazio marca no começo da meia hora
 
-function SemanalView({
-  baseDate, setBaseDate, agenda, onDayClick, onAbrir, onRemarcar,
-}: {
-  baseDate: Date
-  setBaseDate: (d: Date) => void
-  agenda: Agendamento[]
-  onDayClick: (d: Date) => void
+interface ColunaGrade {
+  chave: string
+  /** Dia da coluna (AAAA-MM-DD). */
+  dia: string
+  /** Coluna de um profissional: o novo agendamento e o arrasto vão para ele. */
+  profissionalId?: string
+  cabecalho: React.ReactNode
+  onCabecalho?: () => void
+  destaque?: boolean
+}
+
+function GradeHorarios({ colunas, agendamentosDa, onAbrir, onRemarcar, onNovo, larguraColuna = 0 }: {
+  colunas: ColunaGrade[]
+  agendamentosDa: (c: ColunaGrade) => Agendamento[]
   onAbrir: (id: string) => void
-  /** Arrastar o atendimento para outro dia/horário. Ausente = sem permissão. */
-  onRemarcar?: (id: string, dataHora: string) => void
+  /** Arrastar o atendimento para outro horário (e, por profissional, para outro profissional). */
+  onRemarcar?: (id: string, dataHora: string, profissionalId?: string) => void
+  /** Clique no horário vazio: novo agendamento nesse dia/hora (e profissional). */
+  onNovo?: (dia: string, hora: string, profissionalId?: string) => void
+  /** Largura mínima de cada coluna (px); 0 = divide o espaço. */
+  larguraColuna?: number
 }) {
   // Arrastar para remarcar: guarda o atendimento arrastado e onde ele
   // foi pego (para o topo do card cair onde o mouse está) e o destino.
   const [arrasto, setArrasto] = useState<{ id: string; pegaY: number; altura: number } | null>(null)
-  const [destino, setDestino] = useState<{ dia: string; minutos: number } | null>(null)
+  const [destino, setDestino] = useState<{ chave: string; minutos: number } | null>(null)
+  // Horário vazio sob o mouse (o "+ 14:30" que aparece antes de clicar).
+  const [sobre, setSobre] = useState<{ chave: string; minutos: number } | null>(null)
 
-  function minutosNaColuna(e: React.DragEvent<HTMLDivElement>): number {
-    const y = e.clientY - e.currentTarget.getBoundingClientRect().top - (arrasto?.pegaY ?? 0)
-    const minutos = Math.round(((y / HOUR_H) * 60) / PASSO_ARRASTO) * PASSO_ARRASTO
-    return Math.min(Math.max(minutos, 0), HOURS.length * 60 - PASSO_ARRASTO)
+  function minutosNaColuna(e: React.MouseEvent<HTMLDivElement>, desconto = 0, passo = PASSO_ARRASTO, arredondar = Math.round): number {
+    const y = e.clientY - e.currentTarget.getBoundingClientRect().top - desconto
+    const minutos = arredondar(((y / HOUR_H) * 60) / passo) * passo
+    return Math.min(Math.max(minutos, 0), HOURS.length * 60 - passo)
   }
 
-  function soltar(e: React.DragEvent<HTMLDivElement>, dia: string) {
+  const horaDe = (minutos: number) => `${pad(GRID_START + Math.floor(minutos / 60))}:${pad(minutos % 60)}`
+
+  function soltar(e: React.DragEvent<HTMLDivElement>, c: ColunaGrade) {
     e.preventDefault()
     if (!arrasto || !onRemarcar) return
-    const total = GRID_START * 60 + minutosNaColuna(e)
-    const ag = agenda.find(a => a.id === arrasto.id)
-    const novo = `${dia}T${pad(Math.floor(total / 60))}:${pad(total % 60)}:00`
+    const total = GRID_START * 60 + minutosNaColuna(e, arrasto.pegaY)
+    const ag = agendamentosDa(c).find(a => a.id === arrasto.id) ?? null
+    const novo = `${c.dia}T${pad(Math.floor(total / 60))}:${pad(total % 60)}:00`
+    const id = arrasto.id
     setArrasto(null); setDestino(null)
-    if (ag && !(ag.data_hora.startsWith(dia) && timeToPx(ag.data_hora) === ((total / 60) - GRID_START) * HOUR_H)) onRemarcar(arrasto.id, novo)
-  }
-
-  const weekDays = getWeekDays(baseDate)
-  const todayKey = toKey(new Date())
-
-  const navWeek = (n: number) => {
-    const d = new Date(baseDate)
-    d.setDate(d.getDate() + n * 7)
-    setBaseDate(d)
-  }
-
-  const filtered = agenda
-
-  // Get appointments for a specific day key, sorted
-  function agForDay(dayKey: string) {
-    return filtered
-      .filter(a => a.data_hora.startsWith(dayKey))
-      .sort((a, b) => a.data_hora.localeCompare(b.data_hora))
+    const mesmoLugar = ag && ag.data_hora.startsWith(c.dia) && timeToPx(ag.data_hora) === ((total / 60) - GRID_START) * HOUR_H
+    if (!mesmoLugar) onRemarcar(id, novo, c.profissionalId)
   }
 
   // Convert time to px offset from top of grid
@@ -388,78 +389,46 @@ function SemanalView({
     return Math.max((mins / 60) * HOUR_H, 28)
   }
 
-  const weekLabel = `${weekDays[0].getDate()} ${MONTH_NAMES[weekDays[0].getMonth()]} — ${weekDays[6].getDate()} ${MONTH_NAMES[weekDays[6].getMonth()]} ${weekDays[6].getFullYear()}`
+  const colunasCss = larguraColuna > 0 ? `52px repeat(${colunas.length}, minmax(${larguraColuna}px, 1fr))` : `52px repeat(${colunas.length}, 1fr)`
+  const larguraMinima = larguraColuna > 0 ? 52 + colunas.length * larguraColuna : undefined
 
   return (
-    <div>
-      {/* Week nav */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-        <button className="btn btn-icon" onClick={() => navWeek(-1)}><ChevronLeft size={14} /></button>
-        <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--c-a3)', flex: 1 }}>{weekLabel}</span>
-        <button className="btn btn-icon" onClick={() => navWeek(1)}><ChevronRight size={14} /></button>
-      </div>
-
-      {/* Grid */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
       <div className="agenda-week-scroll">
-      <div className="agenda-week-inner">
-        {/* Day headers */}
+      <div className="agenda-week-inner" style={larguraMinima ? { minWidth: `${larguraMinima}px` } : undefined}>
+        {/* Cabeçalhos */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '52px repeat(7, 1fr)',
+          gridTemplateColumns: colunasCss,
           borderBottom: '1px solid var(--c-22)',
           background: 'var(--header-bg)',
         }}>
           <div />
-          {weekDays.map((d, i) => {
-            const key     = toKey(d)
-            const isToday = key === todayKey
-            const count   = agForDay(key).length
-            return (
-              <div
-                key={key}
-                onClick={() => onDayClick(d)}
-                style={{
-                  padding: '10px 8px',
-                  textAlign: 'center',
-                  borderLeft: '1px solid var(--c-1a)',
-                  cursor: 'pointer',
-                  transition: 'background 0.15s',
-                }}
-                onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'rgba(var(--ink),0.03)'}
-                onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'transparent'}
-              >
-                <p style={{
-                  fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em',
-                  color: isToday ? 'var(--c-fff)' : 'var(--c-55)', marginBottom: '4px',
-                }}>
-                  {WEEK_DAYS_SHORT[i]}
-                </p>
-                <p style={{
-                  fontSize: '18px', fontWeight: 700, lineHeight: 1, fontFamily: 'DM Sans, sans-serif',
-                  color: isToday ? 'var(--c-fff)' : 'var(--c-a3)',
-                }}>
-                  {d.getDate()}
-                </p>
-                {count > 0 && (
-                  <div style={{
-                    marginTop: '4px', fontSize: '10px', color: 'var(--c-44)',
-                    background: 'rgba(var(--ink),0.05)', borderRadius: '99px',
-                    padding: '1px 5px', display: 'inline-block',
-                  }}>
-                    {count}
-                  </div>
-                )}
-              </div>
-            )
-          })}
+          {colunas.map(c => (
+            <div
+              key={c.chave}
+              onClick={c.onCabecalho}
+              style={{
+                padding: '10px 8px',
+                textAlign: 'center',
+                borderLeft: '1px solid var(--c-1a)',
+                cursor: c.onCabecalho ? 'pointer' : 'default',
+                transition: 'background 0.15s',
+                minWidth: 0,
+              }}
+              onMouseEnter={c.onCabecalho ? e => (e.currentTarget as HTMLDivElement).style.background = 'rgba(var(--ink),0.03)' : undefined}
+              onMouseLeave={c.onCabecalho ? e => (e.currentTarget as HTMLDivElement).style.background = 'transparent' : undefined}
+            >
+              {c.cabecalho}
+            </div>
+          ))}
         </div>
 
         {/* Time body — scrollable */}
         <div style={{ overflowY: 'auto', maxHeight: '520px' }}>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: '52px repeat(7, 1fr)',
+            gridTemplateColumns: colunasCss,
             position: 'relative',
           }}>
             {/* Hour labels column */}
@@ -477,30 +446,48 @@ function SemanalView({
               ))}
             </div>
 
-            {/* Day columns */}
-            {weekDays.map((d) => {
-              const key  = toKey(d)
-              const ags  = agForDay(key)
-              const isToday = key === todayKey
+            {colunas.map(c => {
+              const ags = agendamentosDa(c)
+              const sobreAqui = !arrasto && onNovo && sobre?.chave === c.chave ? sobre : null
               return (
                 <div
-                  key={key}
+                  key={c.chave}
+                  className={onNovo ? 'grade-coluna-livre' : undefined}
                   onDragOver={arrasto ? e => {
                     e.preventDefault()
-                    const minutos = minutosNaColuna(e)
-                    if (destino?.dia !== key || destino.minutos !== minutos) setDestino({ dia: key, minutos })
+                    const minutos = minutosNaColuna(e, arrasto.pegaY)
+                    if (destino?.chave !== c.chave || destino.minutos !== minutos) setDestino({ chave: c.chave, minutos })
                   } : undefined}
-                  onDrop={arrasto ? e => soltar(e, key) : undefined}
+                  onDrop={arrasto ? e => soltar(e, c) : undefined}
+                  onMouseMove={onNovo && !arrasto ? e => {
+                    // Só no vazio: em cima de um atendimento, o "+" some.
+                    if ((e.target as HTMLElement).closest('.grade-ag')) { if (sobre) setSobre(null); return }
+                    const minutos = minutosNaColuna(e, 0, PASSO_NOVO, Math.floor)
+                    if (sobre?.chave !== c.chave || sobre.minutos !== minutos) setSobre({ chave: c.chave, minutos })
+                  } : undefined}
+                  onMouseLeave={onNovo ? () => setSobre(null) : undefined}
+                  onClick={onNovo ? e => {
+                    if ((e.target as HTMLElement).closest('.grade-ag')) return
+                    onNovo(c.dia, horaDe(minutosNaColuna(e, 0, PASSO_NOVO, Math.floor)), c.profissionalId)
+                  } : undefined}
                   style={{
                     borderLeft: '1px solid var(--c-1a)',
                     position: 'relative',
-                    background: destino?.dia === key ? 'rgba(var(--ink),0.04)' : isToday ? 'rgba(var(--ink),0.015)' : 'transparent',
+                    minWidth: 0,
+                    cursor: onNovo ? 'pointer' : undefined,
+                    background: destino?.chave === c.chave ? 'rgba(var(--ink),0.04)' : c.destaque ? 'rgba(var(--ink),0.015)' : 'transparent',
                   }}
                 >
                   {/* Onde o atendimento arrastado vai cair */}
-                  {arrasto && destino?.dia === key && (
+                  {arrasto && destino?.chave === c.chave && (
                     <div className="agenda-destino" style={{ top: `${(destino.minutos / 60) * HOUR_H}px`, height: `${arrasto.altura}px` }}>
-                      {pad(GRID_START + Math.floor(destino.minutos / 60))}:{pad(destino.minutos % 60)}
+                      {horaDe(destino.minutos)}
+                    </div>
+                  )}
+                  {/* Horário vazio sob o mouse */}
+                  {sobreAqui && (
+                    <div className="grade-novo" style={{ top: `${(sobreAqui.minutos / 60) * HOUR_H}px`, height: `${(PASSO_NOVO / 60) * HOUR_H}px` }}>
+                      <Plus size={11} /> {horaDe(sobreAqui.minutos)}
                     </div>
                   )}
                   {/* Hour lines */}
@@ -514,18 +501,21 @@ function SemanalView({
                     const h    = durationToPx(ag.servico?.duracao_minutos ?? 30)
                     const cfg  = STATUS_CFG[ag.status]
                     const arrastavel = !!onRemarcar && (ag.status === 'pendente' || ag.status === 'confirmado')
+                    const mostrarProf = !c.profissionalId && !!ag.profissional
                     return (
                       <div
                         key={ag.id}
+                        className="grade-ag"
                         draggable={arrastavel}
                         onDragStart={arrastavel ? e => {
                           e.dataTransfer.effectAllowed = 'move'
                           e.dataTransfer.setData('text/plain', ag.id)
+                          setSobre(null)
                           setArrasto({ id: ag.id, pegaY: e.clientY - e.currentTarget.getBoundingClientRect().top, altura: h })
                         } : undefined}
                         onDragEnd={() => { setArrasto(null); setDestino(null) }}
                         title={`${ag.cliente?.nome ?? 'Sem cliente'} — ${ag.servico?.nome ?? ''}${ag.profissional ? ` · ${ag.profissional.nome}` : ''}${arrastavel ? ' · arraste para remarcar' : ''}`}
-                        onClick={() => onAbrir(ag.id)}
+                        onClick={e => { e.stopPropagation(); onAbrir(ag.id) }}
                         role="button"
                         tabIndex={0}
                         onKeyDown={e => { if (e.key === 'Enter') onAbrir(ag.id) }}
@@ -552,7 +542,7 @@ function SemanalView({
                           lineHeight: 1.2,
                         }}>
                           {ag.cliente?.nome ?? 'Cliente'}
-                          {h < 40 && ag.profissional && <span style={{ fontWeight: 400, color: 'var(--c-66)' }}> · {ag.profissional.nome.split(' ')[0]}</span>}
+                          {h < 40 && mostrarProf && <span style={{ fontWeight: 400, color: 'var(--c-66)' }}> · {ag.profissional!.nome.split(' ')[0]}</span>}
                         </p>
                         {h >= 40 && (
                           <p style={{
@@ -560,7 +550,8 @@ function SemanalView({
                             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                             marginTop: '2px',
                           }}>
-                            {ag.servico?.nome}{ag.profissional ? ` · ${ag.profissional.nome.split(' ')[0]}` : ''}
+                            {new Date(ag.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            {ag.servico?.nome ? ` · ${ag.servico.nome}` : ''}{mostrarProf ? ` · ${ag.profissional!.nome.split(' ')[0]}` : ''}
                           </p>
                         )}
                         {h >= 52 && (
@@ -579,6 +570,151 @@ function SemanalView({
       </div>
       </div>
       </div>
+  )
+}
+
+/* ══════════════════════════════════════════════════════════
+   SEMANAL VIEW — uma coluna por dia
+══════════════════════════════════════════════════════════ */
+function SemanalView({
+  baseDate, setBaseDate, agenda, onDayClick, onAbrir, onRemarcar, onNovo,
+}: {
+  baseDate: Date
+  setBaseDate: (d: Date) => void
+  agenda: Agendamento[]
+  onDayClick: (d: Date) => void
+  onAbrir: (id: string) => void
+  /** Arrastar o atendimento para outro dia/horário. Ausente = sem permissão. */
+  onRemarcar?: (id: string, dataHora: string) => void
+  onNovo?: (dia: string, hora: string) => void
+}) {
+  const weekDays = getWeekDays(baseDate)
+  const todayKey = toKey(new Date())
+
+  const navWeek = (n: number) => {
+    const d = new Date(baseDate)
+    d.setDate(d.getDate() + n * 7)
+    setBaseDate(d)
+  }
+
+  // Get appointments for a specific day key, sorted
+  function agForDay(dayKey: string) {
+    return agenda
+      .filter(a => a.data_hora.startsWith(dayKey))
+      .sort((a, b) => a.data_hora.localeCompare(b.data_hora))
+  }
+
+  const weekLabel = `${weekDays[0].getDate()} ${MONTH_NAMES[weekDays[0].getMonth()]} — ${weekDays[6].getDate()} ${MONTH_NAMES[weekDays[6].getMonth()]} ${weekDays[6].getFullYear()}`
+
+  const colunas: ColunaGrade[] = weekDays.map((d, i) => {
+    const key = toKey(d)
+    const isToday = key === todayKey
+    const count = agForDay(key).length
+    return {
+      chave: key, dia: key, destaque: isToday, onCabecalho: () => onDayClick(d),
+      cabecalho: (
+        <>
+          <p style={{
+            fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em',
+            color: isToday ? 'var(--c-fff)' : 'var(--c-55)', marginBottom: '4px',
+          }}>
+            {WEEK_DAYS_SHORT[i]}
+          </p>
+          <p style={{
+            fontSize: '18px', fontWeight: 700, lineHeight: 1, fontFamily: 'DM Sans, sans-serif',
+            color: isToday ? 'var(--c-fff)' : 'var(--c-a3)',
+          }}>
+            {d.getDate()}
+          </p>
+          {count > 0 && (
+            <div style={{
+              marginTop: '4px', fontSize: '10px', color: 'var(--c-44)',
+              background: 'rgba(var(--ink),0.05)', borderRadius: '99px',
+              padding: '1px 5px', display: 'inline-block',
+            }}>
+              {count}
+            </div>
+          )}
+        </>
+      ),
+    }
+  })
+
+  return (
+    <div>
+      {/* Week nav */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+        <button className="btn btn-icon" onClick={() => navWeek(-1)} aria-label="Semana anterior"><ChevronLeft size={14} /></button>
+        <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--c-a3)', flex: 1 }}>{weekLabel}</span>
+        <button className="btn btn-icon" onClick={() => navWeek(1)} aria-label="Próxima semana"><ChevronRight size={14} /></button>
+      </div>
+      <GradeHorarios
+        colunas={colunas}
+        agendamentosDa={c => agForDay(c.dia)}
+        onAbrir={onAbrir}
+        onRemarcar={onRemarcar ? (id, dataHora) => onRemarcar(id, dataHora) : undefined}
+        onNovo={onNovo ? (dia, hora) => onNovo(dia, hora) : undefined}
+      />
+    </div>
+  )
+}
+
+/* ══════════════════════════════════════════════════════════
+   POR PROFISSIONAL — um dia, uma coluna por profissional
+══════════════════════════════════════════════════════════ */
+function ProfissionaisView({
+  dia, setDia, agenda, profissionais, onAbrir, onRemarcar, onNovo,
+}: {
+  dia: Date
+  setDia: (d: Date) => void
+  agenda: Agendamento[]
+  profissionais: Profissional[]
+  onAbrir: (id: string) => void
+  onRemarcar?: (id: string, dataHora: string, profissionalId?: string) => void
+  onNovo?: (dia: string, hora: string, profissionalId?: string) => void
+}) {
+  const chave = toKey(dia)
+  const hoje = toKey(new Date())
+  const doDia = agenda.filter(a => a.data_hora.startsWith(chave)).sort((a, b) => a.data_hora.localeCompare(b.data_hora))
+  const rotulo = dia.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }).replace(/^./, c => c.toUpperCase())
+
+  const colunas: ColunaGrade[] = profissionais.map(p => {
+    const qtd = doDia.filter(a => a.profissional_id === p.id).length
+    const cor = corDoProfissional(p.id)
+    return {
+      chave: p.id, dia: chave, profissionalId: p.id, destaque: false,
+      cabecalho: (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', minWidth: 0 }}>
+          <span className="filtro-prof-avatar" style={{ borderColor: cor, color: cor, flexShrink: 0 }}>{initials(p.nome)}</span>
+          <span style={{ minWidth: 0, textAlign: 'left' }}>
+            <span className="texto-cortado" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--c-fff)' }}>{p.nome}</span>
+            <span style={{ fontSize: '10px', color: 'var(--c-55)' }}>{qtd === 0 ? 'livre' : `${qtd} ${qtd === 1 ? 'atendimento' : 'atendimentos'}`}</span>
+          </span>
+        </div>
+      ),
+    }
+  })
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+        <button className="btn btn-icon" onClick={() => setDia(somarDias(dia, -1))} aria-label="Dia anterior"><ChevronLeft size={14} /></button>
+        <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--c-a3)', flex: 1 }}>{rotulo}</span>
+        {chave !== hoje && <button className="btn btn-secondary btn-sm" onClick={() => setDia(new Date())}>Hoje</button>}
+        <button className="btn btn-icon" onClick={() => setDia(somarDias(dia, 1))} aria-label="Próximo dia"><ChevronRight size={14} /></button>
+      </div>
+      {colunas.length === 0 ? (
+        <div className="card" style={{ padding: '48px', textAlign: 'center', color: 'var(--c-44)', fontSize: '13px' }}>Nenhum profissional ativo.</div>
+      ) : (
+        <GradeHorarios
+          colunas={colunas}
+          larguraColuna={150}
+          agendamentosDa={c => doDia.filter(a => a.profissional_id === c.profissionalId)}
+          onAbrir={onAbrir}
+          onRemarcar={onRemarcar}
+          onNovo={onNovo}
+        />
+      )}
     </div>
   )
 }
@@ -755,7 +891,7 @@ export default function Agenda() {
   const [vendaFeita, setVendaFeita] = useState<{ comandaId: string; total: number; vinculada: boolean } | null>(null)
   const [viewMode, setViewMode]     = useState<ViewMode>(() => {
     const v = lerStorage(VISAO_KEY)
-    return v === 'semanal' || v === 'mensal' ? v : 'lista'
+    return v === 'semanal' || v === 'mensal' || v === 'profissionais' ? v : 'lista'
   })
   const [ocultarFinalizados, setOcultarFinalizados] = useState(() => lerStorage(OCULTAR_KEY) === '1')
   useEffect(() => { gravarStorage(VISAO_KEY, viewMode) }, [viewMode])
@@ -791,6 +927,8 @@ export default function Agenda() {
     if (viewMode === 'semanal') {
       const dias = getWeekDays(calBase)
       inicio = toKey(dias[0]); fim = toKey(dias[6])
+    } else if (viewMode === 'profissionais') {
+      inicio = toKey(calBase); fim = toKey(calBase)
     } else if (viewMode === 'mensal') {
       const dias = getMonthGrid(calBase.getFullYear(), calBase.getMonth())
       inicio = toKey(dias[0]); fim = toKey(dias[dias.length - 1])
@@ -921,14 +1059,18 @@ export default function Agenda() {
 
   // Arrastar na semanal: muda o horário na hora e desfaz se o banco
   // recusar (ex.: o profissional já tem atendimento nesse horário).
-  async function remarcar(id: string, dataHora: string) {
+  async function remarcar(id: string, dataHora: string, profissionalId?: string) {
     const anterior = agenda.find(a => a.id === id)
     if (!anterior) return
-    setAgenda(prev => prev.map(a => a.id === id ? { ...a, data_hora: dataHora } : a))
+    // Na visão por profissional, soltar na coluna de outro troca também o profissional.
+    const outroProf = profissionalId && profissionalId !== anterior.profissional_id ? profissionalId : null
+    const novoProf = outroProf ? profissionais.find(p => p.id === outroProf) : undefined
+    setAgenda(prev => prev.map(a => a.id === id ? { ...a, data_hora: dataHora, ...(outroProf ? { profissional_id: outroProf, profissional: novoProf ?? a.profissional } : {}) } : a))
     // Vai para o banco com o fuso do navegador (o mesmo usado para exibir).
-    const { error: err } = await supabase.from('agendamentos').update({ data_hora: new Date(dataHora).toISOString() }).eq('id', id)
+    const { error: err } = await supabase.from('agendamentos')
+      .update({ data_hora: new Date(dataHora).toISOString(), ...(outroProf ? { profissional_id: outroProf } : {}) }).eq('id', id)
     if (err) {
-      setAgenda(prev => prev.map(a => a.id === id ? { ...a, data_hora: anterior.data_hora } : a))
+      setAgenda(prev => prev.map(a => a.id === id ? { ...a, data_hora: anterior.data_hora, profissional_id: anterior.profissional_id, profissional: anterior.profissional } : a))
       window.alert(err.code === '23P01' ? 'Esse profissional já tem outro atendimento nesse horário.' : `Não foi possível remarcar: ${err.message}`)
     }
   }
@@ -959,6 +1101,19 @@ export default function Agenda() {
 
   function alternarFinalizados() {
     setOcultarFinalizados(v => { gravarStorage(OCULTAR_KEY, v ? '0' : '1'); return !v })
+  }
+
+  // Clique num horário vazio da grade: novo agendamento nesse dia e hora
+  // (e, na visão por profissional, já com o profissional da coluna).
+  function novoNoHorario(dia: string, hora: string, profissionalId?: string) {
+    setError('')
+    const vinculado = meuProfissional && profissionais.some(p => p.id === meuProfissional) ? meuProfissional : ''
+    setForm(f => {
+      const prof = profissionalId || (filtroAtivo.length === 1 ? filtroAtivo[0] : '') || f.profissional_id || vinculado
+      const base = { ...f, data: dia, hora }
+      return prof === f.profissional_id ? base : { ...base, profissional_id: prof, servico_id: '' }
+    })
+    setShowModal(true)
   }
 
   // O novo agendamento já vem com o profissional filtrado ou, sem
@@ -1027,6 +1182,7 @@ export default function Agenda() {
             <ViewBtn active={viewMode === 'lista'}   onClick={() => setViewMode('lista')}   icon={List}          label="Lista"   />
             <ViewBtn active={viewMode === 'semanal'} onClick={() => { setViewMode('semanal'); setCalBase(selectedDate) }} icon={CalendarDays} label="Semanal" />
             <ViewBtn active={viewMode === 'mensal'}  onClick={() => { setViewMode('mensal');  setCalBase(selectedDate) }} icon={CalendarRange} label="Mensal"  />
+            <ViewBtn active={viewMode === 'profissionais'} onClick={() => { setViewMode('profissionais'); setCalBase(selectedDate) }} icon={Users} label="Profissionais" />
           </div>
 
           <button
@@ -1101,6 +1257,18 @@ export default function Agenda() {
               onDayClick={handleDayClick}
               onAbrir={setAgAbertoId}
               onRemarcar={podeEditar ? remarcar : undefined}
+              onNovo={podeEditar ? novoNoHorario : undefined}
+            />
+          )}
+          {viewMode === 'profissionais' && (
+            <ProfissionaisView
+              dia={calBase}
+              setDia={d => { setCalBase(d); setSelectedDate(d) }}
+              agenda={agendaFiltrada}
+              profissionais={filtroAtivo.length > 0 ? profissionaisVisiveis.filter(p => filtroAtivo.includes(p.id)) : profissionaisVisiveis}
+              onAbrir={setAgAbertoId}
+              onRemarcar={podeEditar ? remarcar : undefined}
+              onNovo={podeEditar ? novoNoHorario : undefined}
             />
           )}
           {viewMode === 'mensal' && (
