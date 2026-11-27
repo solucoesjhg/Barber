@@ -1450,3 +1450,6 @@ fieldset:disabled .cfg-chave { cursor: default; opacity: .6; }
   border-bottom: 1px solid var(--c-1a); cursor: pointer; font-family: inherit; color: var(--text); }
 .comanda-linha:last-child { border-bottom: none; }
 .comanda-linha:hover { background: rgba(var(--ink), .05); }
+.badge-comanda-aberta { background: rgba(245,158,11,.12); color: #d97706; border: 1px solid rgba(245,158,11,.45); }
+.grade-ag .grade-ag-comanda { display: inline-block; margin-top: 3px; font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 999px;
+  background: rgba(245,158,11,.15); color: #d97706; border: 1px solid rgba(245,158,11,.45); }

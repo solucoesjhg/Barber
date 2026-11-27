@@ -17,9 +17,14 @@ export const STATUS_AGENDA: Record<AgendamentoStatus, { label: string; cls: stri
   nao_compareceu: { label: 'Não compareceu',  cls: 'badge badge-canceled'  },
 }
 
-/** Venda (não cancelada) gerada a partir do agendamento. */
+/** Venda fechada gerada a partir do agendamento. */
 export function vendaDoAgendamento(ag: Agendamento): string | null {
-  return (ag.vendas ?? []).find(v => v.status !== 'cancelada')?.id ?? null
+  return (ag.vendas ?? []).find(v => v.status === 'fechada')?.id ?? null
+}
+
+/** Comanda deixada aberta para o atendimento (sem pagamento ainda). */
+export function comandaAbertaDoAgendamento(ag: Agendamento): string | null {
+  return (ag.vendas ?? []).find(v => v.status === 'aberta')?.id ?? null
 }
 
 /**
@@ -27,7 +32,7 @@ export function vendaDoAgendamento(ag: Agendamento): string | null {
  * valor, observação (editável) e as ações do atendimento — confirmar,
  * iniciar, gerar a venda, concluir, não compareceu, cancelar.
  */
-export default function AgendamentoDetalheModal({ agendamento: ag, podeEditar, podeVender, verTodasVendas, onClose, onStatus, onObservacaoSalva, onGerarVenda, onVerVenda, onLembrete }: {
+export default function AgendamentoDetalheModal({ agendamento: ag, podeEditar, podeVender, verTodasVendas, onClose, onStatus, onObservacaoSalva, onGerarVenda, onVerVenda, onAbrirComanda, onLembrete }: {
   /** Lembrete aberto no WhatsApp (marca o agendamento). */
   onLembrete?: (quando: string) => void
   agendamento: Agendamento
@@ -40,6 +45,8 @@ export default function AgendamentoDetalheModal({ agendamento: ag, podeEditar, p
   onObservacaoSalva: (observacoes: string) => void
   onGerarVenda: () => void
   onVerVenda: (comandaId: string) => void
+  /** Comanda aberta do atendimento: abre em Vendas para continuar/fechar. */
+  onAbrirComanda: (comandaId: string) => void
 }) {
   const { usarWhatsapp } = useLoja()
   const [obs, setObs] = useState(ag.observacoes ?? '')
@@ -55,6 +62,7 @@ export default function AgendamentoDetalheModal({ agendamento: ag, podeEditar, p
   const dia = diaTexto.charAt(0).toUpperCase() + diaTexto.slice(1)
   const cfg = STATUS_AGENDA[ag.status]
   const vendaId = vendaDoAgendamento(ag)
+  const comandaId = vendaId ? null : comandaAbertaDoAgendamento(ag)
   const valor = ag.valor ?? ag.servico?.preco
   const obsAlterada = obs.trim() !== (ag.observacoes ?? '').trim()
 
@@ -71,7 +79,7 @@ export default function AgendamentoDetalheModal({ agendamento: ag, podeEditar, p
   }
 
   const fechado = ag.status === 'cancelado' || ag.status === 'nao_compareceu'
-  const podeGerarVenda = podeVender && !vendaId && (
+  const podeGerarVenda = podeVender && !vendaId && !comandaId && (
     ag.status === 'em_atendimento' || ag.status === 'confirmado' || (ag.status === 'concluido' && verTodasVendas)
   )
 
@@ -82,8 +90,13 @@ export default function AgendamentoDetalheModal({ agendamento: ag, podeEditar, p
       subtitulo={<><span>{dia}</span><span>{hora(inicio)} – {hora(fim)}</span><span className={cfg.cls}>{cfg.label}</span></>}
       onClose={onClose}
       onSalvar={salvarObservacao}
-      acoes={(podeEditar || vendaId || podeGerarVenda) ? (
+      acoes={(podeEditar || vendaId || podeGerarVenda || (comandaId && podeVender)) ? (
         <>
+          {comandaId && podeVender && (
+            <button className="btn btn-primary" onClick={() => onAbrirComanda(comandaId)} title="A comanda deste atendimento está aberta: abra para incluir itens ou fechar com o pagamento">
+              <Receipt size={13} /> Fechar comanda
+            </button>
+          )}
           {vendaId && (
             <button className="btn btn-secondary" onClick={() => onVerVenda(vendaId)}>
               <Receipt size={13} /> Ver venda

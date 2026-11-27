@@ -11,7 +11,7 @@ import { dataLocalISO } from '../lib/periodo'
 import { usePermissoes } from '../hooks/usePermissoes'
 import { useLoja } from '../hooks/useLoja'
 import { usePerfil } from '../hooks/usePerfil'
-import AgendamentoDetalheModal, { STATUS_AGENDA, vendaDoAgendamento } from '../components/AgendamentoDetalheModal'
+import AgendamentoDetalheModal, { STATUS_AGENDA, comandaAbertaDoAgendamento, vendaDoAgendamento } from '../components/AgendamentoDetalheModal'
 import VendaDetalheModal from '../components/VendaDetalheModal'
 import VendaAgendamentoModal from '../components/VendaAgendamentoModal'
 import ModalFormulario, { Campo, FormGrade } from '../components/ui/ModalFormulario'
@@ -133,7 +133,7 @@ function ViewBtn({
 ══════════════════════════════════════════════════════════ */
 function ListaView({
   selectedDate, setSelectedDate, inicioFaixa, onNavegar, agenda, updateStatus,
-  onOpenModal, setFormDate, podeEditar, podeVender, verTodasVendas, onAbrir, onGerarVenda, onLembrete,
+  onOpenModal, setFormDate, podeEditar, podeVender, verTodasVendas, onAbrir, onGerarVenda, onAbrirComanda, onLembrete,
 }: {
   onLembrete: (id: string, quando: string) => void
   podeEditar: boolean
@@ -150,6 +150,7 @@ function ListaView({
   setFormDate: (k: string) => void
   onAbrir: (id: string) => void
   onGerarVenda: (id: string) => void
+  onAbrirComanda: (comandaId: string) => void
 }) {
   const dateKey  = toKey(selectedDate)
   const todayKey = toKey(new Date())
@@ -235,9 +236,10 @@ function ListaView({
             : ''
           const cfg = STATUS_CFG[ag.status]
           const temVenda = !!vendaDoAgendamento(ag)
+          const comandaAberta = temVenda ? null : comandaAbertaDoAgendamento(ag)
           // Concluído sem venda visível só é certeza pra quem vê as vendas de todos
           // (senão pode ser venda registrada por outro usuário).
-          const gerarVenda = podeVender && !temVenda && (ag.status === 'em_atendimento' || (ag.status === 'concluido' && verTodasVendas))
+          const gerarVenda = podeVender && !temVenda && !comandaAberta && (ag.status === 'em_atendimento' || (ag.status === 'concluido' && verTodasVendas))
           const parar = (fn: () => void) => (e: React.MouseEvent) => { e.stopPropagation(); fn() }
           return (
             <motion.div
@@ -266,7 +268,8 @@ function ListaView({
                 <div className="agenda-item-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
                   <p className="texto-cortado" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--c-fff)' }}>{ag.cliente?.nome ?? 'Sem cliente'}</p>
                   <span className={cfg.cls}>{cfg.label}</span>
-                  {temVenda && <span className="badge badge-done" title="Venda registrada para este atendimento">Venda</span>}
+                  {temVenda && <span className="badge badge-done" title="Venda fechada para este atendimento">Venda</span>}
+                  {comandaAberta && <span className="badge badge-comanda-aberta" title="Comanda aberta: ainda falta fechar com o pagamento">Comanda aberta</span>}
                 </div>
                 <p className="texto-cortado" style={{ fontSize: '12px', color: 'var(--c-55)' }}>
                   {ag.servico?.nome}{ag.valor != null ? ` · ${formatCurrency(ag.valor)}` : ag.servico?.preco_na_venda ? ' · valor na venda' : ag.servico?.preco ? ` · ${formatCurrency(ag.servico.preco)}` : ''}
@@ -276,7 +279,12 @@ function ListaView({
                   <p className="texto-cortado" style={{ fontSize: '12px', color: 'var(--c-44)', marginTop: '3px', fontStyle: 'italic' }}>"{ag.observacoes}"</p>
                 )}
               </div>
-              {(podeEditar || gerarVenda) && <div style={{ display: 'flex', gap: '6px', flexShrink: 0, alignItems: 'center' }}>
+              {(podeEditar || gerarVenda || (comandaAberta && podeVender)) && <div style={{ display: 'flex', gap: '6px', flexShrink: 0, alignItems: 'center' }}>
+                {comandaAberta && podeVender && (
+                  <button className="btn btn-primary btn-sm" title="Abre a comanda para incluir itens ou fechar com o pagamento" onClick={parar(() => onAbrirComanda(comandaAberta))}>
+                    <ShoppingCart size={12} /> Fechar comanda
+                  </button>
+                )}
                 {gerarVenda && (
                   <button
                     className={ag.status === 'em_atendimento' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
@@ -503,6 +511,7 @@ function GradeHorarios({ colunas, agendamentosDa, onAbrir, onRemarcar, onNovo, l
                     const cfg  = STATUS_CFG[ag.status]
                     const arrastavel = !!onRemarcar && (ag.status === 'pendente' || ag.status === 'confirmado')
                     const mostrarProf = !c.profissionalId && !!ag.profissional
+                    const comandaAberta = !vendaDoAgendamento(ag) && !!comandaAbertaDoAgendamento(ag)
                     return (
                       <div
                         key={ag.id}
@@ -515,7 +524,7 @@ function GradeHorarios({ colunas, agendamentosDa, onAbrir, onRemarcar, onNovo, l
                           setArrasto({ id: ag.id, pegaY: e.clientY - e.currentTarget.getBoundingClientRect().top, altura: h })
                         } : undefined}
                         onDragEnd={() => { setArrasto(null); setDestino(null) }}
-                        title={`${ag.cliente?.nome ?? 'Sem cliente'} — ${ag.servico?.nome ?? ''}${ag.profissional ? ` · ${ag.profissional.nome}` : ''}${arrastavel ? ' · arraste para remarcar' : ''}`}
+                        title={`${ag.cliente?.nome ?? 'Sem cliente'} — ${ag.servico?.nome ?? ''}${ag.profissional ? ` · ${ag.profissional.nome}` : ''}${comandaAberta ? ' · comanda aberta' : ''}${arrastavel ? ' · arraste para remarcar' : ''}`}
                         onClick={e => { e.stopPropagation(); onAbrir(ag.id) }}
                         role="button"
                         tabIndex={0}
@@ -527,7 +536,7 @@ function GradeHorarios({ colunas, agendamentosDa, onAbrir, onRemarcar, onNovo, l
                           right: '3px',
                           height: `${h}px`,
                           background: `color-mix(in srgb, ${corDoProfissional(ag.profissional_id)} 14%, var(--c-26))`,
-                          border: '1px solid var(--c-3a)',
+                          border: comandaAberta ? '1px solid rgba(245,158,11,.7)' : '1px solid var(--c-3a)',
                           borderLeft: `3px solid ${corDoProfissional(ag.profissional_id)}`,
                           borderRadius: '5px',
                           padding: '4px 7px',
@@ -555,11 +564,13 @@ function GradeHorarios({ colunas, agendamentosDa, onAbrir, onRemarcar, onNovo, l
                             {ag.servico?.nome ? ` · ${ag.servico.nome}` : ''}{mostrarProf ? ` · ${ag.profissional!.nome.split(' ')[0]}` : ''}
                           </p>
                         )}
-                        {h >= 52 && (
-                          <span className={cfg.cls} style={{ fontSize: '9px', padding: '1px 6px', marginTop: '3px', display: 'inline-block' }}>
-                            {cfg.label}
-                          </span>
-                        )}
+                        {h >= 52 && (comandaAberta
+                          ? <span className="grade-ag-comanda">Comanda aberta</span>
+                          : (
+                            <span className={cfg.cls} style={{ fontSize: '9px', padding: '1px 6px', marginTop: '3px', display: 'inline-block' }}>
+                              {cfg.label}
+                            </span>
+                          ))}
                       </div>
                     )
                   })}
@@ -1114,6 +1125,12 @@ export default function Agenda() {
     setOcultarFinalizados(v => { gravarStorage(OCULTAR_KEY, v ? '0' : '1'); return !v })
   }
 
+  // Comanda aberta de um atendimento: continua/fecha na tela de Vendas.
+  function abrirComanda(comandaId: string) {
+    setAgAbertoId(null)
+    navigate(`/vendas?comanda=${comandaId}`)
+  }
+
   // Clique num horário vazio da grade: novo agendamento nesse dia e hora
   // (e, na visão por profissional, já com o profissional da coluna).
   function novoNoHorario(dia: string, hora: string, profissionalId?: string) {
@@ -1255,6 +1272,7 @@ export default function Agenda() {
               setFormDate={k => setForm(f => ({ ...f, data: k }))}
               onAbrir={setAgAbertoId}
               onGerarVenda={gerarVenda}
+              onAbrirComanda={abrirComanda}
               onLembrete={marcarLembrete}
             />
           )}
@@ -1307,6 +1325,7 @@ export default function Agenda() {
             onObservacaoSalva={texto => setAgenda(prev => prev.map(a => a.id === agAberto.id ? { ...a, observacoes: texto || undefined } : a))}
             onGerarVenda={() => gerarVenda(agAberto.id)}
             onVerVenda={comandaId => { setAgAbertoId(null); setVendaAbertaId(comandaId) }}
+            onAbrirComanda={abrirComanda}
             onLembrete={quando => marcarLembrete(agAberto.id, quando)}
           />
         )}

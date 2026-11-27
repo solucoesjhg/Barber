@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Plus, ShoppingCart } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Plus, Receipt, ShoppingCart } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
 import ModalFormulario, { Campo } from './ui/ModalFormulario'
@@ -34,6 +35,23 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
   const [clienteId, setClienteId] = useState<string | null>(ag.cliente_id ?? null)
   const [taxas, setTaxas] = useState<TaxasLoja>(TAXAS_VAZIAS)
   useEffect(() => { carregarTaxas().then(setTaxas) }, [])
+  const navigate = useNavigate()
+  // Comanda que ficou aberta para este atendimento ("Deixar aberta"): a venda
+  // tem que fechar ELA, senão ela sobra como aberta depois da venda.
+  const [comandaAberta, setComandaAberta] = useState<{ id: string; total: number; itens: string } | null>(null)
+  useEffect(() => {
+    supabase.from('comandas').select('id, itens:itens_comanda(nome, quantidade, preco_unitario)')
+      .eq('agendamento_id', ag.id).eq('status', 'aberta').limit(1).maybeSingle()
+      .then(({ data }) => {
+        if (!data) return
+        const itens = ((data as unknown as { itens: { nome: string; quantidade: number; preco_unitario: number }[] }).itens ?? [])
+        setComandaAberta({
+          id: (data as { id: string }).id,
+          total: itens.reduce((t, i) => t + Number(i.preco_unitario) * i.quantidade, 0),
+          itens: itens.map(i => `${i.quantidade > 1 ? `${i.quantidade}× ` : ''}${i.nome}`).join(', ') || 'sem itens',
+        })
+      })
+  }, [ag.id])
   const [semComissao, setSemComissao] = useState(false)
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
@@ -52,6 +70,7 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
   const semCaixa = ehErroSemCaixa(erro)
 
   async function registrar() {
+    if (comandaAberta) { setErro('Este atendimento já tem uma comanda aberta: feche por ela, para não ficar duplicado.'); return }
     if (!ag.servico || !ag.servico_id) {
       setErro('Este agendamento não tem serviço. Use "Adicionar produtos ou serviços" para montar a venda.')
       return
@@ -105,6 +124,17 @@ export default function VendaAgendamentoModal({ agendamento: ag, podeTirarComiss
       erro={semCaixa ? '' : erro}
       autoFocus={false}
     >
+      {comandaAberta && (
+        <div className="aviso-info" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
+          <span style={{ flex: 1, minWidth: '200px' }}>
+            <strong>Este atendimento já tem uma comanda aberta</strong> ({comandaAberta.itens} · {formatCurrency(comandaAberta.total)}).
+            Feche a venda por ela, para não ficar uma venda nova e a comanda sobrando aberta.
+          </span>
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => { onClose(); navigate(`/vendas?comanda=${comandaAberta.id}`) }} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <Receipt size={13} /> Abrir a comanda
+          </button>
+        </div>
+      )}
       <InfoGrade>
         <Info rotulo="Cliente">{ag.cliente?.nome ?? 'Sem cliente (Balcão)'}</Info>
         <Info rotulo="Horário">{quando}</Info>

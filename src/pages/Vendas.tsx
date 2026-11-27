@@ -185,9 +185,13 @@ export default function Vendas() {
     let ativo = true
     const limparUrl = () => setSearchParams({}, { replace: true })
     if (!podeVender) { limparUrl(); setError('Seu usuário não tem permissão para registrar vendas.'); return }
-    supabase.from('agendamentos').select('*, cliente:clientes(*), servico:servicos(*)').eq('id', agendamentoId).maybeSingle()
-      .then(({ data, error: err }) => {
+    Promise.all([
+      supabase.from('agendamentos').select('*, cliente:clientes(*), servico:servicos(*)').eq('id', agendamentoId).maybeSingle(),
+      supabase.from('comandas').select('id').eq('agendamento_id', agendamentoId).eq('status', 'aberta').limit(1).maybeSingle(),
+    ]).then(([{ data, error: err }, { data: aberta }]) => {
         if (!ativo) return
+        // O atendimento já tem comanda aberta: continua ela (não cria outra).
+        if (aberta) { setSearchParams({ comanda: (aberta as { id: string }).id }, { replace: true }); return }
         limparUrl()
         if (err || !data) { setError('Agendamento não encontrado.'); return }
         const ag = data as Agendamento
@@ -440,6 +444,20 @@ export default function Vendas() {
   const cobrado = totalCobrado(linhasPag, total, taxas)
   const temFiado = linhasPag.some(l => l.forma === 'fiado')
   const clienteDaVenda = clienteId ?? origemAgenda?.clienteId ?? null
+  // Venda nova de um cliente que já tem comanda aberta: avisa, para a venda
+  // fechar a comanda dele em vez de ficar uma venda nova e a comanda sobrando.
+  const nomeCliente = clienteNome.trim().toLowerCase()
+  const comandaDoCliente = !comandaAbertaId && !edicao
+    ? abertas.find(a => (clienteDaVenda && a.cliente_id === clienteDaVenda)
+      || (!clienteDaVenda && nomeCliente.length > 1 && (a.cliente_nome ?? '').trim().toLowerCase() === nomeCliente))
+    : undefined
+
+  // Junta o que já está no carrinho com os itens da comanda aberta do cliente.
+  function juntarComComanda(c: ComandaAberta) {
+    const atuais = cart
+    continuarComanda(c)
+    if (atuais.length) setCart(prev => [...prev, ...atuais])
+  }
 
   async function finalizarVenda() {
     if (saving) return
@@ -900,6 +918,16 @@ export default function Vendas() {
             </p>
           )}
           <ClienteBusca nome={clienteNome} clienteId={clienteDaVenda} onChange={(n, id) => { setClienteNome(n); setClienteId(id) }} />
+          {comandaDoCliente && (
+            <div className="aviso-info" style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '12px' }}>
+              <span style={{ flex: 1, minWidth: '160px' }}>
+                {comandaDoCliente.cliente_nome || 'Esse cliente'} tem uma comanda aberta ({formatCurrency((comandaDoCliente.itens_abertos ?? []).reduce((t, i) => t + Number(i.preco_unitario) * i.quantidade, 0))}).
+              </span>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => juntarComComanda(comandaDoCliente)} title="Continua a comanda aberta, somando os itens que já estão aqui">
+                Usar a comanda dele
+              </button>
+            </div>
+          )}
           {profissionais.length > 0 && (
             <div style={{ marginTop: '8px' }}>
               <CampoBusca
