@@ -20,6 +20,7 @@ import BotaoWhatsApp from '../components/agenda/BotaoWhatsApp'
 import CampoBusca from '../components/ui/CampoBusca'
 import { exibirTelefone } from '../lib/mascaras'
 import LembretesModal from '../components/agenda/LembretesModal'
+import ComandasAbertasAtalho from '../components/vendas/ComandasAbertasAtalho'
 import type { Agendamento, AgendamentoStatus, Cliente, Profissional, Servico } from '../types'
 
 /* ── Types ──────────────────────────────────────────────── */
@@ -1211,6 +1212,8 @@ export default function Agenda() {
               <MessageCircle size={13} /> Lembretes de amanhã
             </button>
           )}
+
+          {podeVender && <ComandasAbertasAtalho />}
 
           {podeEditar && (
             <button className="btn btn-secondary agenda-topo-btn agenda-topo-agendar" onClick={abrirNovo}>

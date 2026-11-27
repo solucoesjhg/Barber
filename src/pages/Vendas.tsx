@@ -94,7 +94,7 @@ export default function Vendas() {
     supabase.from('comandas')
       .select('*, itens_abertos:itens_comanda(id, tipo, referencia_id, nome, quantidade, preco_unitario, profissional_id)')
       .eq('status', 'aberta').order('created_at')
-      .then(({ data }) => setAbertas((data ?? []) as ComandaAberta[]))
+      .then(({ data }) => { setAbertas((data ?? []) as ComandaAberta[]); setAbertasCarregadas(true) })
   }, [])
   useEffect(() => { carregarAbertas() }, [carregarAbertas])
   useEffect(() => { carregarNomesUsuarios().then(setNomesUsuarios) }, [])
@@ -140,6 +140,7 @@ export default function Vendas() {
   // Cliente cadastrado ligado à venda (escolhido na busca ou vindo da agenda).
   const [clienteId, setClienteId] = useState<string | null>(null)
   const [abertas, setAbertas] = useState<ComandaAberta[]>([])
+  const [abertasCarregadas, setAbertasCarregadas] = useState(false)
   const [taxas, setTaxas] = useState<TaxasLoja>(TAXAS_VAZIAS)
   const [maisVendidos, setMaisVendidos] = useState<Record<string, number>>({})
   const [semComissao, setSemComissao] = useState(false)
@@ -207,6 +208,18 @@ export default function Vendas() {
       })
     return () => { ativo = false }
   }, [searchParams, setSearchParams, podeVender])
+
+  // Comanda aberta escolhida no atalho da Agenda (/vendas?comanda=<id>):
+  // abre direto para continuar. Espera as comandas e os serviços carregarem.
+  useEffect(() => {
+    const comandaId = searchParams.get('comanda')
+    if (!comandaId || !abertasCarregadas || servicos.length === 0) return
+    setSearchParams({}, { replace: true })
+    const c = abertas.find(x => x.id === comandaId)
+    if (!c) { setError('Essa comanda não está mais aberta (já foi fechada ou excluída).'); return }
+    continuarComanda(c)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, abertasCarregadas, abertas, servicos])
 
   const servicosFiltrados = useMemo(() =>
     servicos.filter(s => s.nome.toLowerCase().includes(search.toLowerCase())),

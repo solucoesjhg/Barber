@@ -1442,3 +1442,11 @@ fieldset:disabled .cfg-chave { cursor: default; opacity: .6; }
 /* Botões do topo da Agenda: mesma altura da troca de visão (36px), discretos. */
 .agenda-topo-btn { min-height: 36px; height: 36px; padding: 0 12px; gap: 6px; font-size: 13px; }
 .agenda-topo-agendar { color: var(--c-fff); border-color: var(--border-strong); font-weight: 600; }
+.comandas-qtd { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; font-size: 10px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center; background: rgba(var(--ink), .08); color: var(--c-66); }
+.comandas-qtd.tem { background: var(--cor-loja, var(--c-fff)); color: var(--cor-loja-texto, var(--surface)); }
+.comandas-lista { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.comanda-linha { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; background: none; border: none;
+  border-bottom: 1px solid var(--c-1a); cursor: pointer; font-family: inherit; color: var(--text); }
+.comanda-linha:last-child { border-bottom: none; }
+.comanda-linha:hover { background: rgba(var(--ink), .05); }
